@@ -28,10 +28,9 @@ HIST_DIR = DATA_DIR / "history"
 CACHE_FILE = ROOT / "cache" / "fundamentals.json"
 JST = dt.timezone(dt.timedelta(hours=9))
 
-JPX_LIST_URL = (
-    "https://www.jpx.co.jp/markets/statistics-equities/misc/"
-    "tvdivq0000001vg2-att/data_j.xls"
-)
+# 東証上場銘柄一覧のページ。ファイルのURLは変わることがあるので、毎回ページからリンクを探す
+JPX_LIST_PAGE = "https://www.jpx.co.jp/markets/statistics-equities/misc/01.html"
+UA = {"User-Agent": "Mozilla/5.0 (stock-ranking; +https://github.com/digirou-code/stock-ranking)"}
 # 対象市場 (カンマ区切りで上書き可)
 MARKETS = os.environ.get("MARKETS", "プライム,スタンダード,グロース").split(",")
 # 1回の実行で財務指標を取り直す銘柄数の上限 (Yahooのレート制限対策)
@@ -292,9 +291,26 @@ def compact(s):
 
 
 # ---------------------------------------------------------------- 実データ取得
+def jpx_list_url():
+    import re
+    from urllib.parse import urljoin
+    import requests
+    html = requests.get(JPX_LIST_PAGE, headers=UA, timeout=30).text
+    m = re.search(r'href="([^"]*data_j\.xlsx?)"', html)
+    if not m:
+        raise RuntimeError(f"銘柄一覧ファイルへのリンクが {JPX_LIST_PAGE} に見つかりません")
+    return urljoin(JPX_LIST_PAGE, m.group(1))
+
+
 def load_universe():
+    import io
     import pandas as pd
-    df = pd.read_excel(JPX_LIST_URL, dtype={"コード": str})
+    import requests
+    url = jpx_list_url()
+    print(f"universe: {url}")
+    res = requests.get(url, headers=UA, timeout=60)
+    res.raise_for_status()
+    df = pd.read_excel(io.BytesIO(res.content), dtype={"コード": str})
     df = df[df["市場・商品区分"].astype(str).apply(lambda m: any(x in m for x in MARKETS))]
     df = df[~df["市場・商品区分"].astype(str).str.contains("外国")]
     rows = []

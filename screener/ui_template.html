@@ -1,0 +1,385 @@
+<title>日次株ランキング</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+JP:wght@400;500;700&family=IBM+Plex+Mono:wght@400;500&family=Shippori+Mincho+B1:wght@600;800&display=swap">
+<style>
+/* Layout: 相場表のような台帳。上に「条件別トップ3」の早見、下に選んだスクリーニングの全順位表 */
+:root {
+  --bg: #f6f7f9;
+  --surface: #ffffff;
+  --ink: #18202c;
+  --muted: #5d6675;
+  --line: #dde1e8;
+  --line-soft: #eceff3;
+  --ai: #24477a;          /* 藍: アクセント */
+  --ai-soft: #e6ecf5;
+  --up: #c7322f;          /* 日本式: 上昇は赤 */
+  --down: #1f7a4d;        /* 下落は緑 */
+  --warn-bg: #fff4d6;
+  --warn-fg: #6b4a00;
+  --bar: #24477a;
+  --bar-track: #e6e9ef;
+  --font-display: "Shippori Mincho B1", "Hiragino Mincho ProN", "Yu Mincho", serif;
+  --font-body: "IBM Plex Sans JP", "Hiragino Sans", "Yu Gothic", "Meiryo", system-ui, sans-serif;
+  --font-data: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #11151c; --surface: #181d26; --ink: #e7eaf0; --muted: #98a1b0;
+    --line: #2b323e; --line-soft: #222833; --ai: #8fb0e3; --ai-soft: #1f2a3b;
+    --up: #ff7b72; --down: #4fc98a; --warn-bg: #3a3014; --warn-fg: #f1d48a;
+    --bar: #8fb0e3; --bar-track: #2a313c; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #11151c; --surface: #181d26; --ink: #e7eaf0; --muted: #98a1b0;
+  --line: #2b323e; --line-soft: #222833; --ai: #8fb0e3; --ai-soft: #1f2a3b;
+  --up: #ff7b72; --down: #4fc98a; --warn-bg: #3a3014; --warn-fg: #f1d48a;
+  --bar: #8fb0e3; --bar-track: #2a313c; color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body {
+  background: var(--bg); color: var(--ink); font-family: var(--font-body);
+  font-size: 14px; line-height: 1.55;
+}
+.wrap {
+  max-width: 1240px; margin: 0 auto;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 20px 48px;
+  display: grid; gap: 22px;
+}
+.wrap > *, .stack > * { min-width: 0; }
+.num, td.n, .mono { font-family: var(--font-data); font-variant-numeric: tabular-nums; }
+.up { color: var(--up); } .down { color: var(--down); } .flat { color: var(--muted); }
+
+/* ヘッダー */
+header.top { display: flex; flex-wrap: wrap; align-items: end; justify-content: space-between; gap: 12px 24px; }
+header.top h1 { font-family: var(--font-display); font-weight: 800; font-size: clamp(26px, 4vw, 34px); margin: 0; letter-spacing: .04em; text-wrap: balance; }
+header.top .sub { color: var(--muted); margin: 2px 0 0; }
+.meta { display: flex; flex-wrap: wrap; gap: 6px 18px; color: var(--muted); font-size: 13px; }
+.meta b { color: var(--ink); font-weight: 500; }
+.demo-banner { background: var(--warn-bg); color: var(--warn-fg); border-radius: 6px; padding: 10px 14px; font-size: 13px; }
+
+/* 条件別トップ3 */
+section h2 { font-family: var(--font-display); font-weight: 600; font-size: 19px; margin: 0 0 10px; letter-spacing: .03em; }
+.top3 { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1px; background: var(--line); border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
+.t3 { background: var(--surface); padding: 12px 14px; display: grid; gap: 6px; cursor: pointer; text-align: left; border: 0; font: inherit; color: inherit; }
+.t3:hover, .t3:focus-visible { background: var(--ai-soft); outline: none; }
+.t3 .h { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+.t3 .h strong { font-weight: 700; }
+.t3 .h span { color: var(--muted); font-size: 12px; }
+.t3 ol { margin: 0; padding: 0; list-style: none; display: grid; gap: 2px; }
+.t3 li { display: grid; grid-template-columns: 1.4em 1fr auto; gap: 6px; font-size: 13px; }
+.t3 li .rk { color: var(--muted); font-family: var(--font-data); }
+.t3 li .nm { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.t3 li .v { font-family: var(--font-data); font-variant-numeric: tabular-nums; color: var(--muted); }
+
+/* タブ */
+.tabs { display: flex; gap: 4px; overflow-x: auto; border-bottom: 1px solid var(--line); scrollbar-width: thin; }
+.tab { flex: none; border: 0; background: none; font: inherit; color: var(--muted); padding: 9px 14px; cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -1px; white-space: nowrap; }
+.tab:hover { color: var(--ink); }
+.tab[aria-selected="true"] { color: var(--ai); border-bottom-color: var(--ai); font-weight: 700; }
+.tab:focus-visible { outline: 2px solid var(--ai); outline-offset: -2px; }
+
+.screen-head { display: grid; gap: 8px; }
+.screen-head h3 { margin: 0; font-size: 20px; font-family: var(--font-display); font-weight: 800; }
+.screen-head p { margin: 0; color: var(--muted); }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.chip { font-size: 12px; padding: 2px 9px; border-radius: 99px; background: var(--ai-soft); color: var(--ai); }
+.chip.count { background: none; border: 1px solid var(--line); color: var(--muted); }
+
+.controls { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.controls input, .controls select { font: inherit; color: var(--ink); background: var(--surface); border: 1px solid var(--line); border-radius: 6px; padding: 6px 10px; min-width: 0; }
+.controls input { flex: 1 1 200px; max-width: 280px; }
+.controls input:focus-visible, .controls select:focus-visible { outline: 2px solid var(--ai); outline-offset: 1px; }
+.controls .shown { color: var(--muted); font-size: 13px; margin-left: auto; }
+
+/* 表 */
+.table-wrap { overflow-x: auto; background: var(--surface); border: 1px solid var(--line); border-radius: 8px; }
+table { border-collapse: collapse; width: 100%; min-width: 1060px; }
+th, td { padding: 8px 10px; border-bottom: 1px solid var(--line-soft); white-space: nowrap; }
+th { font-size: 12px; font-weight: 500; color: var(--muted); text-align: right; position: sticky; top: 0; background: var(--surface); letter-spacing: .02em; }
+th.l, td.l { text-align: left; }
+td.n { text-align: right; }
+th button { all: unset; cursor: pointer; }
+th button:focus-visible { outline: 2px solid var(--ai); }
+th[aria-sort="ascending"] button::after { content: " ▲"; font-size: 9px; }
+th[aria-sort="descending"] button::after { content: " ▼"; font-size: 9px; }
+tbody tr { cursor: pointer; }
+tbody tr:hover { background: var(--ai-soft); }
+tbody tr:focus-visible { outline: 2px solid var(--ai); outline-offset: -2px; }
+.rank { font-family: var(--font-data); font-weight: 500; font-size: 15px; }
+.mv { display: block; font-size: 11px; font-family: var(--font-data); }
+.mv.new { color: var(--ai); font-family: var(--font-body); font-weight: 700; }
+.name b { display: block; font-weight: 500; max-width: 15em; overflow: hidden; text-overflow: ellipsis; }
+.name small { color: var(--muted); font-size: 11.5px; }
+.score { display: grid; grid-template-columns: 3.2em auto; align-items: center; gap: 8px; }
+.score .big { font-family: var(--font-data); font-size: 16px; font-weight: 500; text-align: right; }
+.cats { display: grid; grid-template-columns: repeat(6, 7px); gap: 2px; align-items: end; height: 22px; }
+.cats i { display: block; background: var(--bar); border-radius: 1px; min-height: 2px; opacity: .85; }
+.cats i.na { background: var(--bar-track); height: 22px !important; }
+.r52 { display: inline-grid; grid-template-columns: 54px auto; gap: 6px; align-items: center; }
+.r52 .track { position: relative; height: 4px; background: var(--bar-track); border-radius: 2px; }
+.r52 .dot { position: absolute; top: -3px; width: 10px; height: 10px; border-radius: 50%; background: var(--ai); transform: translateX(-50%); }
+.na-txt { color: var(--muted); }
+.empty { padding: 28px; text-align: center; color: var(--muted); }
+
+/* 詳細 */
+dialog { border: 1px solid var(--line); border-radius: 10px; background: var(--surface); color: var(--ink); padding: 0; width: min(560px, calc(100vw - 32px)); max-height: calc(100% - 32px); }
+dialog::backdrop { background: rgb(10 14 22 / .45); }
+.dlg { padding: 20px; display: grid; gap: 16px; }
+.dlg header { display: flex; justify-content: space-between; gap: 12px; align-items: start; }
+.dlg h4 { margin: 0; font-size: 20px; font-family: var(--font-display); font-weight: 800; }
+.dlg .close { font: inherit; border: 1px solid var(--line); background: none; color: var(--ink); border-radius: 6px; padding: 4px 10px; cursor: pointer; }
+.kv { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 8px 14px; }
+.kv div { display: grid; }
+.kv span { font-size: 11.5px; color: var(--muted); }
+.kv b { font-family: var(--font-data); font-weight: 500; font-variant-numeric: tabular-nums; }
+.items { display: grid; gap: 6px; }
+.item { display: grid; grid-template-columns: 7.5em 3.2em 1fr 2.4em; gap: 8px; align-items: center; font-size: 13px; }
+.item .cat { font-size: 11px; color: var(--muted); }
+.item .track { display: block; height: 8px; background: var(--bar-track); border-radius: 4px; overflow: hidden; }
+.item .fill { display: block; height: 100%; background: var(--bar); }
+.item .pv { text-align: right; font-family: var(--font-data); font-variant-numeric: tabular-nums; }
+.dlg .links { display: flex; flex-wrap: wrap; gap: 12px; }
+.dlg .links a { color: var(--ai); }
+.note { color: var(--muted); font-size: 12px; margin: 0; }
+
+footer { color: var(--muted); font-size: 12px; display: grid; gap: 4px; border-top: 1px solid var(--line); padding-top: 14px; }
+footer p { margin: 0; max-width: 72ch; }
+
+@media (max-width: 820px) { .top3 { grid-template-columns: minmax(0, 1fr); } }
+@media (max-width: 640px) {
+  .controls .shown { margin-left: 0; width: 100%; }
+}
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+
+<div class="wrap">
+  <header class="top">
+    <div>
+      <h1>日次株ランキング</h1>
+      <p class="sub">複数のスクリーニングと総合SCOREで、毎営業日の注目銘柄を並べます</p>
+    </div>
+    <div class="meta" id="meta"></div>
+  </header>
+  <div class="demo-banner" id="demo" hidden>これはデモデータです。銘柄名・数値はすべて乱数で作った架空のもので、実在の企業とは関係ありません。実データでの日次更新を設定すると、ここに東証の銘柄が並びます。</div>
+
+  <section aria-labelledby="t3h">
+    <h2 id="t3h">今日の条件別トップ3</h2>
+    <div class="top3" id="top3"></div>
+  </section>
+
+  <section aria-labelledby="rk">
+    <h2 id="rk" hidden>ランキング</h2>
+    <div class="tabs" role="tablist" id="tabs"></div>
+    <div class="stack" style="display:grid; gap:14px; margin-top:16px">
+      <div class="screen-head" id="head"></div>
+      <div class="controls">
+        <input id="q" type="search" placeholder="銘柄名・コードで絞り込み" aria-label="銘柄名・コードで絞り込み">
+        <select id="sec" aria-label="業種"></select>
+        <select id="mkt" aria-label="市場"></select>
+        <span class="shown" id="shown"></span>
+      </div>
+      <div class="table-wrap"><table id="tbl"><thead></thead><tbody></tbody></table></div>
+    </div>
+  </section>
+
+  <footer>
+    <p>SCOREは定量11項目 (PER・PBR・配当利回り・ROE・営業利益率・売上成長率・利益成長率・負債資本倍率・3ヶ月騰落率・52週レンジ位置・売買代金) を対象銘柄内の順位で0〜100に換算し、平均したものです。欠損項目は中央値として扱います。</p>
+    <p>色は日本の相場表の慣習に合わせ、上昇を赤、下落を緑で表示しています。株価は基準日の終値、財務指標は直近の開示ベースで数日おきに更新されます。</p>
+    <p>このランキングは投資判断の材料であり、売買を推奨するものではありません。データの正確性は保証されません。</p>
+  </footer>
+</div>
+
+<dialog id="dlg" aria-labelledby="dlg-title"><div class="dlg" id="dlg-body"></div></dialog>
+
+<script>
+const EMBEDDED = /*__DATA__*/null;
+
+const COLS = [
+  { k: "r", label: "順位", cls: "l", sort: 1 },
+  { k: "n", label: "銘柄", cls: "l", sort: 1 },
+  { k: "score", label: "SCORE", sort: -1 },
+  { k: "p", label: "株価 / 前日比", sort: -1 },
+  { k: "mc", label: "時価総額", sort: -1 },
+  { k: "per", label: "PER", sort: 1 },
+  { k: "pbr", label: "PBR", sort: 1 },
+  { k: "dy", label: "配当", sort: -1 },
+  { k: "roe", label: "ROE", sort: -1 },
+  { k: "rg", label: "売上成長", sort: -1 },
+  { k: "pos52", label: "52週", sort: -1 },
+  { k: "r3m", label: "3ヶ月", sort: -1 },
+];
+// トップ3カードで各スクリーニングの決め手として見せる値
+const KEY_METRIC = { score: "score", dividend: "dy", div_pbr: "dy", low_per: "per", low_pbr: "pbr", high_roe: "roe", growth: "rg", small_growth: "rg", momentum: "r3m" };
+
+let D, cur, sortKey = "r", sortDir = 1;
+const $ = (id) => document.getElementById(id);
+const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+const has = (v) => v !== null && v !== undefined && !Number.isNaN(v);
+
+function fmt(k, v) {
+  if (!has(v)) return '<span class="na-txt">—</span>';
+  switch (k) {
+    case "score": return v.toFixed(1);
+    case "p": return v >= 1000 ? Math.round(v).toLocaleString("ja-JP") : v.toFixed(1);
+    case "mc": return v >= 10000 ? (v / 10000).toFixed(1) + "兆" : Math.round(v).toLocaleString("ja-JP") + "億";
+    case "per": return v <= 0 ? '<span class="na-txt">赤字</span>' : v.toFixed(1) + "倍";
+    case "pbr": return v.toFixed(2) + "倍";
+    case "de": case "pos52": return Math.round(v) + "%";
+    case "to": return v.toFixed(1) + "億";
+    case "dy": case "roe": case "opm": return v.toFixed(1) + "%";
+    case "rg": case "eg": case "r3m": case "r6m": case "chg": return signed(v);
+    default: return String(v);
+  }
+}
+function signed(v) {
+  const c = v > 0.05 ? "up" : v < -0.05 ? "down" : "flat";
+  return `<span class="${c}">${v > 0 ? "+" : ""}${v.toFixed(1)}%</span>`;
+}
+function move(r, pr) {
+  if (!D.prev_asof) return "";
+  if (pr == null) return '<span class="mv new">NEW</span>';
+  const d = pr - r;
+  if (d === 0) return '<span class="mv flat">→</span>';
+  return d > 0 ? `<span class="mv up">↑${d}</span>` : `<span class="mv down">↓${-d}</span>`;
+}
+
+async function load() {
+  if (EMBEDDED) return EMBEDDED;
+  const res = await fetch("data/latest.json", { cache: "no-cache" });
+  if (!res.ok) throw new Error(res.status);
+  return res.json();
+}
+
+function renderMeta() {
+  $("meta").innerHTML = `
+    <span>株価基準日 <b class="mono">${esc(D.asof)}</b></span>
+    <span>比較 <b class="mono">${esc(D.prev_asof || "—")}</b></span>
+    <span>対象 <b class="mono">${D.universe.toLocaleString("ja-JP")}</b>銘柄 (SCORE算出 <b class="mono">${D.scored.toLocaleString("ja-JP")}</b>)</span>
+    <span>更新 <b class="mono">${esc(D.generated_at.replace("T", " ").slice(0, 16))}</b></span>`;
+  $("demo").hidden = !D.demo;
+}
+
+function renderTop3() {
+  $("top3").innerHTML = D.screens.map((sc) => {
+    const km = KEY_METRIC[sc.id] || "score";
+    const items = sc.rows.slice(0, 3).map((row) => {
+      const s = D.stocks[row.c];
+      return `<li><span class="rk">${row.r}</span><span class="nm">${esc(s.n)}</span><span class="v">${fmt(km, s[km])}</span></li>`;
+    }).join("") || '<li><span></span><span class="nm na-txt">該当なし</span></li>';
+    return `<button class="t3" data-id="${sc.id}"><div class="h"><strong>${esc(sc.name)}</strong><span>${sc.hits}件該当</span></div><ol>${items}</ol></button>`;
+  }).join("");
+  $("top3").querySelectorAll(".t3").forEach((b) => b.addEventListener("click", () => {
+    location.hash = b.dataset.id;
+    $("tabs").scrollIntoView({ behavior: "smooth", block: "start" });
+  }));
+}
+
+function renderTabs() {
+  $("tabs").innerHTML = D.screens.map((sc) =>
+    `<button class="tab" role="tab" id="tab-${sc.id}" data-id="${sc.id}" aria-selected="${sc.id === cur.id}">${esc(sc.name)}</button>`).join("");
+  $("tabs").querySelectorAll(".tab").forEach((b) => b.addEventListener("click", () => { location.hash = b.dataset.id; }));
+}
+
+function renderHead() {
+  $("head").innerHTML = `<h3>${esc(cur.name)}ランキング</h3><p>${esc(cur.desc)}</p>
+    <div class="chips">${cur.cond.map((c) => `<span class="chip">${esc(c)}</span>`).join("")}
+    <span class="chip count">該当 ${cur.hits}件 / 上位${cur.rows.length}件を表示</span></div>`;
+}
+
+function fillFilters() {
+  const secs = new Set(), mkts = new Set();
+  Object.values(D.stocks).forEach((s) => { if (s.sec) secs.add(s.sec); if (s.mkt) mkts.add(s.mkt); });
+  $("sec").innerHTML = '<option value="">すべての業種</option>' + [...secs].sort((a, b) => a.localeCompare(b, "ja")).map((s) => `<option>${esc(s)}</option>`).join("");
+  $("mkt").innerHTML = '<option value="">すべての市場</option>' + [...mkts].sort().map((s) => `<option>${esc(s)}</option>`).join("");
+}
+
+function renderTable() {
+  const q = $("q").value.trim().toLowerCase(), sec = $("sec").value, mkt = $("mkt").value;
+  let rows = cur.rows.map((row) => ({ ...D.stocks[row.c], r: row.r, pr: row.pr }));
+  rows = rows.filter((s) => (!q || s.n.toLowerCase().includes(q) || s.c.toLowerCase().includes(q)) && (!sec || s.sec === sec) && (!mkt || s.mkt === mkt));
+  rows.sort((a, b) => {
+    let x = a[sortKey], y = b[sortKey];
+    if (sortKey === "n") return x.localeCompare(y, "ja") * sortDir;
+    if (sortKey === "per") { x = x > 0 ? x : null; y = y > 0 ? y : null; }
+    if (!has(x)) return 1; if (!has(y)) return -1;
+    return (x - y) * sortDir;
+  });
+  $("shown").textContent = `${rows.length}件を表示中`;
+
+  $("tbl").tHead.innerHTML = "<tr>" + COLS.map((c) => {
+    const s = sortKey === c.k ? (sortDir > 0 ? "ascending" : "descending") : "none";
+    return `<th class="${c.cls || ""}" aria-sort="${s}"><button data-k="${c.k}">${c.label}</button></th>`;
+  }).join("") + "</tr>";
+  $("tbl").tHead.querySelectorAll("button").forEach((b) => b.addEventListener("click", () => {
+    const c = COLS.find((x) => x.k === b.dataset.k);
+    if (sortKey === c.k) sortDir = -sortDir; else { sortKey = c.k; sortDir = c.sort; }
+    renderTable();
+  }));
+
+  const catKeys = Object.keys(D.categories);
+  $("tbl").tBodies[0].innerHTML = rows.length ? rows.map((s) => `
+    <tr tabindex="0" data-c="${esc(s.c)}">
+      <td class="l"><span class="rank">${s.r}</span>${move(s.r, s.pr)}</td>
+      <td class="l name"><b>${esc(s.n)}</b><small>${esc(s.c)} · ${esc(s.sec)} · ${esc(s.mkt)}</small></td>
+      <td class="n"><div class="score"><span class="big">${fmt("score", s.score)}</span>
+        <span class="cats" title="${catKeys.map((k) => D.categories[k] + " " + (s.sub[k] ?? "—")).join(" / ")}">${catKeys.map((k) => has(s.sub[k]) ? `<i style="height:${Math.max(2, s.sub[k] * 0.22)}px"></i>` : '<i class="na"></i>').join("")}</span></div></td>
+      <td class="n">${fmt("p", s.p)}<span class="mv">${has(s.chg) ? signed(s.chg) : ""}</span></td>
+      <td class="n">${fmt("mc", s.mc)}</td>
+      <td class="n">${fmt("per", s.per)}</td>
+      <td class="n">${fmt("pbr", s.pbr)}</td>
+      <td class="n">${fmt("dy", s.dy)}</td>
+      <td class="n">${fmt("roe", s.roe)}</td>
+      <td class="n">${fmt("rg", s.rg)}</td>
+      <td class="n">${has(s.pos52) ? `<span class="r52"><span class="track"><span class="dot" style="left:${s.pos52}%"></span></span><span>${Math.round(s.pos52)}%</span></span>` : fmt("pos52", null)}</td>
+      <td class="n">${fmt("r3m", s.r3m)}</td>
+    </tr>`).join("") : `<tr><td colspan="${COLS.length}" class="empty">条件に合う銘柄がありません。絞り込みを外してください。</td></tr>`;
+}
+
+function openDetail(code) {
+  const s = D.stocks[code];
+  const ranks = D.screens.map((sc) => { const r = sc.rows.find((x) => x.c === code); return r ? `${sc.name} ${r.r}位` : null; }).filter(Boolean);
+  const kv = [["株価", fmt("p", s.p) + "円"], ["前日比", fmt("chg", s.chg)], ["時価総額", fmt("mc", s.mc) + "円"], ["売買代金(20日平均)", fmt("to", s.to) + "円"],
+    ["PER", fmt("per", s.per)], ["PBR", fmt("pbr", s.pbr)], ["配当利回り", fmt("dy", s.dy)], ["ROE", fmt("roe", s.roe)],
+    ["営業利益率", fmt("opm", s.opm)], ["売上成長率", fmt("rg", s.rg)], ["利益成長率", fmt("eg", s.eg)], ["負債資本倍率", fmt("de", s.de)],
+    ["3ヶ月騰落", fmt("r3m", s.r3m)], ["6ヶ月騰落", fmt("r6m", s.r6m)], ["52週レンジ位置", fmt("pos52", s.pos52)]];
+  const real = /^\d{3}[0-9A-Z]$/.test(s.c);
+  $("dlg-body").innerHTML = `
+    <header><div><h4 id="dlg-title">${esc(s.n)}</h4><p class="note">${esc(s.c)} · ${esc(s.sec)} · ${esc(s.mkt)}</p></div>
+      <button class="close" id="dlg-close">閉じる</button></header>
+    <div class="kv">${kv.map(([k, v]) => `<div><span>${k}</span><b>${v}</b></div>`).join("")}</div>
+    <div><h2 style="font-size:16px">SCORE ${fmt("score", s.score)} の内訳</h2>
+      <div class="items">${D.items.map((it) => {
+        const p = s.items[it.k];
+        return `<div class="item"><span>${it.label}</span><span class="cat">${D.categories[it.cat]}</span><span class="track"><span class="fill" style="width:${p ?? 0}%"></span></span><span class="pv">${p ?? "—"}</span></div>`;
+      }).join("")}</div>
+      <p class="note" style="margin-top:8px">数値は対象銘柄の中での順位 (100が最良)。PER・PBR・負債資本倍率は低いほど高評価です。</p></div>
+    ${ranks.length ? `<p class="note">ランクイン: ${ranks.map(esc).join(" / ")}</p>` : ""}
+    ${real ? `<div class="links"><a href="https://finance.yahoo.co.jp/quote/${esc(s.c)}.T" target="_blank" rel="noopener">Yahoo!ファイナンス</a><a href="https://kabutan.jp/stock/?code=${esc(s.c)}" target="_blank" rel="noopener">株探</a><a href="https://irbank.net/${esc(s.c)}" target="_blank" rel="noopener">IR BANK</a></div>` : ""}`;
+  $("dlg-close").addEventListener("click", () => $("dlg").close());
+  $("dlg").showModal();
+}
+
+function route() {
+  const id = location.hash.slice(1);
+  cur = D.screens.find((s) => s.id === id) || D.screens[0];
+  sortKey = "r"; sortDir = 1;
+  renderTabs(); renderHead(); renderTable();
+}
+
+load().then((data) => {
+  D = data;
+  renderMeta(); renderTop3(); fillFilters(); route();
+  window.addEventListener("hashchange", route);
+  ["q", "sec", "mkt"].forEach((id) => $(id).addEventListener("input", renderTable));
+  $("tbl").tBodies[0].addEventListener("click", (e) => { const tr = e.target.closest("tr[data-c]"); if (tr) openDetail(tr.dataset.c); });
+  $("tbl").tBodies[0].addEventListener("keydown", (e) => { const tr = e.target.closest("tr[data-c]"); if (tr && (e.key === "Enter" || e.key === " ")) { e.preventDefault(); openDetail(tr.dataset.c); } });
+  $("dlg").addEventListener("click", (e) => { if (e.target === $("dlg")) $("dlg").close(); });
+}).catch((err) => {
+  document.querySelector(".wrap").insertAdjacentHTML("beforeend", `<div class="demo-banner">データを読み込めませんでした (${esc(err.message)})。data/latest.json があるか確認してください。</div>`);
+});
+</script>

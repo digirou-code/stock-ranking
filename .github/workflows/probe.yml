@@ -8,28 +8,31 @@ jobs:
     steps:
       - uses: actions/setup-python@v6
         with: { python-version: "3.12" }
-      - run: pip install -q yfinance requests pandas xlrd openpyxl
+      - run: pip install -q requests pandas xlrd openpyxl
       - shell: python
         run: |
-          import re, requests, yfinance as yf, io, pandas as pd
+          import re, requests, io, pandas as pd
+          pd.set_option("display.width",250); pd.set_option("display.max_columns",20); pd.set_option("display.max_colwidth",30)
           UA={"User-Agent":"Mozilla/5.0"}
-          for page in ["https://www.jpx.co.jp/markets/statistics-equities/margin/05.html",
-                       "https://www.jpx.co.jp/markets/statistics-equities/margin/index.html"]:
+          J="https://www.jpx.co.jp"
+          def links(page, pat):
               h=requests.get(page,headers=UA,timeout=30).text
-              print("PAGE",page,len(h))
-              for m in re.findall(r'href="([^"]+\.(?:xls|xlsx|csv|pdf|zip))"',h)[:15]: print("  ",m)
-          h=requests.get("https://www.jpx.co.jp/markets/statistics-equities/margin/05.html",headers=UA,timeout=30).text
-          links=re.findall(r'href="([^"]+\.(?:xls|xlsx|csv))"',h)
-          if links:
-              u="https://www.jpx.co.jp"+links[0] if links[0].startswith("/") else links[0]
+              out=re.findall(r'href="([^"]*'+pat+r')"',h)
+              print("PAGE",page,len(h),len(out)); [print("  ",x) for x in out[:12]]
+              return out
+          def show(u, **kw):
+              u=J+u if u.startswith("/") else u
               b=requests.get(u,headers=UA,timeout=60).content
               print("FILE",u,len(b))
-              try:
-                  df=pd.read_excel(io.BytesIO(b),header=None)
-                  print(df.head(15).to_string()); print(df.shape)
-              except Exception as e: print("read err",e); print(b[:500])
-          for t in ["7177.T","8591.T","3441.T"]:
-              tk=yf.Ticker(t); i=tk.info
-              print(t,{k:i.get(k) for k in ["earningsTimestamp","earningsTimestampStart","earningsTimestampEnd","isEarningsDateEstimate","sector","industry","sharesShort","shortRatio"]})
-              try: print("  calendar",tk.calendar)
-              except Exception as e: print("  cal err",e)
+              df=pd.read_excel(io.BytesIO(b),header=None, **kw)
+              print(df.head(14).to_string()); print(df.shape)
+          for p in ["/markets/statistics-equities/margin/index.html","/markets/statistics-equities/margin/04.html","/markets/statistics-equities/margin/06.html","/markets/statistics-equities/margin/07.html"]:
+              try: links(J+p, r'\.(?:xls|xlsx|csv|zip)')
+              except Exception as e: print(p,e)
+          h=requests.get(J+"/markets/statistics-equities/margin/index.html",headers=UA,timeout=30).text
+          for m in re.findall(r'href="([^"]+\.html)"[^>]*>([^<]{2,40})<',h):
+              if "margin" in m[0]: print("NAV",m)
+          ea=links(J+"/listing/event-schedules/financial-announcement/index.html", r'\.(?:xls|xlsx)')
+          if ea: show(ea[0])
+          mt=[x for x in links(J+"/markets/statistics-equities/margin/index.html", r'\.(?:xls|xlsx|csv)') if "syumatsu" in x]
+          if mt: show(mt[0])

@@ -1,0 +1,35 @@
+name: probe
+on:
+  push:
+    branches: [probe]
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/setup-python@v6
+        with: { python-version: "3.12" }
+      - run: pip install -q yfinance requests pandas xlrd openpyxl
+      - shell: python
+        run: |
+          import re, requests, yfinance as yf, io, pandas as pd
+          UA={"User-Agent":"Mozilla/5.0"}
+          for page in ["https://www.jpx.co.jp/markets/statistics-equities/margin/05.html",
+                       "https://www.jpx.co.jp/markets/statistics-equities/margin/index.html"]:
+              h=requests.get(page,headers=UA,timeout=30).text
+              print("PAGE",page,len(h))
+              for m in re.findall(r'href="([^"]+\.(?:xls|xlsx|csv|pdf|zip))"',h)[:15]: print("  ",m)
+          h=requests.get("https://www.jpx.co.jp/markets/statistics-equities/margin/05.html",headers=UA,timeout=30).text
+          links=re.findall(r'href="([^"]+\.(?:xls|xlsx|csv))"',h)
+          if links:
+              u="https://www.jpx.co.jp"+links[0] if links[0].startswith("/") else links[0]
+              b=requests.get(u,headers=UA,timeout=60).content
+              print("FILE",u,len(b))
+              try:
+                  df=pd.read_excel(io.BytesIO(b),header=None)
+                  print(df.head(15).to_string()); print(df.shape)
+              except Exception as e: print("read err",e); print(b[:500])
+          for t in ["7177.T","8591.T","3441.T"]:
+              tk=yf.Ticker(t); i=tk.info
+              print(t,{k:i.get(k) for k in ["earningsTimestamp","earningsTimestampStart","earningsTimestampEnd","isEarningsDateEstimate","sector","industry","sharesShort","shortRatio"]})
+              try: print("  calendar",tk.calendar)
+              except Exception as e: print("  cal err",e)

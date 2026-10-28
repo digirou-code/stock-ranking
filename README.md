@@ -40,7 +40,7 @@ PER・PBR・負債資本倍率は低いほど高評価、赤字(負のPER)は最
 2. Settings → Pages で「Deploy from a branch」、ブランチ `main` / フォルダ `/docs` を選ぶ
 3. Actions タブで `daily-ranking` を一度手動実行する (初回は30〜60分ほどかかります)
 
-財務指標は Yahoo のレート制限を避けるため1回あたり最大700銘柄ずつ取り直し、
+財務指標は Yahoo のレート制限を避けるため1回あたり最大4000銘柄 (実質全銘柄) を取り直し、
 7日より古いものから順に更新します (`FUND_REFRESH_PER_RUN`, `FUND_MAX_AGE_DAYS` で調整)。
 初回から数日は財務指標のない銘柄があり、SCOREの対象数が少なめになります。
 

@@ -34,7 +34,7 @@ UA = {"User-Agent": "Mozilla/5.0 (stock-ranking; +https://github.com/digirou-cod
 # 対象市場 (カンマ区切りで上書き可)
 MARKETS = os.environ.get("MARKETS", "プライム,スタンダード,グロース").split(",")
 # 1回の実行で財務指標を取り直す銘柄数の上限 (Yahooのレート制限対策)
-FUND_REFRESH_PER_RUN = int(os.environ.get("FUND_REFRESH_PER_RUN", "700"))
+FUND_REFRESH_PER_RUN = int(os.environ.get("FUND_REFRESH_PER_RUN", "4000"))
 FUND_MAX_AGE_DAYS = int(os.environ.get("FUND_MAX_AGE_DAYS", "7"))
 TOP_N = 50
 

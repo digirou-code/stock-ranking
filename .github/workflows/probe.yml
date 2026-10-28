@@ -26,13 +26,10 @@ jobs:
               print("FILE",u,len(b))
               df=pd.read_excel(io.BytesIO(b),header=None, **kw)
               print(df.head(14).to_string()); print(df.shape)
-          for p in ["/markets/statistics-equities/margin/index.html","/markets/statistics-equities/margin/04.html","/markets/statistics-equities/margin/06.html","/markets/statistics-equities/margin/07.html"]:
-              try: links(J+p, r'\.(?:xls|xlsx|csv|zip)')
-              except Exception as e: print(p,e)
-          h=requests.get(J+"/markets/statistics-equities/margin/index.html",headers=UA,timeout=30).text
-          for m in re.findall(r'href="([^"]+\.html)"[^>]*>([^<]{2,40})<',h):
-              if "margin" in m[0]: print("NAV",m)
-          ea=links(J+"/listing/event-schedules/financial-announcement/index.html", r'\.(?:xls|xlsx)')
-          if ea: show(ea[0])
-          mt=[x for x in links(J+"/markets/statistics-equities/margin/index.html", r'\.(?:xls|xlsx|csv)') if "syumatsu" in x]
-          if mt: show(mt[0])
+          l=links(J+"/markets/statistics-equities/margin/01.html", r'\.(?:xls|xlsx|csv|zip|pdf)')
+          x=[u for u in l if not u.endswith(".pdf")]
+          if x:
+              u=J+x[0]; b=requests.get(u,headers=UA,timeout=60).content; print("FILE",u,len(b),b[:4])
+              if u.endswith(".csv"): print(b[:1500].decode("cp932","replace"))
+              else:
+                  df=pd.read_excel(io.BytesIO(b),header=None); print(df.head(14).to_string()); print(df.shape)

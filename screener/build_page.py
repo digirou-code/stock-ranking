@@ -21,6 +21,9 @@ tpl = TEMPLATE.read_text(encoding="utf-8")
 if args.embed:
     data = (ROOT / "docs" / "data" / "latest.json").read_text(encoding="utf-8")
     data = data.replace("</", "<\\/")
-    Path(args.embed).write_text(tpl.replace("/*__DATA__*/null", data), encoding="utf-8")
+    hold = ROOT / "docs" / "data" / "holdings.json"
+    hold = hold.read_text(encoding="utf-8").replace("</", "<\\/") if hold.exists() else "null"
+    tpl = tpl.replace("/*__DATA__*/null", data).replace("/*__HOLDINGS__*/null", hold)
+    Path(args.embed).write_text(tpl, encoding="utf-8")
 else:
     (ROOT / "docs" / "index.html").write_text(HEAD + tpl + "</body></html>", encoding="utf-8")

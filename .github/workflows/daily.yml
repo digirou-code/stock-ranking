@@ -4,6 +4,12 @@ on:
   schedule:
     - cron: "30 7 * * 1-5"   # 平日 16:30 JST (大引け後)
   workflow_dispatch:
+  push:
+    paths: ["holdings.csv"]   # 保有銘柄を更新したらすぐ反映
+
+concurrency:
+  group: daily-ranking
+  cancel-in-progress: false
 
 permissions:
   contents: write
@@ -27,4 +33,5 @@ jobs:
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add docs cache
           git diff --cached --quiet || git commit -m "daily ranking $(TZ=Asia/Tokyo date +%F)"
+          git pull --rebase origin main
           git push

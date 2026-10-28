@@ -22,6 +22,9 @@ import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
 
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import holdings as hd  # noqa: E402
+
 ROOT = Path(__file__).resolve().parent.parent
 DATA_DIR = ROOT / "docs" / "data"
 HIST_DIR = DATA_DIR / "history"
@@ -276,11 +279,13 @@ def write_output(stocks, asof: str, demo: bool, universe: int):
         p.unlink()
     print(f"wrote {asof}: universe={universe} scored={out['scored']} "
           + " ".join(f"{s['id']}={s['hits']}" for s in screens))
+    return screens
 
 
 def compact(s):
     keys = ["c", "n", "sec", "mkt", "p", "chg", "mc", "per", "pbr", "dy", "roe",
-            "opm", "rg", "eg", "de", "r3m", "r6m", "pos52", "to", "score", "sub", "items"]
+            "opm", "rg", "eg", "de", "r3m", "r6m", "pos52", "to", "score", "sub", "items",
+            "stage"]
     out = {}
     for k in keys:
         v = s.get(k)
@@ -311,6 +316,10 @@ def load_universe():
     res = requests.get(url, headers=UA, timeout=60)
     res.raise_for_status()
     df = pd.read_excel(io.BytesIO(res.content), dtype={"コード": str})
+    every = {str(r["コード"]).strip(): {"n": str(r["銘柄名"]).strip(),
+                                    "sec": str(r["33業種区分"]).strip().replace("-", "") or "ETF等",
+                                    "mkt": str(r["市場・商品区分"]).replace("（内国株式）", "").strip()}
+             for _, r in df.iterrows()}
     df = df[df["市場・商品区分"].astype(str).apply(lambda m: any(x in m for x in MARKETS))]
     df = df[~df["市場・商品区分"].astype(str).str.contains("外国")]
     rows = []
@@ -321,7 +330,7 @@ def load_universe():
             "sec": str(r["33業種区分"]).strip(),
             "mkt": str(r["市場・商品区分"]).replace("（内国株式）", "").strip(),
         })
-    return rows
+    return rows, every
 
 
 def fetch_prices(codes):
@@ -345,12 +354,14 @@ def fetch_prices(codes):
             hi, lo = float(h["High"].max()), float(h["Low"].min())
             def ret(n):
                 return (last / float(close.iloc[-n - 1]) - 1) * 100 if len(close) > n else None
+            pos52 = (last - lo) / (hi - lo) * 100 if hi > lo else None
             out[t[:-2]] = {
+                "stage": hd.stage_of(close, pos52),
                 "p": last,
                 "chg": ret(1),
                 "r3m": ret(63),
                 "r6m": ret(126),
-                "pos52": (last - lo) / (hi - lo) * 100 if hi > lo else None,
+                "pos52": pos52,
                 "to": float((h["Close"] * h["Volume"]).tail(20).mean()) / 1e8,  # 億円
                 "date": h.index[-1].strftime("%Y-%m-%d"),
             }
@@ -375,6 +386,7 @@ def fetch_fundamental(code):
                 "de": info.get("debtToEquity"),
                 "shares": info.get("sharesOutstanding"),
                 "mc_raw": info.get("marketCap"),
+                "earn_ts": info.get("earningsTimestamp") or info.get("earningsTimestampStart"),
                 "ts": time.time(),
             }
         except Exception as e:  # レート制限など
@@ -403,19 +415,20 @@ def refresh_fundamentals(codes):
 
 
 def build_real():
-    universe = load_universe()
+    universe, every = load_universe()
+    holdings, funds = hd.load_holdings()
     codes = [u["c"] for u in universe]
-    prices = fetch_prices(codes)
-    funds = refresh_fundamentals([c for c in codes if c in prices])
-    stocks, dates = [], []
-    for u in universe:
+    extra = [h["c"] for h in holdings if h["c"] not in set(codes)]  # ETFなど対象市場外の保有銘柄
+    prices = fetch_prices(codes + extra)
+    funds_cache = refresh_fundamentals([c for c in codes + extra if c in prices])
+    stocks, dates, by_code = [], [], {}
+    for u in universe + [{"c": c, **every.get(c, {"n": c, "sec": "", "mkt": ""})} for c in extra]:
         pr = prices.get(u["c"])
         if not pr:
             continue
-        f = funds.get(u["c"], {})
+        f = funds_cache.get(u["c"], {})
         s = {**u, **{k: v for k, v in pr.items() if k != "date"}}
-        dates.append(pr["date"])
-        for k in ("per", "pbr", "roe", "opm", "rg", "eg", "de"):
+        for k in ("per", "pbr", "roe", "opm", "rg", "eg", "de", "earn_ts"):
             s[k] = f.get(k)
         if ok(f.get("div_rate")) and s["p"]:
             s["dy"] = f["div_rate"] / s["p"] * 100
@@ -423,9 +436,26 @@ def build_real():
             s["mc"] = f["shares"] * s["p"] / 1e8
         elif ok(f.get("mc_raw")):
             s["mc"] = f["mc_raw"] / 1e8
+        by_code[s["c"]] = s
+        if u["c"] in extra:
+            continue  # スコアリング対象には含めない
         stocks.append(s)
+        dates.append(pr["date"])
     asof = max(set(dates), key=dates.count)  # 最も多い株価基準日
-    write_output(stocks, asof, demo=False, universe=len(universe))
+    screens = write_output(stocks, asof, demo=False, universe=len(universe))
+    if holdings:
+        hcodes = [h["c"] for h in holdings]
+        try:
+            earnings = hd.load_earnings_schedule()
+        except Exception as e:
+            print(f"earnings schedule failed: {e}")
+            earnings = {}
+        try:
+            margin, margin_date = hd.load_margin(hcodes)
+        except Exception as e:
+            print(f"margin failed: {e}")
+            margin, margin_date = {}, None
+        hd.write_holdings(holdings, funds, by_code, screens, asof, earnings, margin, margin_date)
 
 
 # ---------------------------------------------------------------- デモデータ

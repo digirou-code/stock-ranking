@@ -20,6 +20,10 @@
   --warn-fg: #6b4a00;
   --bar: #24477a;
   --bar-track: #e6e9ef;
+  --st1-bg: #eef0f3; --st1-fg: #4b5563;  /* 底固め */
+  --st2-bg: #fde4e2; --st2-fg: #a32522;  /* 上昇 (赤) */
+  --st3-bg: #fdf0d5; --st3-fg: #7a5200;  /* 天井圏 */
+  --st4-bg: #dcf1e6; --st4-fg: #17603b;  /* 下降 (緑) */
   --font-display: "Shippori Mincho B1", "Hiragino Mincho ProN", "Yu Mincho", serif;
   --font-body: "IBM Plex Sans JP", "Hiragino Sans", "Yu Gothic", "Meiryo", system-ui, sans-serif;
   --font-data: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
@@ -29,14 +33,14 @@
     --bg: #11151c; --surface: #181d26; --ink: #e7eaf0; --muted: #98a1b0;
     --line: #2b323e; --line-soft: #222833; --ai: #8fb0e3; --ai-soft: #1f2a3b;
     --up: #ff7b72; --down: #4fc98a; --warn-bg: #3a3014; --warn-fg: #f1d48a;
-    --bar: #8fb0e3; --bar-track: #2a313c; color-scheme: dark;
+    --bar: #8fb0e3; --bar-track: #2a313c; --st1-bg: #262c36; --st1-fg: #b5bdc9; --st2-bg: #3b1f1f; --st2-fg: #ff9b93; --st3-bg: #3a3014; --st3-fg: #f1d48a; --st4-bg: #15301f; --st4-fg: #6fd6a0; color-scheme: dark;
   }
 }
 :root[data-theme="dark"] {
   --bg: #11151c; --surface: #181d26; --ink: #e7eaf0; --muted: #98a1b0;
   --line: #2b323e; --line-soft: #222833; --ai: #8fb0e3; --ai-soft: #1f2a3b;
   --up: #ff7b72; --down: #4fc98a; --warn-bg: #3a3014; --warn-fg: #f1d48a;
-  --bar: #8fb0e3; --bar-track: #2a313c; color-scheme: dark;
+  --bar: #8fb0e3; --bar-track: #2a313c; --st1-bg: #262c36; --st1-fg: #b5bdc9; --st2-bg: #3b1f1f; --st2-fg: #ff9b93; --st3-bg: #3a3014; --st3-fg: #f1d48a; --st4-bg: #15301f; --st4-fg: #6fd6a0; color-scheme: dark;
 }
 * { box-sizing: border-box; }
 body {
@@ -154,6 +158,30 @@ footer p { margin: 0; max-width: 72ch; }
 @media (max-width: 640px) {
   .controls .shown { margin-left: 0; width: 100%; }
 }
+/* ページ切替 */
+.nav { display: flex; gap: 6px; }
+.nav a { color: var(--muted); text-decoration: none; padding: 5px 12px; border-radius: 99px; border: 1px solid var(--line); font-size: 13px; }
+.nav a[aria-current="page"] { background: var(--ai); border-color: var(--ai); color: var(--surface); font-weight: 700; }
+.nav a:focus-visible { outline: 2px solid var(--ai); outline-offset: 2px; }
+
+/* 保有銘柄 */
+.hsum { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 1px; background: var(--line); border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
+.hsum div { background: var(--surface); padding: 12px 14px; display: grid; gap: 2px; }
+.hsum span { font-size: 12px; color: var(--muted); }
+.hsum b { font-family: var(--font-data); font-weight: 500; font-size: 20px; font-variant-numeric: tabular-nums; }
+.hsum small { color: var(--muted); font-size: 12px; }
+.pill { display: inline-block; font-size: 12px; padding: 1px 9px; border-radius: 99px; font-weight: 500; white-space: nowrap; }
+.st1 { background: var(--st1-bg); color: var(--st1-fg); }
+.st2 { background: var(--st2-bg); color: var(--st2-fg); }
+.st3 { background: var(--st3-bg); color: var(--st3-fg); }
+.st4 { background: var(--st4-bg); color: var(--st4-fg); }
+.soon { color: var(--up); font-weight: 700; }
+.acct { font-size: 11px; color: var(--muted); border: 1px solid var(--line); border-radius: 4px; padding: 0 5px; margin-left: 6px; }
+.rk-list { display: flex; flex-wrap: wrap; gap: 4px; max-width: 16em; white-space: normal; }
+.rk-list span { font-size: 11px; background: var(--ai-soft); color: var(--ai); padding: 0 6px; border-radius: 4px; }
+table.hold { min-width: 1120px; }
+.funds { margin: 0; padding: 0; list-style: none; display: grid; gap: 4px; color: var(--muted); font-size: 13px; }
+@media (max-width: 640px) { .hsum { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
 </style>
 
@@ -163,10 +191,24 @@ footer p { margin: 0; max-width: 72ch; }
       <h1>日次株ランキング</h1>
       <p class="sub">複数のスクリーニングと総合SCOREで、毎営業日の注目銘柄を並べます</p>
     </div>
-    <div class="meta" id="meta"></div>
+    <div style="display:grid; gap:10px; justify-items:end">
+      <nav class="nav" aria-label="ページ"><a href="#score" id="nav-rank">ランキング</a><a href="#holdings" id="nav-hold" hidden>保有銘柄</a></nav>
+      <div class="meta" id="meta"></div>
+    </div>
   </header>
   <div class="demo-banner" id="demo" hidden>これはデモデータです。銘柄名・数値はすべて乱数で作った架空のもので、実在の企業とは関係ありません。実データでの日次更新を設定すると、ここに東証の銘柄が並びます。</div>
 
+  <section id="hold-view" aria-labelledby="hh" hidden>
+    <div class="stack" style="display:grid; gap:14px">
+      <div class="screen-head"><h3 id="hh">保有銘柄</h3><p id="hold-note"></p></div>
+      <div class="hsum" id="hsum"></div>
+      <div class="table-wrap"><table id="htbl" class="hold"><thead></thead><tbody></tbody></table></div>
+      <div id="funds-box"></div>
+      <p class="note">ステージはワインスタインのステージ分析に基づき、150日(約30週)移動平均の傾きと株価の位置から判定しています。上昇=移動平均が上向きで株価がその上、下降=下向きで株価がその下、天井圏/底固め=横ばいまたは転換の途中。信用残はJPXの銘柄別信用取引残高 (申込日基準)、決算日はJPXの決算発表予定日 (未掲載の銘柄はYahooの予定日) です。</p>
+    </div>
+  </section>
+
+  <div id="rank-view" class="stack" style="display:grid; gap:22px">
   <section aria-labelledby="t3h">
     <h2 id="t3h">今日の条件別トップ3</h2>
     <div class="top3" id="top3"></div>
@@ -186,6 +228,7 @@ footer p { margin: 0; max-width: 72ch; }
       <div class="table-wrap"><table id="tbl"><thead></thead><tbody></tbody></table></div>
     </div>
   </section>
+  </div>
 
   <footer>
     <p>SCOREは定量11項目 (PER・PBR・配当利回り・ROE・営業利益率・売上成長率・利益成長率・負債資本倍率・3ヶ月騰落率・52週レンジ位置・売買代金) を対象銘柄内の順位で0〜100に換算し、平均したものです。欠損項目は中央値として扱います。</p>
@@ -198,6 +241,8 @@ footer p { margin: 0; max-width: 72ch; }
 
 <script>
 const EMBEDDED = /*__DATA__*/null;
+const EMBEDDED_H = /*__HOLDINGS__*/null;
+let H = null, hSortKey = "score", hSortDir = -1;
 
 const COLS = [
   { k: "r", label: "順位", cls: "l", sort: 1 },
@@ -246,6 +291,15 @@ function move(r, pr) {
   const d = pr - r;
   if (d === 0) return '<span class="mv flat">→</span>';
   return d > 0 ? `<span class="mv up">↑${d}</span>` : `<span class="mv down">↓${-d}</span>`;
+}
+
+async function loadHoldings() {
+  if (EMBEDDED_H) return EMBEDDED_H;
+  if (EMBEDDED) return null;
+  try {
+    const res = await fetch("data/holdings.json", { cache: "no-cache" });
+    return res.ok ? res.json() : null;
+  } catch (e) { return null; }
 }
 
 async function load() {
@@ -340,6 +394,100 @@ function renderTable() {
     </tr>`).join("") : `<tr><td colspan="${COLS.length}" class="empty">条件に合う銘柄がありません。絞り込みを外してください。</td></tr>`;
 }
 
+const H_COLS = [
+  { k: "n", label: "銘柄", cls: "l", sort: 1 },
+  { k: "sec", label: "セクター", cls: "l", sort: 1 },
+  { k: "p", label: "株価 / 前日比", sort: -1 },
+  { k: "score", label: "その日の評価", sort: -1 },
+  { k: "stage", label: "ステージ", cls: "l", sort: 1 },
+  { k: "earn", label: "決算日", cls: "l", sort: 1 },
+  { k: "sell", label: "売残", sort: -1 },
+  { k: "buy", label: "買残", sort: -1 },
+  { k: "ratio", label: "信用倍率", sort: -1 },
+  { k: "ranks", label: "ランクイン", cls: "l", sort: -1 },
+];
+
+function daysUntil(iso) {
+  const a = new Date(D.asof + "T00:00:00"), b = new Date(iso + "T00:00:00");
+  return Math.round((b - a) / 86400000);
+}
+function stagePill(st) {
+  if (!st) return '<span class="na-txt">—</span>';
+  return `<span class="pill st${st.stage}" title="150日線 ${st.ma150} / 傾き ${st.slope}% / 乖離 ${st.dev}%">${st.stage} ${esc(H.stages[st.stage])}</span>`;
+}
+function earnCell(e) {
+  if (!e) return '<span class="na-txt">未定</span>';
+  const d = daysUntil(e.date);
+  const when = d < 0 ? `${-d}日前` : d === 0 ? "本日" : `あと${d}日`;
+  const md = e.date.slice(5).replace("-", "/");
+  return `<span class="mono">${md}</span> <span class="${d >= 0 && d <= 7 ? "soon" : "flat"}" style="font-size:12px">${when}</span><span class="mv flat">${esc(e.kind || "")}${e.src === "Yahoo" ? " (Yahoo予定)" : ""}</span>`;
+}
+function signedInt(v) {
+  if (!has(v)) return "";
+  const c = v > 0 ? "up" : v < 0 ? "down" : "flat";
+  return `<span class="mv ${c}">${v > 0 ? "+" : ""}${v.toLocaleString("ja-JP")}</span>`;
+}
+function hValue(r, k) {
+  switch (k) {
+    case "stage": return r.stage ? r.stage.stage : null;
+    case "earn": return r.earn ? daysUntil(r.earn.date) + (daysUntil(r.earn.date) < 0 ? 1000 : 0) : null;
+    case "sell": case "buy": case "ratio": return r.margin ? r.margin[k] : null;
+    case "ranks": return r.ranks.length;
+    default: return r[k];
+  }
+}
+
+function renderHoldings() {
+  const rows = [...H.rows];
+  const soon = rows.filter((r) => r.earn && daysUntil(r.earn.date) >= 0 && daysUntil(r.earn.date) <= 14);
+  const scored = rows.filter((r) => has(r.score));
+  const avg = scored.length ? scored.reduce((a, r) => a + r.score, 0) / scored.length : null;
+  const stCount = [1, 2, 3, 4].map((n) => rows.filter((r) => r.stage && r.stage.stage === n).length);
+  const up = rows.filter((r) => has(r.chg) && r.chg > 0).length, down = rows.filter((r) => has(r.chg) && r.chg < 0).length;
+  $("hold-note").textContent = `個別株${rows.length}銘柄。株価基準日 ${H.asof}、信用残 ${H.margin_date || "—"} 申込分。`;
+  $("hsum").innerHTML = `
+    <div><span>平均SCORE</span><b>${avg != null ? avg.toFixed(1) : "—"}</b><small>SCORE算出 ${scored.length}銘柄</small></div>
+    <div><span>前日比 上昇 / 下落</span><b><span class="up">${up}</span> / <span class="down">${down}</span></b><small>銘柄数</small></div>
+    <div><span>ステージ 上昇 / 下降</span><b><span class="up">${stCount[1]}</span> / <span class="down">${stCount[3]}</span></b><small>底固め ${stCount[0]} · 天井圏 ${stCount[2]}</small></div>
+    <div><span>2週間以内の決算</span><b>${soon.length}</b><small>${soon.slice(0, 3).map((r) => esc(r.n)).join("、") || "なし"}</small></div>`;
+
+  rows.sort((a, b) => {
+    let x = hValue(a, hSortKey), y = hValue(b, hSortKey);
+    if (typeof x === "string" || typeof y === "string") return String(x ?? "").localeCompare(String(y ?? ""), "ja") * hSortDir;
+    if (!has(x)) return 1; if (!has(y)) return -1;
+    return (x - y) * hSortDir;
+  });
+  $("htbl").tHead.innerHTML = "<tr>" + H_COLS.map((c) => {
+    const s = hSortKey === c.k ? (hSortDir > 0 ? "ascending" : "descending") : "none";
+    return `<th class="${c.cls || ""}" aria-sort="${s}"><button data-k="${c.k}">${c.label}</button></th>`;
+  }).join("") + "</tr>";
+  $("htbl").tHead.querySelectorAll("button").forEach((b) => b.addEventListener("click", () => {
+    const c = H_COLS.find((x) => x.k === b.dataset.k);
+    if (hSortKey === c.k) hSortDir = -hSortDir; else { hSortKey = c.k; hSortDir = c.sort; }
+    renderHoldings();
+  }));
+  const catKeys = Object.keys(D.categories);
+  $("htbl").tBodies[0].innerHTML = rows.map((r) => {
+    const m = r.margin;
+    const diff = has(r.score) && has(r.score_prev) ? r.score - r.score_prev : null;
+    return `<tr tabindex="0" data-c="${esc(r.c)}">
+      <td class="l name"><b>${esc(r.n)}<span class="acct">${esc(r.acct)}</span></b><small>${esc(r.c)} · ${esc(r.mkt || "")}</small></td>
+      <td class="l">${esc(r.sec || "—")}</td>
+      <td class="n">${fmt("p", r.p)}<span class="mv">${has(r.chg) ? signed(r.chg) : ""}</span></td>
+      <td class="n"><div class="score"><span class="big">${fmt("score", r.score)}</span>
+        ${r.sub ? `<span class="cats" title="${catKeys.map((k) => D.categories[k] + " " + (r.sub[k] ?? "—")).join(" / ")}">${catKeys.map((k) => has(r.sub[k]) ? `<i style="height:${Math.max(2, r.sub[k] * 0.22)}px"></i>` : '<i class="na"></i>').join("")}</span>` : "<span></span>"}</div>
+        ${diff != null ? `<span class="mv ${diff > 0.05 ? "up" : diff < -0.05 ? "down" : "flat"}">前日比 ${diff > 0 ? "+" : ""}${diff.toFixed(1)}</span>` : ""}</td>
+      <td class="l">${stagePill(r.stage)}${r.stage ? `<span class="mv flat">150日線乖離 ${r.stage.dev > 0 ? "+" : ""}${r.stage.dev}%</span>` : ""}</td>
+      <td class="l">${earnCell(r.earn)}</td>
+      <td class="n">${m ? m.sell.toLocaleString("ja-JP") + signedInt(m.sell_chg) : '<span class="na-txt">—</span>'}</td>
+      <td class="n">${m ? m.buy.toLocaleString("ja-JP") + signedInt(m.buy_chg) : '<span class="na-txt">—</span>'}</td>
+      <td class="n">${m && has(m.ratio) ? m.ratio.toFixed(2) + "倍" : '<span class="na-txt">—</span>'}${m ? `<span class="mv flat">買残/上場 ${esc(m.buy_ratio)}</span>` : ""}</td>
+      <td class="l"><span class="rk-list">${r.ranks.map((x) => `<span>${esc(x.name)} ${x.r}位</span>`).join("") || '<span class="na-txt" style="background:none">—</span>'}</span></td>
+    </tr>`;
+  }).join("");
+  $("funds-box").innerHTML = H.funds && H.funds.length ? `<h2 style="font-size:16px">投資信託 (評価の対象外)</h2><ul class="funds">${H.funds.map((f) => `<li>${esc(f.n)}<span class="acct">${esc(f.acct)}</span></li>`).join("")}</ul>` : "";
+}
+
 function openDetail(code) {
   const s = D.stocks[code];
   const ranks = D.screens.map((sc) => { const r = sc.rows.find((x) => x.c === code); return r ? `${sc.name} ${r.r}位` : null; }).filter(Boolean);
@@ -347,6 +495,7 @@ function openDetail(code) {
     ["PER", fmt("per", s.per)], ["PBR", fmt("pbr", s.pbr)], ["配当利回り", fmt("dy", s.dy)], ["ROE", fmt("roe", s.roe)],
     ["営業利益率", fmt("opm", s.opm)], ["売上成長率", fmt("rg", s.rg)], ["利益成長率", fmt("eg", s.eg)], ["負債資本倍率", fmt("de", s.de)],
     ["3ヶ月騰落", fmt("r3m", s.r3m)], ["6ヶ月騰落", fmt("r6m", s.r6m)], ["52週レンジ位置", fmt("pos52", s.pos52)]];
+  if (H && s.stage) kv.push(["ステージ", stagePill(s.stage)]);
   const real = /^\d{3}[0-9A-Z]$/.test(s.c);
   $("dlg-body").innerHTML = `
     <header><div><h4 id="dlg-title">${esc(s.n)}</h4><p class="note">${esc(s.c)} · ${esc(s.sec)} · ${esc(s.mkt)}</p></div>
@@ -354,7 +503,7 @@ function openDetail(code) {
     <div class="kv">${kv.map(([k, v]) => `<div><span>${k}</span><b>${v}</b></div>`).join("")}</div>
     <div><h2 style="font-size:16px">SCORE ${fmt("score", s.score)} の内訳</h2>
       <div class="items">${D.items.map((it) => {
-        const p = s.items[it.k];
+        const p = (s.items || {})[it.k];
         return `<div class="item"><span>${it.label}</span><span class="cat">${D.categories[it.cat]}</span><span class="track"><span class="fill" style="width:${p ?? 0}%"></span></span><span class="pv">${p ?? "—"}</span></div>`;
       }).join("")}</div>
       <p class="note" style="margin-top:8px">数値は対象銘柄の中での順位 (100が最良)。PER・PBR・負債資本倍率は低いほど高評価です。</p></div>
@@ -366,13 +515,28 @@ function openDetail(code) {
 
 function route() {
   const id = location.hash.slice(1);
+  const hold = id === "holdings" && H;
+  $("hold-view").hidden = !hold;
+  $("rank-view").hidden = !!hold;
+  $("nav-hold").setAttribute("aria-current", hold ? "page" : "false");
+  $("nav-rank").setAttribute("aria-current", hold ? "false" : "page");
+  if (hold) { renderHoldings(); return; }
   cur = D.screens.find((s) => s.id === id) || D.screens[0];
   sortKey = "r"; sortDir = 1;
   renderTabs(); renderHead(); renderTable();
 }
 
-load().then((data) => {
-  D = data;
+Promise.all([load(), loadHoldings()]).then(([data, hold]) => {
+  D = data; H = hold;
+  if (H) {
+    $("nav-hold").hidden = false;
+    H.rows.forEach((r) => { if (!D.stocks[r.c]) D.stocks[r.c] = r; else D.stocks[r.c].stage = r.stage; });
+    ["click", "keydown"].forEach((ev) => $("htbl").tBodies[0].addEventListener(ev, (e) => {
+      const tr = e.target.closest("tr[data-c]");
+      if (!tr || (ev === "keydown" && e.key !== "Enter" && e.key !== " ")) return;
+      e.preventDefault(); openDetail(tr.dataset.c);
+    }));
+  }
   renderMeta(); renderTop3(); fillFilters(); route();
   window.addEventListener("hashchange", route);
   ["q", "sec", "mkt"].forEach((id) => $(id).addEventListener("input", renderTable));

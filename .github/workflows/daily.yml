@@ -15,6 +15,9 @@ concurrency:
 permissions:
   contents: write
 
+env:
+  PYTHONUNBUFFERED: "1"
+
 jobs:
   build:
     runs-on: ubuntu-latest

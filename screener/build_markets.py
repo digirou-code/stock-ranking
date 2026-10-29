@@ -13,6 +13,7 @@ import datetime as dt
 import json
 import math
 import re
+import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -158,9 +159,11 @@ def build_markets():
         try:
             h = df[sym].dropna(subset=["Close"])
         except KeyError:
-            print(f"  market missing {sym}")
-            continue
+            h = []
+        if len(h) < 2:  # 一括取得で欠けた銘柄は個別に取り直す
+            h = yf.Ticker(sym).history(period="1y", interval="1d", auto_adjust=False).dropna(subset=["Close"])
         if len(h) < 2:
+            print(f"  market missing {sym}")
             continue
         bars = []
         for idx, r in h.iterrows():
@@ -230,6 +233,7 @@ def build_calendar():
 
 
 if __name__ == "__main__":
+    sys.stdout.reconfigure(line_buffering=True)
     DATA_DIR.mkdir(parents=True, exist_ok=True)
     try:
         build_markets()

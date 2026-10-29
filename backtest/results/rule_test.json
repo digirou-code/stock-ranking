@@ -15711,7 +15711,7 @@
  },
  "meta": {
   "demo": false,
-  "generated_at": "2026-10-29T15:54+09:00",
+  "generated_at": "2026-10-29T16:19+09:00",
   "periods": {
    "is": [
     "2023-01-13",
@@ -15761,6 +15761,6 @@
   ],
   "commission": 0.0,
   "tax": 20.315,
-  "elapsed_s": 19
+  "elapsed_s": 18
  }
 }

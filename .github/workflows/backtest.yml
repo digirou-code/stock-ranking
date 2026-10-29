@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
   push:
     branches-ignore: [main]
-    paths: ["backtest/run_backtest.py", "backtest/optimize.py", "backtest/rule_test.py", "backtest/priority_test.py", "backtest/swing_score_test.py", ".github/workflows/backtest.yml"]
+    paths: ["backtest/run_backtest.py", "backtest/optimize.py", "backtest/rule_test.py", "backtest/priority_test.py", "backtest/score_momentum_test.py", ".github/workflows/backtest.yml"]
 
 concurrency:
   group: backtest-${{ github.ref }}
@@ -35,7 +35,7 @@ jobs:
           path: bt_cache
           key: bt-prices-${{ steps.day.outputs.d }}
       - run: python backtest/run_backtest.py --cache bt_cache/prices.pkl
-      - run: python backtest/swing_score_test.py --cache bt_cache/prices.pkl
+      - run: python backtest/score_momentum_test.py --cache bt_cache/prices.pkl
       - run: python backtest/optimize.py --cache bt_cache/prices.pkl
       - run: python backtest/rule_test.py --cache bt_cache/prices.pkl
       - run: python backtest/priority_test.py --cache bt_cache/prices.pkl

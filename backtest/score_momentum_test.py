@@ -1,25 +1,26 @@
-"""スイングSCORE (トレンド・押し目度・RSI・売買代金) が、10日前後のスイング取引の銘柄選びに効くかを確かめる。
+"""SCORE勢い (ステージ(75)・押し目度・1ヶ月騰落率・出来高倍率・売買代金・RSI) が、10日前後のスイング取引の
+銘柄選びに効くかを確かめる。
 
-スイングSCOREの定義は screener/build_data.py の swing_parts と同じ (その日に分かる株価の値だけで作る):
-    トレンド   75日線が20日前より上 / 株価>75日線 / 25日線>75日線 の当てはまる割合
-    押し目度   25日線乖離が -2〜+2% なら満点 (外れるほど減点、5ポイント外で0)
-               20日高値からの下落が -3〜-20% なら満点 (同上)  の平均
-    RSI        RSI(14) 40以下で満点、60以上で0
-    売買代金   20日平均売買代金のパーセンタイル (1億円以上の銘柄の中で)
-    4つの平均を 0〜100 で表す。売買代金1億円未満は対象外。決算の日付は過去分が無いので検証には入れていない。
+定義は screener/build_data.py の SCORES["sm"] と同じ (その日に分かる株価の値だけで作れる):
+    ステージ(75)  75日線の10日前比の傾き (±0.5%) と株価の位置から 2上昇=1 / 1底固め=0.67 / 3天井圏=0.33 / 4下降=0
+    押し目度      25日線乖離 -2〜+2%、20日高値から -3〜-20% なら満点 (外れるほど減点、5ポイント外で0) の平均
+    1ヶ月騰落率・出来高倍率・売買代金  その日の全銘柄内の順位
+    RSI           RSI(14) 40以下で満点、60以上で0
+    6項目の平均を 0〜100 で表す。SCORE業績は財務の過去値が無料で取れないため検証できない。
 
 比べ方 (探索期間で比べ、直近1年 = 検証期間でも同じ並びになるかを見る):
     1. 分位分析: 毎日スコアで10分位に分け、翌日寄りで買い10日後の大引けで売った損益の平均
     2. 上位10銘柄: 毎日スコア上位10銘柄を買う (10枠運用)。ユーザーの売買ルール (損切り1.5ATR・利確2ATR・最大10日)
        と、損切り・利確なしの10日保有の2通り
     3. 優先順位: 改良版押し目・複合のシグナルが10枠を超えたとき、どの順で買うか
+    比較対象: 項目を減らした版 (1ヶ月騰落率・出来高倍率なし = 以前のスイングSCOREに近い形)、売買代金順、ランダム
 
 使い方:
-    python backtest/swing_score_test.py --cache bt_cache/prices.pkl
-    python backtest/swing_score_test.py --demo
+    python backtest/score_momentum_test.py --cache bt_cache/prices.pkl
+    python backtest/score_momentum_test.py --demo
 
 出力:
-    backtest/results/swing_score.json
+    backtest/results/score_momentum.json
 """
 from __future__ import annotations
 
@@ -50,25 +51,40 @@ def band(x, lo, hi, w):
     return (1 - d / w).clip(0, 1).where(x.notna())
 
 
-def swing_parts(D, T):
+def stage75(D):
+    """screener/holdings.stage_of(n=75) と同じ判定を日ごとに行い、点数 (0〜1) にする"""
     C = D["Close"]
-    liquid = T["to"] >= 1
+    ma = C.rolling(75).mean()
+    slope = (ma / ma.shift(10) - 1) * 100
+    hi, lo = D["High"].rolling(250, min_periods=60).max(), D["Low"].rolling(250, min_periods=60).min()
+    pos52 = ((C - lo) / (hi - lo) * 100).where(hi > lo).fillna(0)
+    st = np.where(slope >= 0.5, np.where(C > ma, 2, 3),
+                  np.where(slope <= -0.5, np.where(C < ma, 4, 1), np.where(pos52 >= 50, 3, 1)))
+    pts = pd.DataFrame(st, index=C.index, columns=C.columns).replace({2: 1.0, 1: 2 / 3, 3: 1 / 3, 4: 0.0})
+    return pts.where(slope.notna())
+
+
+def momentum_parts(D, T):
+    C = D["Close"]
+    live = C.notna() & (C.rolling(85).count() >= 85)
+    pct = lambda x: x.where(live).rank(axis=1, pct=True)
     parts = {
-        "trend": (T["ma75_up"].astype(float) + T["above75"].astype(float) + T["ma25_over75"].astype(float)) / 3,
+        "stage75": stage75(D),
         "pullback": (band(T["dev25"], -2, 2, 5) + band(T["off20"], -20, -3, 5)) / 2,
+        "r1m": pct((C / C.shift(21) - 1) * 100),
+        "vr": pct(T["vr"]),
+        "to": pct(T["to"]),
         "rsi": ((60 - T["rsi"]) / 20).clip(0, 1),
-        "liq": T["to"].where(liquid).rank(axis=1, pct=True),
     }
-    ok = C.rolling(75).count() >= 75  # 75日線が計算できる銘柄だけ
-    return {k: v.where(liquid & ok) for k, v in parts.items()}
+    return {k: v.where(live) for k, v in parts.items()}
 
 
-def swing_scores(parts):
-    avg = lambda ks: sum(parts[k] for k in ks) / len(ks) * 100
+def momentum_scores(parts):
+    avg = lambda ks: sum(parts[k].fillna(0.5) for k in ks) / len(ks) * 100
     return {
-        "swing": ("スイングSCORE (4要素)", avg(["trend", "pullback", "rsi", "liq"])),
-        "swing_noliq": ("スイングSCORE 売買代金なし (3要素)", avg(["trend", "pullback", "rsi"])),
-        "swing_tp": ("トレンド+押し目度だけ", avg(["trend", "pullback"])),
+        "sm": ("SCORE勢い (6項目)", avg(["stage75", "pullback", "r1m", "vr", "to", "rsi"])),
+        "sm_no_r1m_vr": ("1ヶ月騰落率・出来高倍率なし (4項目)", avg(["stage75", "pullback", "to", "rsi"])),
+        "sm_no_vr": ("出来高倍率なし (5項目)", avg(["stage75", "pullback", "r1m", "to", "rsi"])),
     }
 
 
@@ -94,8 +110,8 @@ def run(D, funds, demo):
     T = bt.indicators(D, funds)
     T, idx = op.extra_indicators(D, T)
     _, score_pit = rt.history_score(D, T, funds)
-    P = swing_parts(D, T)
-    SW = swing_scores(P)
+    P = momentum_parts(D, T)
+    SW = momentum_scores(P)
     S = op.Sim(D, T)
     M = S.M
     first_valid = M.idx[min(250, len(M.idx) - 1)]
@@ -109,14 +125,16 @@ def run(D, funds, demo):
     rng = np.random.default_rng(0)
     rand = [pd.DataFrame(rng.random(M.C.shape), index=M.idx, columns=M.cols).where(liquid)
             for _ in range(RANDOM_SEEDS)]
-    keys = {**SW,
+    # 売買の検証は売買代金1億円以上に絞る (他の条件の検証と同じ。画面のランキングは全銘柄が対象)
+    keys = {**{k: (n, v.where(liquid)) for k, (n, v) in SW.items()},
             "score_pit": ("当時スコア (3ヶ月騰落率・52週位置・売買代金)", score_pit.where(liquid)),
             "to": ("売買代金が大きい順", T["to"].where(liquid)),
             "r3m": ("3ヶ月騰落率が高い順", T["r3m"].where(liquid))}
     print(f"ready {time.time() - t0:.0f}s")
 
     res = {"keys": {k: v[0] for k, v in keys.items()}, "parts": {
-        "trend": "トレンド", "pullback": "押し目度", "rsi": "RSI", "liq": "売買代金"}}
+        "stage75": "ステージ(75)", "pullback": "押し目度", "r1m": "1ヶ月騰落率", "vr": "出来高倍率", "to": "売買代金",
+        "rsi": "RSI"}}
     res["keys"]["random"] = f"ランダム ({RANDOM_SEEDS}回の平均)"
 
     # 1) 分位分析 (翌日寄り→10日後大引け, コスト前)
@@ -164,7 +182,7 @@ def run(D, funds, demo):
         per_exit = {}
         for eid, (_, stop, take) in EXITS.items():
             out = {kid: {pid: evaluate(sig, sc.fillna(-1), pid, stop, take) for pid in periods}
-                   for kid, (_, sc) in keys.items() if kid in ("swing", "swing_noliq", "to", "score_pit")}
+                   for kid, (_, sc) in keys.items() if kid in ("sm", "sm_no_r1m_vr", "to", "score_pit")}
             out["random"] = {pid: evaluate_random(lambda r: sig, pid, stop, take) for pid in periods}
             for kid, row in out.items():
                 print(f"[{tid} {eid}] {kid}: IS ann={row['is']['pf_annual']} dd={row['is']['pf_dd']} "
@@ -191,7 +209,7 @@ def main():
     D = bt.drop_partial_day(D)
     funds = bt.load_fundamentals(D["Close"].columns, args.demo)
     res = run(D, funds, args.demo)
-    name = "swing_score_demo.json" if args.demo else "swing_score.json"
+    name = "score_momentum_demo.json" if args.demo else "score_momentum.json"
     (bt.OUT_DIR / name).write_text(json.dumps(bt.clean(res), ensure_ascii=False, indent=1, allow_nan=False),
                                    encoding="utf-8")
     print(f"wrote {bt.OUT_DIR / name}")

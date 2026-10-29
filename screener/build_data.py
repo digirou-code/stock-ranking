@@ -56,29 +56,41 @@ RULES = {
 }
 
 # ---------------------------------------------------------------- スコア定義
-# 総合SCOREの定量11項目: (キー, ラベル, カテゴリ, 高い方が良いか)
-SCORE_ITEMS = [
-    ("per", "PER", "value", False),
-    ("pbr", "PBR", "value", False),
-    ("dy", "配当利回り", "income", True),
-    ("roe", "ROE", "profit", True),
-    ("opm", "営業利益率", "profit", True),
-    ("rg", "売上成長率", "growth", True),
-    ("eg", "利益成長率", "growth", True),
-    ("er", "自己資本比率", "health", True),
-    ("r3m", "3ヶ月騰落率", "momentum", True),
-    ("pos52", "52週レンジ位置", "momentum", True),
-    ("to", "売買代金", "momentum", True),
-]
-CATEGORIES = {
-    "value": "割安",
-    "income": "配当",
-    "profit": "収益",
-    "growth": "成長",
-    "health": "健全",
-    "momentum": "勢い",
+# SCOREは「業績」と「勢い」の2本立て (2026-10-30 ユーザー指定)。各項目を0〜1に換算して平均し、0〜100で表す。
+# 項目: (キー, ラベル, 換算方法)。換算方法は "hi"/"lo" = 全銘柄内の順位 (高い方/低い方が良い)、
+# それ以外は score_stocks 内の個別の換算 (理想の範囲にどれだけ近いか等)
+SCORES = {
+    "sf": {
+        "name": "SCORE業績",
+        "short": "業績",
+        "items": [
+            ("per", "PER", "per"),
+            ("roe", "ROE", "hi"),
+            ("er", "自己資本比率", "hi"),
+            ("dy", "配当利回り", "hi"),
+            ("rg", "売上成長率", "hi"),
+            ("egf", "利益成長予想", "hi"),
+        ],
+        "note": "PERは低いほど高評価 (赤字は最下位)。売上成長率は直近四半期の前年同期比 (予想が無料で取れないため実績)。"
+                "利益成長予想はアナリスト予想EPS ÷ 実績EPS、予想がない銘柄は直近年度の純利益の前年比で代用。",
+    },
+    "sm": {
+        "name": "SCORE勢い",
+        "short": "勢い",
+        "items": [
+            ("stage75", "ステージ(75)", "stage"),
+            ("pullback", "押し目度", "pullback"),
+            ("r1m", "1ヶ月騰落率", "hi"),
+            ("vr", "出来高倍率", "hi"),
+            ("to", "売買代金", "hi"),
+            ("rsi", "RSI (低め加点)", "rsi"),
+        ],
+        "note": "ステージ(75)は 2上昇=100 / 1底固め=67 / 3天井圏=33 / 4下降=0。押し目度は25日線乖離 -2〜+2%・20日高値から -3〜-20% にどれだけ近いか。"
+                "RSIは40以下で満点、60以上で0。それ以外は全銘柄内の順位。",
+    },
 }
-MIN_COVERAGE = 8  # 11項目中この数以上そろった銘柄だけ総合SCOREに載せる
+MIN_COVERAGE = 4  # 6項目中この数以上そろった銘柄だけSCOREを出す (欠けた項目は中央の0.5で補う)
+STAGE_PTS = {2: 1.0, 1: 2 / 3, 3: 1 / 3, 4: 0.0}
 
 
 def ok(v) -> bool:
@@ -97,13 +109,22 @@ def _rank_sum(stocks, keys_dirs):
 
 SCREENS = [
     {
-        "id": "score",
-        "name": "総合SCORE",
-        "tab": "総合",
-        "desc": "定量11項目の総合評価が高い順",
-        "cond": [f"11項目中{MIN_COVERAGE}項目以上のデータあり"],
-        "filter": lambda s: s.get("score") is not None,
-        "sort": lambda s: s["score"],
+        "id": "sf",
+        "name": "SCORE業績",
+        "tab": "業績",
+        "desc": "PER・ROE・自己資本比率・配当利回り・売上成長率・利益成長予想の6項目の評価が高い順",
+        "cond": [f"6項目中{MIN_COVERAGE}項目以上のデータあり"],
+        "filter": lambda s: s.get("sf") is not None,
+        "sort": lambda s: s["sf"],
+    },
+    {
+        "id": "sm",
+        "name": "SCORE勢い",
+        "tab": "勢い",
+        "desc": "ステージ(75)・押し目度・1ヶ月騰落率・出来高倍率・売買代金・RSIの6項目の評価が高い順",
+        "cond": [f"6項目中{MIN_COVERAGE}項目以上のデータあり"],
+        "filter": lambda s: s.get("sm") is not None,
+        "sort": lambda s: s["sm"],
     },
     {
         "id": "dividend",
@@ -281,30 +302,48 @@ def percentiles(values, higher_is_better=True):
     return out
 
 
+def _band(x, lo, hi, w):
+    """lo〜hi なら1、範囲から w 離れると0になる台形"""
+    if not ok(x):
+        return None
+    return min(1.0, max(0.0, 1 - max(lo - x, x - hi, 0) / w))
+
+
+def score_inputs(s):
+    """SCOREの項目のうち、取得した値から作るもの"""
+    eg = s.get("eg")
+    ef, et = s.get("eps_fwd"), s.get("eps_trail")
+    s["egf"] = (ef / et - 1) * 100 if ok(ef) and ok(et) and et > 0 else eg
+    dev, off = _band(s.get("dev25"), -2, 2, 5), _band(s.get("off20"), -20, -3, 5)
+    s["pullback"] = (dev + off) / 2 if dev is not None and off is not None else None
+
+
 def score_stocks(stocks):
-    cols = {}
-    for key, _, _, hi in SCORE_ITEMS:
-        vals = [s.get(key) for s in stocks]
-        if key == "per":  # 赤字(負のPER)は最下位扱い
-            vals = [v if ok(v) and v > 0 else (9999 if ok(v) else None) for v in vals]
-        if key == "pbr":
-            vals = [v if ok(v) and v > 0 else None for v in vals]
-        cols[key] = percentiles(vals, hi)
-    for i, s in enumerate(stocks):
-        items = {k: cols[k][i] for k, *_ in SCORE_ITEMS}
-        have = [v for v in items.values() if v is not None]
-        s["items"] = {k: (round(v * 100) if v is not None else None) for k, v in items.items()}
-        sub = {}
-        for cat in CATEGORIES:
-            vs = [items[k] for k, _, c, _ in SCORE_ITEMS if c == cat and items[k] is not None]
-            sub[cat] = round(sum(vs) / len(vs) * 100) if vs else None
-        s["sub"] = sub
-        if len(have) >= MIN_COVERAGE:
-            # 欠損項目は中央値(0.5)で補い、全11項目の平均を0〜100で表示
-            filled = [v if v is not None else 0.5 for v in items.values()]
-            s["score"] = round(sum(filled) / len(filled) * 100, 1)
-        else:
-            s["score"] = None
+    for s in stocks:
+        score_inputs(s)
+    for sid, sd in SCORES.items():
+        cols = {}
+        for key, _, how in sd["items"]:
+            vals = [s.get(key) for s in stocks]
+            if how == "per":  # 赤字(負のPER)は最下位扱い
+                cols[key] = percentiles([v if ok(v) and v > 0 else (9999 if ok(v) else None) for v in vals], False)
+            elif how in ("hi", "lo"):
+                cols[key] = percentiles(vals, how == "hi")
+            elif how == "stage":
+                cols[key] = [STAGE_PTS.get(v.get("stage")) if v else None for v in vals]
+            elif how == "rsi":
+                cols[key] = [min(1.0, max(0.0, (60 - v) / 20)) if ok(v) else None for v in vals]
+            else:  # すでに0〜1の値 (押し目度)
+                cols[key] = vals
+        for i, s in enumerate(stocks):
+            items = {k: cols[k][i] for k, *_ in sd["items"]}
+            s.setdefault("items", {}).update({k: (round(v * 100) if v is not None else None) for k, v in items.items()})
+            have = [v for v in items.values() if v is not None]
+            if len(have) >= MIN_COVERAGE:
+                filled = [v if v is not None else 0.5 for v in items.values()]
+                s[sid] = round(sum(filled) / len(filled) * 100, 1)
+            else:
+                s[sid] = None
 
 
 def run_screens(stocks, prev_ranks):
@@ -383,9 +422,9 @@ def write_output(stocks, asof: str, demo: bool, universe: int, earnings=None):
         "generated_at": dt.datetime.now(JST).isoformat(timespec="minutes"),
         "demo": demo,
         "universe": universe,
-        "scored": sum(1 for s in stocks if s.get("score") is not None),
-        "items": [{"k": k, "label": l, "cat": c, "hi": h} for k, l, c, h in SCORE_ITEMS],
-        "categories": CATEGORIES,
+        "scored": sum(1 for s in stocks if s.get("sf") is not None or s.get("sm") is not None),
+        "scores": {sid: {"name": sd["name"], "short": sd["short"], "note": sd["note"],
+                         "items": [{"k": k, "label": l} for k, l, _ in sd["items"]]} for sid, sd in SCORES.items()},
         "rules": {**RULES, **plan},
         "screens": screens,
         # ランキングに出た銘柄だけ詳細を持たせて軽くする
@@ -406,7 +445,7 @@ def write_output(stocks, asof: str, demo: bool, universe: int, earnings=None):
 
 def compact(s):
     keys = ["c", "n", "sec", "mkt", "p", "chg", "mc", "per", "pbr", "dy", "roe",
-            "opm", "rg", "eg", "er", "r1m", "r3m", "r6m", "pos52", "to", "score", "sub", "items",
+            "opm", "rg", "eg", "er", "r1m", "r3m", "r6m", "pos52", "to", "sf", "sm", "items", "egf",
             "stage", "stage75", "dev25", "rsi", "vr", "vol", "vchg", "off20", "atr", "earn", "earn_bd"]
     out = {}
     for k in keys:
@@ -616,6 +655,8 @@ def fetch_fundamental(code):
                 "er": equity_ratio(t),
                 "shares": info.get("sharesOutstanding"),
                 "mc_raw": info.get("marketCap"),
+                "eps_fwd": info.get("forwardEps"),  # アナリスト予想EPS (利益成長予想に使う)
+                "eps_trail": info.get("trailingEps"),
                 "earn_ts": info.get("earningsTimestamp") or info.get("earningsTimestampStart"),
                 "ts": time.time(),
             }
@@ -712,7 +753,7 @@ def build_real():
             continue
         f = funds_cache.get(u["c"], {})
         s = {**u, **{k: v for k, v in pr.items() if k != "date"}}
-        for k in ("per", "pbr", "roe", "opm", "rg", "eg", "er", "earn_ts"):
+        for k in ("per", "pbr", "roe", "opm", "rg", "eg", "er", "eps_fwd", "eps_trail", "earn_ts"):
             s[k] = f.get(k)
         dy = dividend_yield(f, s["p"])
         if dy is not None:

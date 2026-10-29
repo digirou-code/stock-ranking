@@ -190,11 +190,12 @@ def write_holdings(holdings, funds, stocks_by_code, screens, asof, earnings, mar
         rows.append({
             **{k: s.get(k) for k in ("sec", "mkt", "p", "chg", "mc", "per", "pbr", "dy", "roe",
                                      "opm", "rg", "eg", "er", "r1m", "r3m", "r6m", "pos52", "to",
-                                     "score", "sub", "items", "stage", "stage75", "vol", "vchg")},
+                                     "sf", "sm", "items", "stage", "stage75", "vol", "vchg")},
             "c": h["c"],
             "n": s.get("n") or h["n"],
             "acct": h["acct"],
-            "score_prev": prev.get(h["c"]),
+            "sf_prev": prev.get(h["c"], {}).get("sf"),
+            "sm_prev": prev.get(h["c"], {}).get("sm"),
             "ranks": ranks,
             "earn": next_earnings(h["c"], earnings, s.get("earn_ts"), today),
             "margin": margin.get(h["c"]),
@@ -240,4 +241,4 @@ def load_prev(asof):
     if not files:
         return {}
     data = json.loads(files[-1].read_text(encoding="utf-8"))
-    return {r["c"]: r.get("score") for r in data["rows"]}
+    return {r["c"]: {"sf": r.get("sf"), "sm": r.get("sm")} for r in data["rows"]}

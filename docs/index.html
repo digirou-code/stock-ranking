@@ -413,19 +413,20 @@ const COLS = [
   { k: "n", label: "銘柄", cls: "l", sort: 1 },
   { k: "score", label: "SCORE", sort: -1 },
   { k: "p", label: "株価 / 前日比", sort: -1 },
+  { k: "r1m", label: "1ヶ月", sort: -1 },
+  { k: "r3m", label: "3ヶ月", sort: -1 },
+  { k: "sec1m", label: "業種平均", sort: -1 },
   { k: "st", label: "ステージ(150)", cls: "l", sort: 1 },
   { k: "st75", label: "ステージ(75)", cls: "l", sort: 1 },
   { k: "vol", label: "出来高 / 前日比", sort: -1 },
-  { k: "mc", label: "時価総額", sort: -1 },
-  { k: "per", label: "PER", sort: 1 },
-  { k: "pbr", label: "PBR", sort: 1 },
-  { k: "dy", label: "配当", sort: -1 },
-  { k: "roe", label: "ROE", sort: -1 },
   { k: "rg", label: "売上成長", sort: -1 },
   { k: "eg", label: "利益成長", sort: -1 },
+  { k: "dy", label: "配当", sort: -1 },
+  { k: "per", label: "PER", sort: 1 },
+  { k: "pbr", label: "PBR", sort: 1 },
+  { k: "roe", label: "ROE", sort: -1 },
+  { k: "mc", label: "時価総額", sort: -1 },
   { k: "pos52", label: "52週", sort: -1 },
-  { k: "r1m", label: "1ヶ月", sort: -1 },
-  { k: "r3m", label: "3ヶ月", sort: -1 },
 ];
 // 列見出しにポインタを置いたときの説明
 const TIPS = {
@@ -442,6 +443,7 @@ const TIPS = {
   pos52: "52週レンジ位置。過去1年の安値を0%、高値を100%としたときの現在の位置。95%以上 (高値圏)は黄色の下線で強調",
   r1m: "1ヶ月騰落率。約21営業日前の終値からの値上がり率。+15%以上は黄色の下線で強調",
   r3m: "3ヶ月騰落率。約63営業日前の終値からの値上がり率。+30%以上は黄色の下線で強調",
+  sec1m: "同じ業種の銘柄の平均騰落率。上が1ヶ月、下が3ヶ月。銘柄の騰落率と比べると業種全体の流れか個別の動きかがわかる",
   vol: "基準日の出来高 (株数)。下は前営業日の出来高と比べた増減率。前日比+100%以上 (2倍以上)は黄色の下線で強調",
   dev25: "25日移動平均線からの乖離率。マイナスは平均より下 (押し目・売られ過ぎの目安)",
   rsi: "RSI(14)。直近14日の値上がりの強さ。30以下は売られ過ぎ、70以上は買われ過ぎの目安",
@@ -917,7 +919,7 @@ function renderTable() {
       <td class="n">${fmt("p", s.p)}<span class="mv">${has(s.chg) ? signed(s.chg) : ""}</span></td>
       ${extra ? `<td class="n">${fmt(extra, s[extra])}</td>` : ""}
       ${trade ? tradeCells(s) : ""}
-      ${restCells(s, true)}
+      ${restCells(s, COLS.slice(4))}
     </tr>`).join("") : `<tr><td colspan="${cols.length}" class="empty">条件に合う銘柄がありません。絞り込みを外してください。</td></tr>`;
 }
 
@@ -939,22 +941,34 @@ function hl(k, v, html) {
   return why ? `<span class="hl" title="${why}">${html}</span>` : html;
 }
 
-// ランキングと保有銘柄で共通の後半の列 (COLS.slice(4) と同じ順)
-function restCells(s, withStage) {
-  return `${withStage ? `<td class="l">${stagePill(s.stage)}</td><td class="l">${stagePill(s.stage75)}</td>` : ""}
-      <td class="n">${fmt("vol", s.vol)}<span class="mv">${has(s.vchg) ? hl("vchg", s.vchg, signed(s.vchg)) : ""}</span></td>
-      <td class="n">${fmt("mc", s.mc)}</td>
-      <td class="n">${hl("per", s.per, fmt("per", s.per))}</td>
-      <td class="n">${hl("pbr", s.pbr, fmt("pbr", s.pbr))}</td>
-      <td class="n">${hl("dy", s.dy, fmt("dy", s.dy))}</td>
-      <td class="n">${hl("roe", s.roe, fmt("roe", s.roe))}</td>
-      <td class="n">${hl("rg", s.rg, fmt("rg", s.rg))}</td>
-      <td class="n">${hl("eg", s.eg, fmt("eg", s.eg))}</td>
-      <td class="n">${has(s.pos52) ? `<span class="r52"><span class="track"><span class="dot" style="left:${s.pos52}%"></span></span>${hl("pos52", s.pos52, `<span>${Math.round(s.pos52)}%</span>`)}</span>` : fmt("pos52", null)}</td>
-      <td class="n">${hl("r1m", s.r1m, fmt("r1m", s.r1m))}</td>
-      <td class="n">${hl("r3m", s.r3m, fmt("r3m", s.r3m))}</td>`;
+// ランキングと保有銘柄で共通の後半の列 (COLS.slice(4) の各キーのセル)
+const CELLS = {
+  r1m: (s) => `<td class="n">${hl("r1m", s.r1m, fmt("r1m", s.r1m))}</td>`,
+  r3m: (s) => `<td class="n">${hl("r3m", s.r3m, fmt("r3m", s.r3m))}</td>`,
+  sec1m: (s) => `<td class="n">${fmt("r1m", s.sec1m)}<span class="mv">${has(s.sec3m) ? signed(s.sec3m) : ""}</span></td>`,
+  st: (s) => `<td class="l">${stagePill(s.stage)}</td>`,
+  st75: (s) => `<td class="l">${stagePill(s.stage75)}</td>`,
+  vol: (s) => `<td class="n">${fmt("vol", s.vol)}<span class="mv">${has(s.vchg) ? hl("vchg", s.vchg, signed(s.vchg)) : ""}</span></td>`,
+  pos52: (s) => `<td class="n">${has(s.pos52) ? `<span class="r52"><span class="track"><span class="dot" style="left:${s.pos52}%"></span></span>${hl("pos52", s.pos52, `<span>${Math.round(s.pos52)}%</span>`)}</span>` : fmt("pos52", null)}</td>`,
+};
+function restCells(s, cols) {
+  return cols.map((c) => CELLS[c.k] ? CELLS[c.k](s) : `<td class="n">${hl(c.k, s[c.k], fmt(c.k, s[c.k]))}</td>`).join("");
 }
 
+// 業種ごとの平均騰落率 (対象銘柄の単純平均)
+let SEC_AVG = {};
+function sectorAverages() {
+  const acc = {};
+  Object.values(D.stocks).forEach((s) => {
+    if (!s.sec) return;
+    const a = acc[s.sec] ||= { r1m: [0, 0], r3m: [0, 0] };
+    ["r1m", "r3m"].forEach((k) => { if (has(s[k])) { a[k][0] += s[k]; a[k][1]++; } });
+  });
+  SEC_AVG = Object.fromEntries(Object.entries(acc).map(([k, a]) => [k, { r1m: a.r1m[1] ? a.r1m[0] / a.r1m[1] : null, r3m: a.r3m[1] ? a.r3m[0] / a.r3m[1] : null }]));
+}
+const withSector = (s) => Object.assign(s, { sec1m: SEC_AVG[s.sec]?.r1m ?? null, sec3m: SEC_AVG[s.sec]?.r3m ?? null });
+
+const REST_H = COLS.slice(4).filter((c) => c.k !== "st" && c.k !== "st75");
 const H_COLS = [
   { k: "n", label: "銘柄", cls: "l", sort: 1 },
   { k: "score", label: "その日の評価", sort: -1 },
@@ -966,7 +980,7 @@ const H_COLS = [
   { k: "buy", label: "買残", sort: -1 },
   { k: "ratio", label: "信用倍率", sort: -1 },
   { k: "ranks", label: "ランクイン", cls: "l", sort: -1 },
-  ...COLS.slice(4).filter((c) => c.k !== "st" && c.k !== "st75"),
+  ...REST_H,
 ];
 
 function daysUntil(iso) {
@@ -1040,7 +1054,7 @@ function renderHoldings() {
       <td class="n">${m ? m.buy.toLocaleString("ja-JP") + signedInt(m.buy_chg) : '<span class="na-txt">—</span>'}</td>
       <td class="n">${m && has(m.ratio) ? m.ratio.toFixed(2) + "倍" : '<span class="na-txt">—</span>'}${m ? `<span class="mv flat">買残/上場 ${esc(m.buy_ratio)}</span>` : ""}</td>
       <td class="l"><span class="rk-list">${r.ranks.map((x) => `<span>${esc(x.name)} ${x.r}位</span>`).join("") || '<span class="na-txt" style="background:none">—</span>'}</span></td>
-      ${restCells(r, false)}
+      ${restCells(r, REST_H)}
     </tr>`;
   }).join("");
   $("funds-box").innerHTML = H.funds && H.funds.length ? `<h2 style="font-size:16px">投資信託 (評価の対象外)</h2><ul class="funds">${H.funds.map((f) => `<li>${esc(f.n)}<span class="acct">${esc(f.acct)}</span></li>`).join("")}</ul>` : "";
@@ -1141,6 +1155,8 @@ function route() {
 
 Promise.all([load(), loadHoldings(), loadJSON("markets"), loadJSON("calendar"), loadJSON("sectors")]).then(([data, hold, mk, cal, sec]) => {
   D = data; H = hold; MK = mk; CAL = cal; SEC = sec;
+  sectorAverages();
+  Object.values(D.stocks).forEach(withSector);
   $("sec-range").querySelectorAll("button").forEach((b) => b.addEventListener("click", () => { secDays = +b.dataset.d; renderSectors(); }));
   if (MK) {
     $("nav-mk").hidden = false;
@@ -1153,7 +1169,7 @@ Promise.all([load(), loadHoldings(), loadJSON("markets"), loadJSON("calendar"), 
   }
   if (H) {
     $("nav-hold").hidden = false;
-    H.rows.forEach((r) => { if (!D.stocks[r.c]) D.stocks[r.c] = r; else Object.assign(D.stocks[r.c], { stage: r.stage, stage75: r.stage75 }); });
+    H.rows.forEach((r) => { withSector(r); if (!D.stocks[r.c]) D.stocks[r.c] = r; else Object.assign(D.stocks[r.c], { stage: r.stage, stage75: r.stage75 }); });
     ["click", "keydown"].forEach((ev) => $("htbl").tBodies[0].addEventListener(ev, (e) => {
       const tr = e.target.closest("tr[data-c]");
       if (!tr || (ev === "keydown" && e.key !== "Enter" && e.key !== " ")) return;

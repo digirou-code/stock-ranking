@@ -301,10 +301,10 @@ table.cal td.n { width: 6.5em; }
   <header class="top">
     <div>
       <h1>日次株ランキング</h1>
-      <p class="sub">複数のスクリーニングと総合SCOREで、毎営業日の注目銘柄を並べます</p>
+      <p class="sub">複数のスクリーニングとSCORE (業績・勢い) で、毎営業日の注目銘柄を並べます</p>
     </div>
     <div style="display:grid; gap:10px; justify-items:end">
-      <nav class="nav" aria-label="ページ"><a href="#score" id="nav-rank">ランキング</a><a href="#holdings" id="nav-hold" hidden>保有銘柄</a><a href="#markets" id="nav-mk" hidden>マーケット</a><a href="#calendar" id="nav-cal" hidden>経済スケジュール</a></nav>
+      <nav class="nav" aria-label="ページ"><a href="#sf" id="nav-rank">ランキング</a><a href="#holdings" id="nav-hold" hidden>保有銘柄</a><a href="#markets" id="nav-mk" hidden>マーケット</a><a href="#calendar" id="nav-cal" hidden>経済スケジュール</a></nav>
       <div class="meta" id="meta"></div>
     </div>
   </header>
@@ -392,7 +392,7 @@ table.cal td.n { width: 6.5em; }
   </div>
 
   <footer>
-    <p>SCOREは定量11項目 (PER・PBR・配当利回り・ROE・営業利益率・売上成長率・利益成長率・自己資本比率・3ヶ月騰落率・52週レンジ位置・売買代金) を対象銘柄内の順位で0〜100に換算し、平均したものです。欠損項目は中央値として扱います。</p>
+    <p>SCOREは2本立てです。業績はPER・ROE・自己資本比率・配当利回り・売上成長率・利益成長予想、勢いはステージ(75)・押し目度・3ヶ月騰落率・売買代金・RSI(低め加点) の5項目を0〜100に換算し、平均したものです。欠損項目は中央の50として扱います。</p>
     <p>色は日本の相場表の慣習に合わせ、上昇を赤、下落を緑で表示しています。株価は基準日の終値、財務指標は直近の開示ベースで数日おきに更新されます。</p>
     <p>このランキングは投資判断の材料であり、売買を推奨するものではありません。データの正確性は保証されません。</p>
   </footer>
@@ -403,14 +403,15 @@ table.cal td.n { width: 6.5em; }
 <script>
 const EMBEDDED = /*__DATA__*/null;
 const EMBEDDED_H = /*__HOLDINGS__*/null;
-let H = null, hSortKey = "score", hSortDir = -1;
+let H = null, hSortKey = "sf", hSortDir = -1;
 let SEC = null, secDays = 66, secSel = null, secChart = null, secRO = null;
 let MK = null, CAL = null, mkDays = 132, mkGroup = "all", calCc = "JPYUSD", calImp = 2, mkCharts = [];
 
 const COLS = [
   { k: "r", label: "順位", cls: "l", sort: 1 },
   { k: "n", label: "銘柄", cls: "l", sort: 1 },
-  { k: "score", label: "SCORE", sort: -1 },
+  { k: "sf", label: "業績", sort: -1 },
+  { k: "sm", label: "勢い", sort: -1 },
   { k: "p", label: "株価 / 前日比", sort: -1 },
   { k: "r1m", label: "1ヶ月", sort: -1 },
   { k: "r3m", label: "3ヶ月", sort: -1 },
@@ -430,7 +431,8 @@ const COLS = [
 // 列見出しにポインタを置いたときの説明
 const TIPS = {
   r: "このスクリーニングでの順位。下の矢印は前営業日からの変動 (NEWは新しくランクイン)",
-  score: "定量11項目を全銘柄内の順位で0〜100に換算した平均。棒は左から割安・配当・収益・成長・健全・勢いのカテゴリ別スコア",
+  sf: "SCORE業績。PER・ROE・自己資本比率・配当利回り・売上成長率・利益成長予想を0〜100に換算した平均。棒はその順の各項目",
+  sm: "SCORE勢い。ステージ(75)・押し目度・3ヶ月騰落率・売買代金・RSI(低め加点)を0〜100に換算した平均。棒はその順の各項目",
   p: "基準日の終値と前日比 (上昇は赤、下落は緑)",
   mc: "時価総額 = 株価 × 発行済株式数。会社全体の値段",
   per: "株価収益率 = 株価 ÷ 1株あたり利益。低いほど利益に対して割安 (目安15倍前後)。10倍以下は黄色の下線で強調",
@@ -465,14 +467,15 @@ const th = (c, sk, sd) => {
 };
 
 // トップ3カードで各スクリーニングの決め手として見せる値
-const KEY_METRIC = { score: "score", dividend: "dy", low_per: "per", high_roe: "roe", growth: "rg",
+const KEY_METRIC = { sf: "sf", sm: "sm", dividend: "dy", low_per: "per", high_roe: "roe", growth: "rg",
   pullback: "dev25", rsi_pullback: "rsi", rebound_dev: "dev25", rebound_rsi: "rsi", vol_break: "vr", high_break: "vr" };
 // スイング系スクリーニングでは決め手の指標を表に1列追加する
 const EXTRA_COL = { dev25: "25日線乖離", rsi: "RSI", vr: "出来高倍率" };
+const HEAD_N = 5;  // 順位・銘柄・業績・勢い・株価 (この後ろに決め手の列や取引の列が入る)
 const colsFor = (sc) => {
   const k = KEY_METRIC[sc.id];
-  const head = EXTRA_COL[k] ? [...COLS.slice(0, 4), { k, label: EXTRA_COL[k], sort: k === "dev25" ? 1 : -1 }] : COLS.slice(0, 4);
-  return [...head, ...(SWING.has(sc.id) && D.rules ? TRADE_COLS : []), ...COLS.slice(4)];
+  const head = EXTRA_COL[k] ? [...COLS.slice(0, HEAD_N), { k, label: EXTRA_COL[k], sort: k === "dev25" ? 1 : -1 }] : COLS.slice(0, HEAD_N);
+  return [...head, ...(SWING.has(sc.id) && D.rules ? TRADE_COLS : []), ...COLS.slice(HEAD_N)];
 };
 
 // 取引ルールの株数目安などを出すスイング系スクリーニング
@@ -498,7 +501,7 @@ const has = (v) => v !== null && v !== undefined && !Number.isNaN(v);
 function fmt(k, v) {
   if (!has(v)) return '<span class="na-txt">—</span>';
   switch (k) {
-    case "score": return v.toFixed(1);
+    case "sf": case "sm": return v.toFixed(1);
     case "p": return v >= 1000 ? Math.round(v).toLocaleString("ja-JP") : v.toFixed(1);
     case "mc": return v >= 10000 ? (v / 10000).toFixed(1) + "兆" : Math.round(v).toLocaleString("ja-JP") + "億";
     case "per": return v <= 0 ? '<span class="na-txt">赤字</span>' : v.toFixed(1) + "倍";
@@ -827,7 +830,7 @@ function renderMeta() {
 
 function renderTop3() {
   $("top3").innerHTML = D.screens.map((sc) => {
-    const km = KEY_METRIC[sc.id] || "score";
+    const km = KEY_METRIC[sc.id] || "sf";
     const items = sc.rows.slice(0, 3).map((row) => {
       const s = D.stocks[row.c];
       const w = SWING.has(sc.id) && has(s.earn_bd) ? ` <span class="warn" title="保有想定期間中に決算">決</span>` : "";
@@ -878,7 +881,7 @@ function renderTable() {
   });
   $("shown").textContent = `${rows.length}件を表示中`;
 
-  const cols = colsFor(cur), extra = EXTRA_COL[cols[4].k] ? cols[4].k : null, trade = cols.some((c) => c.k === "stop");
+  const cols = colsFor(cur), extra = EXTRA_COL[cols[HEAD_N].k] ? cols[HEAD_N].k : null, trade = cols.some((c) => c.k === "stop");
   $("tbl").tHead.innerHTML = "<tr>" + cols.map((c) => th(c, sortKey, sortDir)).join("") + "</tr>";
   $("tbl").tHead.querySelectorAll("button").forEach((b) => b.addEventListener("click", () => {
     const c = cols.find((x) => x.k === b.dataset.k);
@@ -886,17 +889,16 @@ function renderTable() {
     renderTable();
   }));
 
-  const catKeys = Object.keys(D.categories);
   $("tbl").tBodies[0].innerHTML = rows.length ? rows.map((s) => `
     <tr tabindex="0" data-c="${esc(s.c)}">
       <td class="l"><span class="rank">${s.r}</span>${move(s.r, s.pr)}</td>
       <td class="l name"><b>${esc(s.n)}</b><small>${esc(s.c)} · ${esc(s.sec)} · ${esc(s.mkt)}</small>${trade ? earnWarn(s) : ""}</td>
-      <td class="n"><div class="score"><span class="big">${fmt("score", s.score)}</span>
-        <span class="cats" title="${catKeys.map((k) => D.categories[k] + " " + (s.sub[k] ?? "—")).join(" / ")}">${catKeys.map((k) => has(s.sub[k]) ? `<i style="height:${Math.max(2, s.sub[k] * 0.22)}px"></i>` : '<i class="na"></i>').join("")}</span></div></td>
+      <td class="n">${scoreCell(s, "sf")}</td>
+      <td class="n">${scoreCell(s, "sm")}</td>
       <td class="n">${fmt("p", s.p)}<span class="mv">${has(s.chg) ? signed(s.chg) : ""}</span></td>
       ${extra ? `<td class="n">${fmt(extra, s[extra])}</td>` : ""}
       ${trade ? tradeCells(s) : ""}
-      ${restCells(s, COLS.slice(4))}
+      ${restCells(s, COLS.slice(HEAD_N))}
     </tr>`).join("") : `<tr><td colspan="${cols.length}" class="empty">条件に合う銘柄がありません。絞り込みを外してください。</td></tr>`;
 }
 
@@ -918,7 +920,14 @@ function hl(k, v, html) {
   return why ? `<span class="hl" title="${why}">${html}</span>` : html;
 }
 
-// ランキングと保有銘柄で共通の後半の列 (COLS.slice(4) の各キーのセル)
+// SCORE (業績・勢い) の値と、各項目の棒 (0〜100)
+function scoreCell(s, sid) {
+  const sd = D.scores[sid], it = s.items || {};
+  return `<div class="score"><span class="big">${fmt(sid, s[sid])}</span>
+    <span class="cats" title="${sd.items.map((x) => x.label + " " + (it[x.k] ?? "—")).join(" / ")}">${sd.items.map((x) => has(it[x.k]) ? `<i style="height:${Math.max(2, it[x.k] * 0.22)}px"></i>` : '<i class="na"></i>').join("")}</span></div>`;
+}
+
+// ランキングと保有銘柄で共通の後半の列 (COLS.slice(HEAD_N) の各キーのセル)
 const CELLS = {
   r1m: (s) => `<td class="n">${hl("r1m", s.r1m, fmt("r1m", s.r1m))}</td>`,
   r3m: (s) => `<td class="n">${hl("r3m", s.r3m, fmt("r3m", s.r3m))}</td>`,
@@ -945,10 +954,11 @@ function sectorAverages() {
 }
 const withSector = (s) => Object.assign(s, { sec1m: SEC_AVG[s.sec]?.r1m ?? null, sec3m: SEC_AVG[s.sec]?.r3m ?? null });
 
-const REST_H = COLS.slice(4).filter((c) => c.k !== "st" && c.k !== "st75");
+const REST_H = COLS.slice(HEAD_N).filter((c) => c.k !== "st" && c.k !== "st75");
 const H_COLS = [
   { k: "n", label: "銘柄", cls: "l", sort: 1 },
-  { k: "score", label: "その日の評価", sort: -1 },
+  { k: "sf", label: "業績", sort: -1 },
+  { k: "sm", label: "勢い", sort: -1 },
   { k: "p", label: "株価 / 前日比", sort: -1 },
   { k: "stage75", label: "ステージ(75)", cls: "l", sort: 1 },
   { k: "stage", label: "ステージ(150)", cls: "l", sort: 1 },
@@ -991,13 +1001,13 @@ function hValue(r, k) {
 function renderHoldings() {
   const rows = [...H.rows];
   const soon = rows.filter((r) => r.earn && daysUntil(r.earn.date) >= 0 && daysUntil(r.earn.date) <= 14);
-  const scored = rows.filter((r) => has(r.score));
-  const avg = scored.length ? scored.reduce((a, r) => a + r.score, 0) / scored.length : null;
+  const avgOf = (k) => { const v = rows.filter((r) => has(r[k])); return v.length ? v.reduce((a, r) => a + r[k], 0) / v.length : null; };
+  const avgF = avgOf("sf"), avgM = avgOf("sm"), scored = rows.filter((r) => has(r.sf) || has(r.sm));
   const stCount = [1, 2, 3, 4].map((n) => rows.filter((r) => r.stage && r.stage.stage === n).length);
   const up = rows.filter((r) => has(r.chg) && r.chg > 0).length, down = rows.filter((r) => has(r.chg) && r.chg < 0).length;
   $("hold-note").textContent = `個別株${rows.length}銘柄。株価基準日 ${H.asof}、信用残 ${H.margin_date || "—"} 申込分。`;
   $("hsum").innerHTML = `
-    <div><span>平均SCORE</span><b>${avg != null ? avg.toFixed(1) : "—"}</b><small>SCORE算出 ${scored.length}銘柄</small></div>
+    <div><span>平均SCORE 業績 / 勢い</span><b>${avgF != null ? avgF.toFixed(1) : "—"} / ${avgM != null ? avgM.toFixed(1) : "—"}</b><small>SCORE算出 ${scored.length}銘柄</small></div>
     <div><span>前日比 上昇 / 下落</span><b><span class="up">${up}</span> / <span class="down">${down}</span></b><small>銘柄数</small></div>
     <div><span>ステージ 上昇 / 下降</span><b><span class="up">${stCount[1]}</span> / <span class="down">${stCount[3]}</span></b><small>底固め ${stCount[0]} · 天井圏 ${stCount[2]}</small></div>
     <div><span>2週間以内の決算</span><b>${soon.length}</b><small>${soon.slice(0, 3).map((r) => esc(r.n)).join("、") || "なし"}</small></div>`;
@@ -1014,15 +1024,17 @@ function renderHoldings() {
     if (hSortKey === c.k) hSortDir = -hSortDir; else { hSortKey = c.k; hSortDir = c.sort; }
     renderHoldings();
   }));
-  const catKeys = Object.keys(D.categories);
+  const scoreTd = (r, k) => {
+    const diff = has(r[k]) && has(r[k + "_prev"]) ? r[k] - r[k + "_prev"] : null;
+    return `<td class="n">${D ? scoreCell(r, k) : fmt(k, r[k])}
+        ${diff != null ? `<span class="mv ${diff > 0.05 ? "up" : diff < -0.05 ? "down" : "flat"}">前日比 ${diff > 0 ? "+" : ""}${diff.toFixed(1)}</span>` : ""}</td>`;
+  };
   $("htbl").tBodies[0].innerHTML = rows.map((r) => {
     const m = r.margin;
-    const diff = has(r.score) && has(r.score_prev) ? r.score - r.score_prev : null;
     return `<tr tabindex="0" data-c="${esc(r.c)}">
       <td class="l name"><b>${esc(r.n)}</b><small>${esc(r.c)} · ${esc(r.sec || "—")} · ${esc(r.mkt || "")}<span class="acct">${esc(r.acct)}</span></small></td>
-      <td class="n"><div class="score"><span class="big">${fmt("score", r.score)}</span>
-        ${r.sub ? `<span class="cats" title="${catKeys.map((k) => D.categories[k] + " " + (r.sub[k] ?? "—")).join(" / ")}">${catKeys.map((k) => has(r.sub[k]) ? `<i style="height:${Math.max(2, r.sub[k] * 0.22)}px"></i>` : '<i class="na"></i>').join("")}</span>` : "<span></span>"}</div>
-        ${diff != null ? `<span class="mv ${diff > 0.05 ? "up" : diff < -0.05 ? "down" : "flat"}">前日比 ${diff > 0 ? "+" : ""}${diff.toFixed(1)}</span>` : ""}</td>
+      ${scoreTd(r, "sf")}
+      ${scoreTd(r, "sm")}
       <td class="n">${fmt("p", r.p)}<span class="mv">${has(r.chg) ? signed(r.chg) : ""}</span></td>
       <td class="l">${stagePill(r.stage75)}${r.stage75 ? `<span class="mv flat">75日線乖離 ${r.stage75.dev > 0 ? "+" : ""}${r.stage75.dev}%</span>` : ""}</td>
       <td class="l">${stagePill(r.stage)}${r.stage ? `<span class="mv flat">150日線乖離 ${r.stage.dev > 0 ? "+" : ""}${r.stage.dev}%</span>` : ""}</td>
@@ -1068,12 +1080,12 @@ function openDetail(code) {
       <div class="dlg-legend"><span><i style="background:var(--ma25)"></i>25日線</span><span><i style="background:var(--ma75)"></i>75日線</span><span>日足・約6ヶ月 (陽線=赤、陰線=緑)</span></div></div>
     <div class="kv">${kv.map(([k, v]) => `<div><span>${k}</span><b>${v}</b></div>`).join("")}</div>
     ${planHtml}
-    <div><h2 style="font-size:16px">SCORE ${fmt("score", s.score)} の内訳</h2>
-      <div class="items">${D.items.map((it) => {
+    ${Object.entries(D.scores).map(([sid, sd]) => `<div><h2 style="font-size:16px">${esc(sd.name)} ${fmt(sid, s[sid])} の内訳</h2>
+      <div class="items">${sd.items.map((it) => {
         const p = (s.items || {})[it.k];
-        return `<div class="item"><span>${it.label}</span><span class="cat">${D.categories[it.cat]}</span><span class="track"><span class="fill" style="width:${p ?? 0}%"></span></span><span class="pv">${p ?? "—"}</span></div>`;
+        return `<div class="item"><span>${esc(it.label)}</span><span class="cat">${esc(sd.short)}</span><span class="track"><span class="fill" style="width:${p ?? 0}%"></span></span><span class="pv">${p ?? "—"}</span></div>`;
       }).join("")}</div>
-      <p class="note" style="margin-top:8px">数値は対象銘柄の中での順位 (100が最良)。PER・PBRは低いほど高評価です。</p></div>
+      <p class="note" style="margin-top:8px">各項目は0〜100 (100が最良)。${esc(sd.note)}</p></div>`).join("")}
     ${ranks.length ? `<p class="note">ランクイン: ${ranks.map(esc).join(" / ")}</p>` : ""}
     ${real ? `<div class="links"><a href="https://finance.yahoo.co.jp/quote/${esc(s.c)}.T" target="_blank" rel="noopener">Yahoo!ファイナンス</a><a href="https://kabutan.jp/stock/?code=${esc(s.c)}" target="_blank" rel="noopener">株探</a><a href="https://irbank.net/${esc(s.c)}" target="_blank" rel="noopener">IR BANK</a></div>` : ""}`;
   $("dlg-close").addEventListener("click", () => $("dlg").close());

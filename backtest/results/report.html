@@ -1,0 +1,200 @@
+<title>スイング6条件バックテスト</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Zen+Kaku+Gothic+New:wght@400;500;700&family=Shippori+Mincho+B1:wght@600;800&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* 売買帳: 紙の帳面に細い罫、数値は等幅。利益=朱、損失=藍 (国内の値動き表示の慣習) */
+:root {
+  --bg: #f5f5f1; --panel: #ffffff; --fg: #1d2129; --mute: #5d6470; --line: #dadbd3;
+  --up: 190, 52, 38; --dn: 36, 86, 160; --accent: #87580f;
+  --c1: #c43728; --c2: #d38a1c; --c3: #2a6db5; --c4: #4f9bd6; --c5: #3d8748; --c6: #7a5bb0;
+  --display: "Shippori Mincho B1", "Hiragino Mincho ProN", "Yu Mincho", serif;
+  --body: "Zen Kaku Gothic New", "Hiragino Sans", "Yu Gothic", system-ui, sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #15181d; --panel: #1c2027; --fg: #e6e7e3; --mute: #9aa1ab; --line: #303641;
+  --up: 238, 105, 88; --dn: 104, 158, 230; --accent: #e0b064;
+  --c1: #ee6958; --c2: #f0aa48; --c3: #6aa2ea; --c4: #9cc8ee; --c5: #74c083; --c6: #b49ae6;
+  color-scheme: dark; } }
+:root[data-theme="dark"] {
+  --bg: #15181d; --panel: #1c2027; --fg: #e6e7e3; --mute: #9aa1ab; --line: #303641;
+  --up: 238, 105, 88; --dn: 104, 158, 230; --accent: #e0b064;
+  --c1: #ee6958; --c2: #f0aa48; --c3: #6aa2ea; --c4: #9cc8ee; --c5: #74c083; --c6: #b49ae6;
+  color-scheme: dark; }
+body { background: var(--bg); color: var(--fg); font-family: var(--body); font-size: 15px; line-height: 1.75; }
+.wrap { max-width: 1040px; margin: 0 auto; padding-block: 36px 64px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
+  display: grid; gap: 48px; }
+header { display: grid; gap: 10px; border-bottom: 2px solid var(--fg); padding-bottom: 18px; }
+.eyebrow { font-family: var(--mono); font-size: 12px; letter-spacing: .08em; color: var(--accent); text-transform: uppercase; }
+h1 { font-family: var(--display); font-weight: 800; font-size: clamp(28px, 5vw, 40px); line-height: 1.25; margin: 0; text-wrap: balance; }
+h2 { font-family: var(--display); font-weight: 800; font-size: 22px; margin: 0; text-wrap: balance; }
+h3 { font-size: 16px; margin: 0; }
+section { display: grid; gap: 14px; min-width: 0; }
+p { margin: 0; max-width: 70ch; }
+.meta { display: flex; flex-wrap: wrap; gap: 6px 22px; color: var(--mute); font-size: 13px; }
+.meta b { color: var(--fg); font-family: var(--mono); font-weight: 500; }
+.lead { color: var(--mute); font-size: 14px; }
+.summary { background: var(--panel); border: 1px solid var(--line); border-radius: 6px; padding: 20px 22px; display: grid; gap: 10px; }
+.summary ul { margin: 0; padding-left: 1.2em; display: grid; gap: 6px; max-width: 74ch; }
+.warn { color: rgb(var(--up)); font-weight: 700; }
+.tw { overflow-x: auto; border: 1px solid var(--line); border-radius: 6px; background: var(--panel); }
+table { border-collapse: collapse; width: 100%; font-variant-numeric: tabular-nums; }
+th, td { padding: 9px 12px; text-align: right; border-bottom: 1px solid var(--line); white-space: nowrap; vertical-align: top; }
+thead th { font-size: 12px; color: var(--mute); font-weight: 500; letter-spacing: .04em; background: var(--bg); }
+tbody th { text-align: left; font-weight: 500; }
+tbody th small { display: block; font-size: 11px; color: var(--mute); font-weight: 400; }
+tbody tr:last-child > * { border-bottom: 0; }
+td { font-family: var(--mono); font-size: 14px; }
+td b { font-weight: 500; display: block; }
+td small { display: block; font-size: 11px; color: var(--mute); font-family: var(--body); }
+td.pos { background: rgba(var(--up), var(--a)); }
+td.neg { background: rgba(var(--dn), var(--a)); }
+sup { color: var(--accent); font-weight: 700; }
+.na { color: var(--mute); }
+tr.sum > * { background: var(--bg); color: var(--mute); }
+.conds { display: grid; gap: 28px; }
+.cond { display: grid; gap: 8px; min-width: 0; }
+.def { font-size: 13px; color: var(--mute); }
+.defs td { text-align: left; white-space: normal; font-family: var(--body); font-size: 13px; min-width: 200px; }
+.chart { overflow-x: auto; background: var(--panel); border: 1px solid var(--line); border-radius: 6px; padding: 8px; }
+.chart svg { display: block; width: 100%; min-width: 560px; height: auto; }
+.chart .gl { stroke: var(--line); stroke-width: 1; }
+.chart .zero { stroke: var(--mute); stroke-width: 1; }
+.chart .ax { fill: var(--mute); font: 11px var(--mono); }
+.chart .ln { stroke-width: 2; stroke-linejoin: round; }
+.legend { display: flex; flex-wrap: wrap; gap: 6px 18px; font-size: 13px; }
+.legend i { display: inline-block; width: 12px; height: 3px; vertical-align: middle; margin-right: 6px; }
+.legend b { font-family: var(--mono); font-weight: 500; }
+.glossary { display: flex; flex-wrap: wrap; gap: 4px 20px; font-size: 13px; color: var(--mute); }
+.glossary b { color: var(--fg); font-weight: 500; }
+.notes { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px 28px; }
+.notes div { display: grid; gap: 4px; min-width: 0; }
+.notes p { font-size: 14px; color: var(--mute); }
+.key { font-size: 13px; color: var(--mute); }
+</style>
+<div class="wrap">
+<header>
+  <div class="eyebrow">Backtest · 東証 日足</div>
+  <h1>スイング6条件バックテスト</h1>
+  <div class="meta">
+    <span>検証期間 <b>2025-10-29 〜 2026-10-29</b></span>
+    <span>営業日 <b>243</b></span>
+    <span>銘柄 <b>3,680</b></span>
+    <span>損切り <b>-1.5ATR</b></span>
+    <span>利確 <b>+2.5ATR</b></span>
+    <span>最大保有 <b>10日</b></span>
+  </div>
+  
+</header>
+
+<section class="summary">
+  <h2>結論</h2>
+  <p>直近1年でコスト控除後も期待値がプラスで、PFにも少し余裕があったのは<b>乖離リバウンド</b>と<b>25日線押し目</b>の2つで、どちらも10営業日保有のときでした。残りの4条件は、この設定のままでは売買に使える水準ではありません。</p>
+<ul>
+<li><b>乖離リバウンド</b>: 10日保有で期待値 +1.22%/回、PF 1.39、2,547回。ATRルールでも +0.84%、PF 1.23 で、6条件中で唯一ルール運用でも安定してプラス。10枠運用の最大DDは -30%。</li>
+<li><b>25日線押し目</b>: 10日保有で期待値 +0.95%、PF 1.40、10枠運用は +25%・最大DD -24%。ただしATRルールにするとほぼ損益ゼロ (+0.03%)。</li>
+<li><b>高値ブレイク</b>: 10日保有で +0.80%、PF 1.24 ですが、10枠運用はマイナスで、4年に延ばすと期待値ゼロ。</li>
+<li><b>RSI押し目</b>: 10日保有だけ小幅プラス (+0.29%, PF 1.10)。他はマイナス。</li>
+<li><b>RSI売られすぎ反発・出来高急増</b>: 直近1年はどの保有期間でもマイナス。出来高急増は4年でも全保有期間マイナスです。</li>
+<li><b>1日保有</b>は6条件すべてマイナス。値動きがコスト (往復0.2〜0.8%) に負けています。</li>
+<li><b>ATRルール (損切り1.5ATR / 利確2.5ATR)</b> は、多くの条件で10日保有の成績を下回りました。利確に届く前に損切りに掛かる取引が多く、乖離リバウンドでも利確は21%、損切り33%、時間切れ46%でした。</li>
+</ul>
+<p>注意点が3つあります。1年は検証期間として短く、勝率は50%前後・PFは1.2〜1.4と余裕が大きくありません。4年に延ばすとリバウンド系の1回あたり平均は高く出ますが、利益の多くは急落直後の数日に集中しています。シグナルが一度に大量に出るので、10枠運用では取り切れずマイナスでした。さらに上場廃止銘柄を含められていないため、リバウンド系の成績は実際より良く出ている可能性があります。</p>
+
+</section>
+
+<section>
+  <h2>期待値の一覧 (コスト控除後, 1回あたり)</h2>
+  <p class="lead">シグナル翌営業日の寄り付きで買い、N営業日目の大引けで売った場合の1回あたり平均損益 (%)。「ATRルール」は損切り -1.5ATR・利確 +2.5ATR・最大10営業日で手仕舞い。判定はその時点で分かる株価と出来高だけで行い、財務条件は外しています (理由は下の注意点)。</p>
+  <div class="tw"><table class="grid"><thead><tr><th></th><th>1日</th><th>3日</th><th>5日</th><th>10日</th><th>ATRルール</th></tr></thead><tbody><tr><th scope="row">25日線押し目</th><td class="neg" style="--a:0.12"><b>-0.31%<sup title="シグナル日ごとの平均で t値の絶対値が2以上">*</sup></b><small>PF 0.64 · 28,146件</small></td><td class="neg" style="--a:0.06"><b>-0.17%</b><small>PF 0.89 · 14,810件</small></td><td class="pos" style="--a:0.11"><b>+0.30%</b><small>PF 1.17 · 11,223件</small></td><td class="pos" style="--a:0.35"><b>+0.95%<sup title="シグナル日ごとの平均で t値の絶対値が2以上">*</sup></b><small>PF 1.40 · 7,923件</small></td><td class="pos" style="--a:0.01"><b>+0.03%</b><small>PF 1.01 · 9,055件</small></td></tr><tr><th scope="row">RSI押し目</th><td class="neg" style="--a:0.15"><b>-0.40%<sup title="シグナル日ごとの平均で t値の絶対値が2以上">*</sup></b><small>PF 0.60 · 9,530件</small></td><td class="neg" style="--a:0.15"><b>-0.40%</b><small>PF 0.78 · 7,240件</small></td><td class="neg" style="--a:0.14"><b>-0.37%</b><small>PF 0.84 · 5,962件</small></td><td class="pos" style="--a:0.11"><b>+0.29%</b><small>PF 1.10 · 4,525件</small></td><td class="neg" style="--a:0.12"><b>-0.33%</b><small>PF 0.89 · 5,185件</small></td></tr><tr><th scope="row">乖離リバウンド</th><td class="neg" style="--a:0.09"><b>-0.25%<sup title="シグナル日ごとの平均で t値の絶対値が2以上">*</sup></b><small>PF 0.79 · 12,358件</small></td><td class="pos" style="--a:0.14"><b>+0.39%</b><small>PF 1.19 · 5,484件</small></td><td class="pos" style="--a:0.24"><b>+0.66%</b><small>PF 1.26 · 3,921件</small></td><td class="pos" style="--a:0.45"><b>+1.22%<sup title="シグナル日ごとの平均で t値の絶対値が2以上">*</sup></b><small>PF 1.39 · 2,547件</small></td><td class="pos" style="--a:0.31"><b>+0.84%</b><small>PF 1.23 · 3,068件</small></td></tr><tr><th scope="row">RSI売られすぎ反発</th><td class="neg" style="--a:0.40"><b>-1.09%<sup title="シグナル日ごとの平均で t値の絶対値が2以上">*</sup></b><small>PF 0.44 · 2,296件</small></td><td class="neg" style="--a:0.42"><b>-1.15%<sup title="シグナル日ごとの平均で t値の絶対値が2以上">*</sup></b><small>PF 0.59 · 1,951件</small></td><td class="neg" style="--a:0.42"><b>-1.16%<sup title="シグナル日ごとの平均で t値の絶対値が2以上">*</sup></b><small>PF 0.64 · 1,812件</small></td><td class="neg" style="--a:0.46"><b>-1.26%</b><small>PF 0.68 · 1,675件</small></td><td class="neg" style="--a:0.26"><b>-0.71%<sup title="シグナル日ごとの平均で t値の絶対値が2以上">*</sup></b><small>PF 0.80 · 1,858件</small></td></tr><tr><th scope="row">出来高急増</th><td class="neg" style="--a:0.28"><b>-0.78%<sup title="シグナル日ごとの平均で t値の絶対値が2以上">*</sup></b><small>PF 0.61 · 5,197件</small></td><td class="neg" style="--a:0.23"><b>-0.64%<sup title="シグナル日ごとの平均で t値の絶対値が2以上">*</sup></b><small>PF 0.79 · 4,696件</small></td><td class="neg" style="--a:0.09"><b>-0.26%</b><small>PF 0.93 · 4,413件</small></td><td class="pos" style="--a:0.04"><b>+0.10%</b><small>PF 1.02 · 4,032件</small></td><td class="neg" style="--a:0.14"><b>-0.37%</b><small>PF 0.89 · 4,638件</small></td></tr><tr><th scope="row">高値ブレイク</th><td class="neg" style="--a:0.16"><b>-0.43%<sup title="シグナル日ごとの平均で t値の絶対値が2以上">*</sup></b><small>PF 0.72 · 11,581件</small></td><td class="neg" style="--a:0.07"><b>-0.20%</b><small>PF 0.92 · 8,153件</small></td><td class="pos" style="--a:0.03"><b>+0.07%</b><small>PF 1.03 · 7,177件</small></td><td class="pos" style="--a:0.29"><b>+0.80%<sup title="シグナル日ごとの平均で t値の絶対値が2以上">*</sup></b><small>PF 1.24 · 6,076件</small></td><td class="pos" style="--a:0.03"><b>+0.09%</b><small>PF 1.03 · 7,939件</small></td></tr></tbody></table></div>
+  <p class="key">朱は利益、藍は損失で、色が濃いほど大きい。<sup>*</sup> はシグナル日ごとに平均した損益の t値が ±2 を超えたもの (偶然では出にくい差)。</p>
+</section>
+
+<section>
+  <h2>条件ごとの評価指標</h2>
+  <div class="glossary">
+    <span><b>勝率</b> 利益で終わった取引の割合</span>
+    <span><b>損益比</b> 平均利益 ÷ 平均損失</span>
+    <span><b>期待値</b> 1回あたり平均損益 (コスト後)</span>
+    <span><b>PF</b> 総利益 ÷ 総損失</span>
+    <span><b>最大DD</b> 資金を10枠に分けて運用した場合の、資産のピークからの最大下落率 (下段は期間の損益)</span>
+  </div>
+  <div class="conds"><article class="cond">
+  <h3>25日線押し目</h3>
+  <p class="def">75日線上向き・株価&gt;75日線・25日線&gt;75日線、25日線乖離 -3〜+1%、20日高値から -5〜-15%、売買代金1億円以上</p>
+  <div class="tw"><table class="plain"><thead><tr><th>保有</th><th>取引回数</th><th>勝率</th><th>平均利益</th><th>平均損失</th>
+  <th>損益比</th><th>期待値</th><th>PF</th><th>最大DD</th></tr></thead><tbody><tr><th scope="row">1日</th><td>28,146</td><td>41.5%</td><td>+1.34%</td><td>-1.49%</td><td>0.90</td><td class="neg" style="--a:0.12"><b>-0.31%</b></td><td class="neg" style="--a:0.40">0.64</td><td>-59.0%<small>損益 -57.9%</small></td></tr><tr><th scope="row">3日</th><td>14,810</td><td>46.7%</td><td>+2.94%</td><td>-2.88%</td><td>1.02</td><td class="neg" style="--a:0.06"><b>-0.17%</b></td><td class="neg" style="--a:0.12">0.89</td><td>-28.3%<small>損益 -18.7%</small></td></tr><tr><th scope="row">5日</th><td>11,223</td><td>50.6%</td><td>+4.05%</td><td>-3.54%</td><td>1.15</td><td class="pos" style="--a:0.11"><b>+0.30%</b></td><td class="pos" style="--a:0.19">1.17</td><td>-37.3%<small>損益 -15.1%</small></td></tr><tr><th scope="row">10日</th><td>7,923</td><td>52.9%</td><td>+6.32%</td><td>-5.08%</td><td>1.24</td><td class="pos" style="--a:0.35"><b>+0.95%</b></td><td class="pos" style="--a:0.44">1.40</td><td>-24.1%<small>損益 +25.2%</small></td></tr><tr><th scope="row">ATRルール<small>利確 26% · 損切り 42% · 時間切れ 33% · 平均6.7日</small></th><td>9,055</td><td>45.9%</td><td>+5.81%</td><td>-4.89%</td><td>1.19</td><td class="pos" style="--a:0.01"><b>+0.03%</b></td><td class="pos" style="--a:0.01">1.01</td><td>-26.8%<small>損益 -1.9%</small></td></tr></tbody></table></div>
+</article><article class="cond">
+  <h3>RSI押し目</h3>
+  <p class="def">株価&gt;200日線、RSI(14) 35〜45、前日比プラスの陽線、売買代金1億円以上</p>
+  <div class="tw"><table class="plain"><thead><tr><th>保有</th><th>取引回数</th><th>勝率</th><th>平均利益</th><th>平均損失</th>
+  <th>損益比</th><th>期待値</th><th>PF</th><th>最大DD</th></tr></thead><tbody><tr><th scope="row">1日</th><td>9,530</td><td>39.8%</td><td>+1.53%</td><td>-1.68%</td><td>0.91</td><td class="neg" style="--a:0.15"><b>-0.40%</b></td><td class="neg" style="--a:0.44">0.60</td><td>-66.7%<small>損益 -66.4%</small></td></tr><tr><th scope="row">3日</th><td>7,240</td><td>43.7%</td><td>+3.31%</td><td>-3.28%</td><td>1.01</td><td class="neg" style="--a:0.15"><b>-0.40%</b></td><td class="neg" style="--a:0.24">0.78</td><td>-41.8%<small>損益 -39.7%</small></td></tr><tr><th scope="row">5日</th><td>5,962</td><td>45.9%</td><td>+4.26%</td><td>-4.30%</td><td>0.99</td><td class="neg" style="--a:0.14"><b>-0.37%</b></td><td class="neg" style="--a:0.17">0.84</td><td>-35.5%<small>損益 -26.8%</small></td></tr><tr><th scope="row">10日</th><td>4,525</td><td>49.5%</td><td>+6.50%</td><td>-5.78%</td><td>1.12</td><td class="pos" style="--a:0.11"><b>+0.29%</b></td><td class="pos" style="--a:0.11">1.10</td><td>-20.0%<small>損益 +15.9%</small></td></tr><tr><th scope="row">ATRルール<small>利確 22% · 損切り 39% · 時間切れ 39% · 平均7.2日</small></th><td>5,185</td><td>44.0%</td><td>+6.24%</td><td>-5.50%</td><td>1.13</td><td class="neg" style="--a:0.12"><b>-0.33%</b></td><td class="neg" style="--a:0.12">0.89</td><td>-50.1%<small>損益 -34.0%</small></td></tr></tbody></table></div>
+</article><article class="cond">
+  <h3>乖離リバウンド</h3>
+  <p class="def">25日線乖離 -10%以下、時価総額300億円以上、売買代金1億円以上</p>
+  <div class="tw"><table class="plain"><thead><tr><th>保有</th><th>取引回数</th><th>勝率</th><th>平均利益</th><th>平均損失</th>
+  <th>損益比</th><th>期待値</th><th>PF</th><th>最大DD</th></tr></thead><tbody><tr><th scope="row">1日</th><td>12,358</td><td>46.2%</td><td>+2.08%</td><td>-2.26%</td><td>0.92</td><td class="neg" style="--a:0.09"><b>-0.25%</b></td><td class="neg" style="--a:0.23">0.79</td><td>-62.2%<small>損益 -56.4%</small></td></tr><tr><th scope="row">3日</th><td>5,484</td><td>52.7%</td><td>+4.72%</td><td>-4.44%</td><td>1.06</td><td class="pos" style="--a:0.14"><b>+0.39%</b></td><td class="pos" style="--a:0.20">1.19</td><td>-36.8%<small>損益 +6.3%</small></td></tr><tr><th scope="row">5日</th><td>3,921</td><td>49.9%</td><td>+6.29%</td><td>-4.96%</td><td>1.27</td><td class="pos" style="--a:0.24"><b>+0.66%</b></td><td class="pos" style="--a:0.29">1.26</td><td>-40.0%<small>損益 -11.0%</small></td></tr><tr><th scope="row">10日</th><td>2,547</td><td>50.1%</td><td>+8.68%</td><td>-6.27%</td><td>1.39</td><td class="pos" style="--a:0.45"><b>+1.22%</b></td><td class="pos" style="--a:0.43">1.39</td><td>-35.7%<small>損益 +17.3%</small></td></tr><tr><th scope="row">ATRルール<small>利確 21% · 損切り 33% · 時間切れ 46% · 平均7.7日</small></th><td>3,068</td><td>47.8%</td><td>+9.46%</td><td>-7.04%</td><td>1.34</td><td class="pos" style="--a:0.31"><b>+0.84%</b></td><td class="pos" style="--a:0.25">1.23</td><td>-29.7%<small>損益 +9.9%</small></td></tr></tbody></table></div>
+</article><article class="cond">
+  <h3>RSI売られすぎ反発</h3>
+  <p class="def">直近5日にRSI(14)≦30、陽線かつ前日比 +1%以上、出来高が20日平均の1.5倍以上</p>
+  <div class="tw"><table class="plain"><thead><tr><th>保有</th><th>取引回数</th><th>勝率</th><th>平均利益</th><th>平均損失</th>
+  <th>損益比</th><th>期待値</th><th>PF</th><th>最大DD</th></tr></thead><tbody><tr><th scope="row">1日</th><td>2,296</td><td>31.7%</td><td>+2.67%</td><td>-2.83%</td><td>0.94</td><td class="neg" style="--a:0.40"><b>-1.09%</b></td><td class="neg" style="--a:0.55">0.44</td><td>-83.8%<small>損益 -83.8%</small></td></tr><tr><th scope="row">3日</th><td>1,951</td><td>36.6%</td><td>+4.47%</td><td>-4.39%</td><td>1.02</td><td class="neg" style="--a:0.42"><b>-1.15%</b></td><td class="neg" style="--a:0.45">0.59</td><td>-68.8%<small>損益 -68.5%</small></td></tr><tr><th scope="row">5日</th><td>1,812</td><td>37.3%</td><td>+5.46%</td><td>-5.08%</td><td>1.07</td><td class="neg" style="--a:0.42"><b>-1.16%</b></td><td class="neg" style="--a:0.40">0.64</td><td>-56.4%<small>損益 -53.9%</small></td></tr><tr><th scope="row">10日</th><td>1,675</td><td>38.5%</td><td>+7.03%</td><td>-6.46%</td><td>1.09</td><td class="neg" style="--a:0.46"><b>-1.26%</b></td><td class="neg" style="--a:0.35">0.68</td><td>-41.9%<small>損益 -20.1%</small></td></tr><tr><th scope="row">ATRルール<small>利確 22% · 損切り 45% · 時間切れ 34% · 平均6.2日</small></th><td>1,858</td><td>37.9%</td><td>+7.38%</td><td>-5.65%</td><td>1.31</td><td class="neg" style="--a:0.26"><b>-0.71%</b></td><td class="neg" style="--a:0.22">0.80</td><td>-36.7%<small>損益 -32.6%</small></td></tr></tbody></table></div>
+</article><article class="cond">
+  <h3>出来高急増</h3>
+  <p class="def">出来高が20日平均の1.5倍以上、前日比 +3%以上、高値引け近く(-1%以内)、株価&gt;25日線、当日売買代金3億円以上</p>
+  <div class="tw"><table class="plain"><thead><tr><th>保有</th><th>取引回数</th><th>勝率</th><th>平均利益</th><th>平均損失</th>
+  <th>損益比</th><th>期待値</th><th>PF</th><th>最大DD</th></tr></thead><tbody><tr><th scope="row">1日</th><td>5,197</td><td>40.6%</td><td>+3.00%</td><td>-3.36%</td><td>0.89</td><td class="neg" style="--a:0.28"><b>-0.78%</b></td><td class="neg" style="--a:0.43">0.61</td><td>-94.7%<small>損益 -94.7%</small></td></tr><tr><th scope="row">3日</th><td>4,696</td><td>44.3%</td><td>+5.40%</td><td>-5.45%</td><td>0.99</td><td class="neg" style="--a:0.23"><b>-0.64%</b></td><td class="neg" style="--a:0.23">0.79</td><td>-75.1%<small>損益 -73.1%</small></td></tr><tr><th scope="row">5日</th><td>4,413</td><td>45.6%</td><td>+7.01%</td><td>-6.36%</td><td>1.10</td><td class="neg" style="--a:0.09"><b>-0.26%</b></td><td class="neg" style="--a:0.08">0.93</td><td>-68.0%<small>損益 -63.2%</small></td></tr><tr><th scope="row">10日</th><td>4,032</td><td>46.9%</td><td>+9.33%</td><td>-8.03%</td><td>1.16</td><td class="pos" style="--a:0.04"><b>+0.10%</b></td><td class="pos" style="--a:0.03">1.02</td><td>-52.5%<small>損益 -43.8%</small></td></tr><tr><th scope="row">ATRルール<small>利確 30% · 損切り 53% · 時間切れ 17% · 平均4.8日</small></th><td>4,638</td><td>40.3%</td><td>+7.78%</td><td>-5.87%</td><td>1.33</td><td class="neg" style="--a:0.14"><b>-0.37%</b></td><td class="neg" style="--a:0.12">0.89</td><td>-64.2%<small>損益 -63.6%</small></td></tr></tbody></table></div>
+</article><article class="cond">
+  <h3>高値ブレイク</h3>
+  <p class="def">終値が直近10日の最高値を更新、出来高1.5倍以上、25日線&gt;75日線、売買代金1億円以上</p>
+  <div class="tw"><table class="plain"><thead><tr><th>保有</th><th>取引回数</th><th>勝率</th><th>平均利益</th><th>平均損失</th>
+  <th>損益比</th><th>期待値</th><th>PF</th><th>最大DD</th></tr></thead><tbody><tr><th scope="row">1日</th><td>11,581</td><td>41.5%</td><td>+2.65%</td><td>-2.62%</td><td>1.01</td><td class="neg" style="--a:0.16"><b>-0.43%</b></td><td class="neg" style="--a:0.31">0.72</td><td>-85.2%<small>損益 -84.7%</small></td></tr><tr><th scope="row">3日</th><td>8,153</td><td>45.6%</td><td>+4.77%</td><td>-4.35%</td><td>1.09</td><td class="neg" style="--a:0.07"><b>-0.20%</b></td><td class="neg" style="--a:0.09">0.92</td><td>-32.2%<small>損益 +34.9%</small></td></tr><tr><th scope="row">5日</th><td>7,177</td><td>47.1%</td><td>+6.15%</td><td>-5.34%</td><td>1.15</td><td class="pos" style="--a:0.03"><b>+0.07%</b></td><td class="pos" style="--a:0.03">1.03</td><td>-42.0%<small>損益 -27.8%</small></td></tr><tr><th scope="row">10日</th><td>6,076</td><td>50.6%</td><td>+8.16%</td><td>-6.75%</td><td>1.21</td><td class="pos" style="--a:0.29"><b>+0.80%</b></td><td class="pos" style="--a:0.26">1.24</td><td>-29.3%<small>損益 -17.1%</small></td></tr><tr><th scope="row">ATRルール<small>利確 33% · 損切り 49% · 時間切れ 18% · 平均5.0日</small></th><td>7,939</td><td>43.6%</td><td>+7.26%</td><td>-5.46%</td><td>1.33</td><td class="pos" style="--a:0.03"><b>+0.09%</b></td><td class="pos" style="--a:0.03">1.03</td><td>-21.9%<small>損益 +3.4%</small></td></tr></tbody></table></div>
+</article></div>
+</section>
+
+<section>
+  <h2>ATRルールで10枠運用した場合の損益推移</h2>
+  <p class="lead">資金を10等分し、空き枠があればその日のシグナルを各条件の並び順 (スクリーニング画面の順位) の上位から買った試算。1枠の投資額は前日時点の資産の1/10 (複利)、含み損益込み、コスト控除後。</p>
+  <div class="chart"><svg viewBox="0 0 760 320" role="img" aria-label="10枠運用の損益推移"><line x1="52" x2="744" y1="290.0" y2="290.0" class="gl"/><text x="46" y="294.0" class="ax" text-anchor="end">-80%</text><line x1="52" x2="744" y1="244.0" y2="244.0" class="gl"/><text x="46" y="248.0" class="ax" text-anchor="end">-60%</text><line x1="52" x2="744" y1="198.0" y2="198.0" class="gl"/><text x="46" y="202.0" class="ax" text-anchor="end">-40%</text><line x1="52" x2="744" y1="152.0" y2="152.0" class="gl"/><text x="46" y="156.0" class="ax" text-anchor="end">-20%</text><line x1="52" x2="744" y1="106.0" y2="106.0" class="zero"/><text x="46" y="110.0" class="ax" text-anchor="end">+0%</text><line x1="52" x2="744" y1="60.0" y2="60.0" class="gl"/><text x="46" y="64.0" class="ax" text-anchor="end">+20%</text><line x1="52" x2="744" y1="14.0" y2="14.0" class="gl"/><text x="46" y="18.0" class="ax" text-anchor="end">+40%</text><text x="52.0" y="310" class="ax" text-anchor="middle">2025/10</text><text x="118.5" y="310" class="ax" text-anchor="middle">2025/12</text><text x="238.3" y="310" class="ax" text-anchor="middle">2026/02</text><text x="344.8" y="310" class="ax" text-anchor="middle">2026/04</text><text x="464.5" y="310" class="ax" text-anchor="middle">2026/06</text><text x="584.3" y="310" class="ax" text-anchor="middle">2026/08</text><text x="690.8" y="310" class="ax" text-anchor="middle">2026/10</text><polyline points="52.0,101.1 65.3,100.1 78.6,100.1 91.9,111.2 105.2,99.4 118.5,107.0 131.8,114.9 145.2,119.9 158.5,110.0 171.8,109.3 185.1,100.5 198.4,92.1 211.7,95.0 225.0,97.1 238.3,92.7 251.6,82.0 264.9,73.7 278.2,60.5 291.5,87.6 304.8,97.7 318.2,105.5 331.5,114.8 344.8,114.5 358.1,86.5 371.4,80.7 384.7,75.9 398.0,71.1 411.3,60.7 424.6,63.2 437.9,63.9 451.2,47.5 464.5,62.5 477.8,77.8 491.2,58.4 504.5,59.2 517.8,54.1 531.1,72.7 544.4,105.3 557.7,103.2 571.0,117.0 584.3,107.7 597.6,98.8 610.9,103.5 624.2,101.5 637.5,115.4 650.8,124.7 664.2,119.1 677.5,118.9 690.8,118.8 704.1,112.6 717.4,106.9 730.7,110.8 744.0,110.5" fill="none" style="stroke:var(--c1)" class="ln"/><circle cx="744.0" cy="110.5" r="3.5" style="fill:var(--c1)"/><polyline points="52.0,105.4 65.3,106.5 78.6,105.0 91.9,114.0 105.2,96.8 118.5,113.5 131.8,123.2 145.2,119.1 158.5,110.5 171.8,100.2 185.1,88.6 198.4,81.8 211.7,83.0 225.0,88.6 238.3,66.7 251.6,60.5 264.9,62.5 278.2,47.6 291.5,65.1 304.8,80.1 318.2,84.8 331.5,91.5 344.8,97.8 358.1,87.3 371.4,76.4 384.7,72.3 398.0,68.2 411.3,72.8 424.6,82.5 437.9,90.9 451.2,117.9 464.5,110.0 477.8,119.7 491.2,108.3 504.5,108.1 517.8,107.0 531.1,117.9 544.4,157.5 557.7,170.1 571.0,190.1 584.3,187.2 597.6,182.8 610.9,189.0 624.2,185.6 637.5,187.8 650.8,187.3 664.2,182.8 677.5,182.2 690.8,185.3 704.1,181.5 717.4,178.0 730.7,182.8 744.0,184.1" fill="none" style="stroke:var(--c2)" class="ln"/><circle cx="744.0" cy="184.1" r="3.5" style="fill:var(--c2)"/><polyline points="52.0,106.8 65.3,106.7 78.6,96.9 91.9,100.0 105.2,83.9 118.5,85.1 131.8,88.1 145.2,83.9 158.5,73.9 171.8,72.9 185.1,56.6 198.4,49.3 211.7,39.9 225.0,45.7 238.3,49.8 251.6,57.5 264.9,56.5 278.2,49.8 291.5,53.6 304.8,58.1 318.2,55.6 331.5,73.0 344.8,75.4 358.1,66.2 371.4,52.7 384.7,58.4 398.0,58.2 411.3,52.4 424.6,49.3 437.9,53.0 451.2,63.6 464.5,64.9 477.8,68.1 491.2,47.8 504.5,47.9 517.8,30.0 531.1,39.9 544.4,75.7 557.7,71.5 571.0,86.6 584.3,84.7 597.6,68.2 610.9,69.4 624.2,68.8 637.5,74.6 650.8,83.9 664.2,75.8 677.5,71.0 690.8,68.6 704.1,67.6 717.4,77.7 730.7,87.4 744.0,83.2" fill="none" style="stroke:var(--c3)" class="ln"/><circle cx="744.0" cy="83.2" r="3.5" style="fill:var(--c3)"/><polyline points="52.0,106.7 65.3,112.4 78.6,115.5 91.9,121.2 105.2,119.3 118.5,124.7 131.8,122.5 145.2,130.6 158.5,120.4 171.8,128.1 185.1,121.3 198.4,125.5 211.7,129.4 225.0,135.9 238.3,127.6 251.6,133.1 264.9,138.2 278.2,132.9 291.5,137.5 304.8,144.2 318.2,148.6 331.5,151.8 344.8,150.2 358.1,151.4 371.4,144.8 384.7,153.9 398.0,156.6 411.3,158.7 424.6,162.5 437.9,171.6 451.2,175.3 464.5,186.5 477.8,188.6 491.2,183.2 504.5,187.5 517.8,176.6 531.1,173.9 544.4,176.9 557.7,176.7 571.0,182.5 584.3,176.3 597.6,175.5 610.9,168.6 624.2,168.5 637.5,169.2 650.8,174.3 664.2,171.6 677.5,172.7 690.8,170.4 704.1,175.1 717.4,177.5 730.7,180.7 744.0,180.9" fill="none" style="stroke:var(--c4)" class="ln"/><circle cx="744.0" cy="180.9" r="3.5" style="fill:var(--c4)"/><polyline points="52.0,107.3 65.3,117.9 78.6,120.9 91.9,132.4 105.2,129.6 118.5,138.5 131.8,147.9 145.2,154.0 158.5,153.8 171.8,154.7 185.1,156.3 198.4,152.0 211.7,163.0 225.0,177.0 238.3,174.1 251.6,171.2 264.9,172.7 278.2,165.8 291.5,174.3 304.8,179.3 318.2,181.0 331.5,187.6 344.8,190.9 358.1,193.4 371.4,194.2 384.7,196.0 398.0,203.5 411.3,205.1 424.6,209.3 437.9,211.9 451.2,216.1 464.5,221.1 477.8,231.4 491.2,225.9 504.5,228.5 517.8,226.8 531.1,233.2 544.4,231.9 557.7,235.6 571.0,240.0 584.3,235.9 597.6,235.0 610.9,234.6 624.2,229.6 637.5,231.3 650.8,242.1 664.2,244.3 677.5,245.1 690.8,248.3 704.1,251.9 717.4,252.1 730.7,252.4 744.0,252.2" fill="none" style="stroke:var(--c5)" class="ln"/><circle cx="744.0" cy="252.2" r="3.5" style="fill:var(--c5)"/><polyline points="52.0,109.5 65.3,115.9 78.6,105.4 91.9,100.1 105.2,90.2 118.5,98.7 131.8,109.3 145.2,110.8 158.5,105.4 171.8,109.5 185.1,105.8 198.4,89.2 211.7,82.4 225.0,93.9 238.3,91.9 251.6,88.8 264.9,102.3 278.2,93.7 291.5,102.7 304.8,93.3 318.2,117.1 331.5,114.3 344.8,128.4 358.1,132.4 371.4,114.9 384.7,128.1 398.0,128.1 411.3,119.7 424.6,116.2 437.9,110.3 451.2,101.9 464.5,98.9 477.8,120.8 491.2,118.1 504.5,107.3 517.8,112.7 531.1,114.9 544.4,118.1 557.7,113.3 571.0,110.2 584.3,97.7 597.6,93.8 610.9,99.7 624.2,96.8 637.5,109.7 650.8,99.7 664.2,99.3 677.5,97.1 690.8,98.9 704.1,112.3 717.4,97.1 730.7,98.7 744.0,98.1" fill="none" style="stroke:var(--c6)" class="ln"/><circle cx="744.0" cy="98.1" r="3.5" style="fill:var(--c6)"/></svg></div><div class="legend"><span><i style="background:var(--c1)"></i>25日線押し目 <b>-1.9%</b></span><span><i style="background:var(--c2)"></i>RSI押し目 <b>-34.0%</b></span><span><i style="background:var(--c3)"></i>乖離リバウンド <b>+9.9%</b></span><span><i style="background:var(--c4)"></i>RSI売られすぎ反発 <b>-32.6%</b></span><span><i style="background:var(--c5)"></i>出来高急増 <b>-63.5%</b></span><span><i style="background:var(--c6)"></i>高値ブレイク <b>+3.4%</b></span></div>
+</section>
+
+<section>
+  <h2>市場平均との差</h2>
+  <p class="lead">同じ日に同じ方法で売買代金1億円以上の全銘柄を買った場合の平均との差 (コスト前, %)。相場全体の上げ下げを除いた、条件そのものの効き目です。</p>
+  <div class="tw"><table class="grid"><thead><tr><th></th><th>1日</th><th>3日</th><th>5日</th><th>10日</th></tr></thead><tbody><tr><th scope="row">25日線押し目</th><td class="pos" style="--a:0.00"><b>+0.01%</b><small>市場超え 50%</small></td><td class="pos" style="--a:0.01"><b>+0.02%</b><small>市場超え 49%</small></td><td class="pos" style="--a:0.07"><b>+0.18%</b><small>市場超え 49%</small></td><td class="pos" style="--a:0.12"><b>+0.33%</b><small>市場超え 49%</small></td></tr><tr><th scope="row">RSI押し目</th><td class="neg" style="--a:0.02"><b>-0.05%</b><small>市場超え 48%</small></td><td class="neg" style="--a:0.04"><b>-0.11%</b><small>市場超え 47%</small></td><td class="neg" style="--a:0.09"><b>-0.25%</b><small>市場超え 46%</small></td><td class="neg" style="--a:0.01"><b>-0.03%</b><small>市場超え 47%</small></td></tr><tr><th scope="row">乖離リバウンド</th><td class="pos" style="--a:0.01"><b>+0.02%</b><small>市場超え 51%</small></td><td class="pos" style="--a:0.13"><b>+0.37%</b><small>市場超え 52%</small></td><td class="pos" style="--a:0.18"><b>+0.48%</b><small>市場超え 49%</small></td><td class="pos" style="--a:0.19"><b>+0.51%</b><small>市場超え 47%</small></td></tr><tr><th scope="row">RSI売られすぎ反発</th><td class="neg" style="--a:0.15"><b>-0.41%</b><small>市場超え 44%</small></td><td class="neg" style="--a:0.24"><b>-0.66%</b><small>市場超え 41%</small></td><td class="neg" style="--a:0.27"><b>-0.75%</b><small>市場超え 42%</small></td><td class="neg" style="--a:0.41"><b>-1.11%</b><small>市場超え 42%</small></td></tr><tr><th scope="row">出来高急増</th><td class="neg" style="--a:0.13"><b>-0.35%</b><small>市場超え 47%</small></td><td class="neg" style="--a:0.08"><b>-0.23%</b><small>市場超え 47%</small></td><td class="neg" style="--a:0.07"><b>-0.20%</b><small>市場超え 47%</small></td><td class="neg" style="--a:0.01"><b>-0.03%</b><small>市場超え 46%</small></td></tr><tr><th scope="row">高値ブレイク</th><td class="neg" style="--a:0.03"><b>-0.07%</b><small>市場超え 47%</small></td><td class="pos" style="--a:0.01"><b>+0.04%</b><small>市場超え 48%</small></td><td class="pos" style="--a:0.02"><b>+0.05%</b><small>市場超え 47%</small></td><td class="pos" style="--a:0.12"><b>+0.34%</b><small>市場超え 47%</small></td></tr><tr class="sum"><th scope="row">市場平均 (コスト前)</th><td>-0.05%</td><td>+0.12%</td><td>+0.27%</td><td>+0.66%</td></tr></tbody></table></div>
+</section>
+
+<section>
+  <h2>参考: 約4年に延ばした場合</h2>
+  <p class="lead">2022-10-28 〜 2026-10-29 (978営業日)。直近1年の結果がその年の相場に特有のものかを確かめるためのものです。</p>
+  <div class="tw"><table class="grid"><thead><tr><th></th><th>1日</th><th>3日</th><th>5日</th><th>10日</th><th>ATRルール</th></tr></thead><tbody><tr><th scope="row">25日線押し目</th><td class="neg" style="--a:0.12"><b>-0.33%<sup title="シグナル日ごとの平均で t値の絶対値が2以上">*</sup></b><small>PF 0.61 · 98,370件</small></td><td class="neg" style="--a:0.07"><b>-0.19%<sup title="シグナル日ごとの平均で t値の絶対値が2以上">*</sup></b><small>PF 0.87 · 50,936件</small></td><td class="pos" style="--a:0.01"><b>+0.03%</b><small>PF 1.02 · 38,823件</small></td><td class="pos" style="--a:0.18"><b>+0.50%<sup title="シグナル日ごとの平均で t値の絶対値が2以上">*</sup></b><small>PF 1.21 · 27,478件</small></td><td class="pos" style="--a:0.03"><b>+0.07%</b><small>PF 1.03 · 31,086件</small></td></tr><tr><th scope="row">RSI押し目</th><td class="neg" style="--a:0.13"><b>-0.37%<sup title="シグナル日ごとの平均で t値の絶対値が2以上">*</sup></b><small>PF 0.60 · 31,264件</small></td><td class="neg" style="--a:0.06"><b>-0.17%<sup title="シグナル日ごとの平均で t値の絶対値が2以上">*</sup></b><small>PF 0.89 · 23,645件</small></td><td class="neg" style="--a:0.05"><b>-0.13%</b><small>PF 0.94 · 19,809件</small></td><td class="pos" style="--a:0.16"><b>+0.44%</b><small>PF 1.17 · 15,507件</small></td><td class="pos" style="--a:0.05"><b>+0.14%</b><small>PF 1.06 · 17,375件</small></td></tr><tr><th scope="row">乖離リバウンド</th><td class="neg" style="--a:0.07"><b>-0.20%<sup title="シグナル日ごとの平均で t値の絶対値が2以上">*</sup></b><small>PF 0.83 · 36,490件</small></td><td class="pos" style="--a:0.20"><b>+0.56%<sup title="シグナル日ごとの平均で t値の絶対値が2以上">*</sup></b><small>PF 1.30 · 16,114件</small></td><td class="pos" style="--a:0.43"><b>+1.17%</b><small>PF 1.53 · 11,608件</small></td><td class="pos" style="--a:0.55"><b>+2.45%</b><small>PF 1.89 · 8,017件</small></td><td class="pos" style="--a:0.55"><b>+1.67%</b><small>PF 1.54 · 10,130件</small></td></tr><tr><th scope="row">RSI売られすぎ反発</th><td class="neg" style="--a:0.11"><b>-0.29%<sup title="シグナル日ごとの平均で t値の絶対値が2以上">*</sup></b><small>PF 0.80 · 11,230件</small></td><td class="pos" style="--a:0.19"><b>+0.53%<sup title="シグナル日ごとの平均で t値の絶対値が2以上">*</sup></b><small>PF 1.27 · 9,429件</small></td><td class="pos" style="--a:0.51"><b>+1.38%<sup title="シグナル日ごとの平均で t値の絶対値が2以上">*</sup></b><small>PF 1.64 · 8,861件</small></td><td class="pos" style="--a:0.55"><b>+2.42%<sup title="シグナル日ごとの平均で t値の絶対値が2以上">*</sup></b><small>PF 1.96 · 8,474件</small></td><td class="pos" style="--a:0.55"><b>+1.86%<sup title="シグナル日ごとの平均で t値の絶対値が2以上">*</sup></b><small>PF 1.78 · 9,341件</small></td></tr><tr><th scope="row">出来高急増</th><td class="neg" style="--a:0.30"><b>-0.83%<sup title="シグナル日ごとの平均で t値の絶対値が2以上">*</sup></b><small>PF 0.58 · 19,263件</small></td><td class="neg" style="--a:0.32"><b>-0.87%<sup title="シグナル日ごとの平均で t値の絶対値が2以上">*</sup></b><small>PF 0.71 · 17,354件</small></td><td class="neg" style="--a:0.25"><b>-0.68%<sup title="シグナル日ごとの平均で t値の絶対値が2以上">*</sup></b><small>PF 0.80 · 16,455件</small></td><td class="neg" style="--a:0.14"><b>-0.37%<sup title="シグナル日ごとの平均で t値の絶対値が2以上">*</sup></b><small>PF 0.91 · 15,210件</small></td><td class="neg" style="--a:0.15"><b>-0.42%<sup title="シグナル日ごとの平均で t値の絶対値が2以上">*</sup></b><small>PF 0.87 · 17,376件</small></td></tr><tr><th scope="row">高値ブレイク</th><td class="neg" style="--a:0.19"><b>-0.52%<sup title="シグナル日ごとの平均で t値の絶対値が2以上">*</sup></b><small>PF 0.65 · 42,284件</small></td><td class="neg" style="--a:0.19"><b>-0.53%<sup title="シグナル日ごとの平均で t値の絶対値が2以上">*</sup></b><small>PF 0.77 · 30,247件</small></td><td class="neg" style="--a:0.15"><b>-0.41%<sup title="シグナル日ごとの平均で t値の絶対値が2以上">*</sup></b><small>PF 0.85 · 26,973件</small></td><td class="pos" style="--a:0.00"><b>+0.00%</b><small>PF 1.00 · 23,108件</small></td><td class="neg" style="--a:0.09"><b>-0.25%</b><small>PF 0.91 · 29,509件</small></td></tr></tbody></table></div>
+</section>
+
+<section>
+  <h2>参考: 財務条件も入れた場合 (直近1年)</h2>
+  <p class="lead">ROEや利益成長率は過去時点の値が無料で取れないため、現在の値をさかのぼって当てています。将来の決算を知っている状態になるので、成績は実際より良く出やすい点に注意してください。出来高急増と高値ブレイクは財務条件が無いので上と同じです。</p>
+  <div class="tw"><table class="grid"><thead><tr><th></th><th>1日</th><th>3日</th><th>5日</th><th>10日</th><th>ATRルール</th></tr></thead><tbody><tr><th scope="row">25日線押し目</th><td class="neg" style="--a:0.11"><b>-0.31%<sup title="シグナル日ごとの平均で t値の絶対値が2以上">*</sup></b><small>PF 0.64 · 17,671件</small></td><td class="neg" style="--a:0.05"><b>-0.15%</b><small>PF 0.90 · 9,293件</small></td><td class="pos" style="--a:0.12"><b>+0.34%</b><small>PF 1.20 · 7,042件</small></td><td class="pos" style="--a:0.41"><b>+1.12%<sup title="シグナル日ごとの平均で t値の絶対値が2以上">*</sup></b><small>PF 1.49 · 4,947件</small></td><td class="pos" style="--a:0.02"><b>+0.05%</b><small>PF 1.02 · 5,673件</small></td></tr><tr><th scope="row">RSI押し目</th><td class="neg" style="--a:0.15"><b>-0.40%<sup title="シグナル日ごとの平均で t値の絶対値が2以上">*</sup></b><small>PF 0.60 · 6,817件</small></td><td class="neg" style="--a:0.15"><b>-0.41%<sup title="シグナル日ごとの平均で t値の絶対値が2以上">*</sup></b><small>PF 0.78 · 5,161件</small></td><td class="neg" style="--a:0.12"><b>-0.32%</b><small>PF 0.86 · 4,238件</small></td><td class="pos" style="--a:0.18"><b>+0.50%</b><small>PF 1.18 · 3,198件</small></td><td class="neg" style="--a:0.09"><b>-0.23%</b><small>PF 0.92 · 3,694件</small></td></tr><tr><th scope="row">乖離リバウンド</th><td class="neg" style="--a:0.04"><b>-0.12%</b><small>PF 0.88 · 3,201件</small></td><td class="pos" style="--a:0.28"><b>+0.77%</b><small>PF 1.45 · 1,492件</small></td><td class="pos" style="--a:0.49"><b>+1.34%<sup title="シグナル日ごとの平均で t値の絶対値が2以上">*</sup></b><small>PF 1.70 · 1,084件</small></td><td class="pos" style="--a:0.55"><b>+2.49%<sup title="シグナル日ごとの平均で t値の絶対値が2以上">*</sup></b><small>PF 2.09 · 716件</small></td><td class="pos" style="--a:0.55"><b>+1.53%</b><small>PF 1.52 · 851件</small></td></tr><tr><th scope="row">RSI売られすぎ反発</th><td class="neg" style="--a:0.26"><b>-0.70%<sup title="シグナル日ごとの平均で t値の絶対値が2以上">*</sup></b><small>PF 0.49 · 590件</small></td><td class="neg" style="--a:0.21"><b>-0.58%<sup title="シグナル日ごとの平均で t値の絶対値が2以上">*</sup></b><small>PF 0.71 · 496件</small></td><td class="neg" style="--a:0.32"><b>-0.86%</b><small>PF 0.64 · 468件</small></td><td class="neg" style="--a:0.36"><b>-0.99%</b><small>PF 0.69 · 437件</small></td><td class="neg" style="--a:0.19"><b>-0.52%</b><small>PF 0.82 · 470件</small></td></tr><tr><th scope="row">出来高急増</th><td class="neg" style="--a:0.28"><b>-0.78%<sup title="シグナル日ごとの平均で t値の絶対値が2以上">*</sup></b><small>PF 0.61 · 5,197件</small></td><td class="neg" style="--a:0.23"><b>-0.64%<sup title="シグナル日ごとの平均で t値の絶対値が2以上">*</sup></b><small>PF 0.79 · 4,696件</small></td><td class="neg" style="--a:0.09"><b>-0.26%</b><small>PF 0.93 · 4,413件</small></td><td class="pos" style="--a:0.04"><b>+0.10%</b><small>PF 1.02 · 4,032件</small></td><td class="neg" style="--a:0.14"><b>-0.37%</b><small>PF 0.89 · 4,638件</small></td></tr><tr><th scope="row">高値ブレイク</th><td class="neg" style="--a:0.16"><b>-0.43%<sup title="シグナル日ごとの平均で t値の絶対値が2以上">*</sup></b><small>PF 0.72 · 11,581件</small></td><td class="neg" style="--a:0.07"><b>-0.20%</b><small>PF 0.92 · 8,153件</small></td><td class="pos" style="--a:0.03"><b>+0.07%</b><small>PF 1.03 · 7,177件</small></td><td class="pos" style="--a:0.29"><b>+0.80%<sup title="シグナル日ごとの平均で t値の絶対値が2以上">*</sup></b><small>PF 1.24 · 6,076件</small></td><td class="pos" style="--a:0.03"><b>+0.09%</b><small>PF 1.03 · 7,939件</small></td></tr></tbody></table></div>
+</section>
+
+<section>
+  <h2>判定条件</h2>
+  <div class="tw"><table class="plain defs"><thead><tr><th></th><th>株価・出来高 (検証に使用)</th><th>財務 (参考のみ)</th></tr></thead><tbody><tr><th scope="row">25日線押し目</th><td>75日線上向き・株価&gt;75日線・25日線&gt;75日線、25日線乖離 -3〜+1%、20日高値から -5〜-15%、売買代金1億円以上</td><td>ROE 8%以上</td></tr><tr><th scope="row">RSI押し目</th><td>株価&gt;200日線、RSI(14) 35〜45、前日比プラスの陽線、売買代金1億円以上</td><td>営業利益率 5%以上</td></tr><tr><th scope="row">乖離リバウンド</th><td>25日線乖離 -10%以下、時価総額300億円以上、売買代金1億円以上</td><td>売上・利益成長率 0%超、ROE 8%以上、PER 0〜20倍</td></tr><tr><th scope="row">RSI売られすぎ反発</th><td>直近5日にRSI(14)≦30、陽線かつ前日比 +1%以上、出来高が20日平均の1.5倍以上</td><td>利益成長率 0%超、ROE 8%以上</td></tr><tr><th scope="row">出来高急増</th><td>出来高が20日平均の1.5倍以上、前日比 +3%以上、高値引け近く(-1%以内)、株価&gt;25日線、当日売買代金3億円以上</td><td>なし</td></tr><tr><th scope="row">高値ブレイク</th><td>終値が直近10日の最高値を更新、出来高1.5倍以上、25日線&gt;75日線、売買代金1億円以上</td><td>なし</td></tr></tbody></table></div>
+</section>
+
+<section>
+  <h2>前提と注意点</h2>
+  <div class="notes">
+    <div><h3>データ</h3><p>Yahoo Finance の日足 (分割・配当調整済みの始値・高値・安値・終値と出来高)。2022-01-04 から取得し、200日線などが計算できる日から判定。</p></div>
+    <div><h3>対象銘柄と生存者バイアス</h3><p>現在のプライム・スタンダード・グロース上場の3,680銘柄。上場廃止銘柄の株価は無料データで取れないため含められませんでした。倒産や業績悪化で消えた銘柄が抜けるので、特にリバウンド系の成績は実際より良く出やすいです。</p></div>
+    <div><h3>売買コスト</h3><p>手数料 0円 (SBI証券などの国内株手数料無料コース)。スプレッドとスリッページは直近20日の平均売買代金で片道 10億円以上 0.10% / 3億円以上 0.15% / 1億円以上 0.25% / 1億円未満 0.40% と見積もり、往復分を差し引いています。</p></div>
+    <div><h3>税・為替</h3><p>表の数値は税引き前。利益には年間の損益通算後に 20.315% の税がかかるので、手取りはプラスの年の利益の約8割になります。円建ての国内株のみのため為替コストはありません。</p></div>
+    <div><h3>ATRルールの約定</h3><p>ATRはシグナル日の14日ATR。損切りと利確の両方に同じ日に届いた場合は損切りが先とみなす保守的な扱い。寄り付きで損切り・利確ラインを越えて始まった日は始値で約定。</p></div>
+    <div><h3>約定できない日</h3><p>エントリー日の高値と安値が同じ (ストップ高・安張り付きの可能性) 場合は買えなかったとして除外。</p></div>
+    <div><h3>重複の扱い</h3><p>同じ銘柄を保有中に出た次のシグナルは数えていません。急落の翌日などにシグナルが集中する偏りを見るため、日ごとに平均した t値も出しています。</p></div>
+    <div><h3>決算またぎ</h3><p>過去の決算発表日を一括で取れないため、決算回避は反映していません。実運用で決算をまたがなければ、損益のばらつきはこれより小さくなる見込みです。</p></div>
+    <div><h3>過去の成績</h3><p>検証期間の相場環境に依存します。1年は期間として短く、将来も同じ成績になる保証はありません。</p></div>
+  </div>
+</section>
+</div>

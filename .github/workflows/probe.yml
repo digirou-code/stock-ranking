@@ -6,16 +6,15 @@ jobs:
   probe:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
-        with: { ref: claude/earnings-growth }
       - uses: actions/setup-python@v6
         with: { python-version: "3.12" }
-      - run: pip install -q -r requirements.txt
+      - run: pip install -q yfinance
       - shell: python
         run: |
-          import sys, time; sys.path.insert(0, "screener")
-          import yfinance as yf, build_data as b
-          for c in ["6418","7957","4102","6862","8918","3933","285A","5019","6337","4521","5491","6675","5741","4014","8616","7203","6758","9984"]:
-              t = yf.Ticker(f"{c}.T")
-              print(c, "old", t.info.get("earningsGrowth"), "new", b.earnings_growth(t))
-              time.sleep(0.5)
+          import yfinance as yf, datetime as dt
+          print(yf.__version__)
+          for kw in [dict(period="1y"), dict(period="5d"), dict(start="2026-10-20", end="2026-10-31"), dict(period="1mo", interval="1d")]:
+              df = yf.download(["7203.T","6758.T"], group_by="ticker", auto_adjust=True, progress=False, **kw)
+              print(kw, df["7203.T"].tail(3)[["Close","Volume"]].to_string())
+          h = yf.Ticker("7203.T").history(period="5d")
+          print("history", h.tail(3)[["Close","Volume"]].to_string())

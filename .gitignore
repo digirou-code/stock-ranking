@@ -1,3 +1,4 @@
 __pycache__/
 *.pyc
 backtest/results/results_demo.json
+backtest/results/optimize_demo.json

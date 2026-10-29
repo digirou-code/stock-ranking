@@ -94,6 +94,16 @@ def load_prices_real(cache_path: Path | None):
     return data
 
 
+def drop_partial_day(D):
+    """大引け (15:30 JST) 前に取得した当日分の足は途中経過なので捨てる"""
+    now = dt.datetime.now(JST)
+    last = D["Close"].index[-1]
+    if last.date() == now.date() and now.hour * 60 + now.minute < 15 * 60 + 30:
+        D = {k: (v.iloc[:-1] if isinstance(v, pd.DataFrame) else v) for k, v in D.items()}
+        print(f"dropped partial bar {last.date()}")
+    return D
+
+
 def load_prices_demo(n_stocks=300, n_days=900, seed=1):
     """動作確認用の乱数データ"""
     rng = np.random.default_rng(seed)
@@ -488,6 +498,7 @@ def main():
     ap.add_argument("--cache", default=None, help="日足のキャッシュ (pickle) のパス")
     args = ap.parse_args()
     D = load_prices_demo() if args.demo else load_prices_real(Path(args.cache) if args.cache else None)
+    D = drop_partial_day(D)
     print(f"prices: {D['Close'].shape[1]} tickers x {D['Close'].shape[0]} days "
           f"({D['Close'].index[0].date()} - {D['Close'].index[-1].date()})")
     funds = load_fundamentals(D["Close"].columns, args.demo)

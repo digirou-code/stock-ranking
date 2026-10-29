@@ -41,17 +41,18 @@ MARKETS = os.environ.get("MARKETS", "プライム,スタンダード,グロー�
 # 1回の実行で財務指標を取り直す銘柄数の上限 (Yahooのレート制限対策)
 FUND_REFRESH_PER_RUN = int(os.environ.get("FUND_REFRESH_PER_RUN", "4000"))
 FUND_MAX_AGE_DAYS = int(os.environ.get("FUND_MAX_AGE_DAYS", "7"))
+STMT_MAX_AGE_DAYS = 30  # 自己資本比率・利益成長率 (決算書から計算) を取り直す間隔
 TOP_N = 50
 
 # ---------------------------------------------------------------- 取引ルール (スイング)
-# 損切り・利確は終値からのATR倍数、時間切れは営業日数。WebUIの株数目安と決算警告もこれを使う
+# 損切り・利確はエントリー価格からの%、時間切れは営業日数。WebUIの目安価格と決算警告もこれを使う
 RULES = {
-    "atr_n": 14,          # ATRの期間
-    "stop_atr": 1.5,      # 損切り: エントリー価格 - 1.5 ATR
-    "take_atr": 2.0,      # 利確: エントリー価格 + 2 ATR
-    "hold_days": 10,      # 時間切れ: 10営業日経過で手仕舞いを検討
-    "max_pos": 10, "min_pos": 6,  # 同時保有数
-    "risk_pct": 1.0,      # 1回の許容損失: 運用資金のこの%未満
+    "atr_n": 14,          # ATRの期間 (値動きの目安として表示)
+    "stop_pct": 6,        # 損切り: エントリー価格から6%下落
+    "take1_pct": 20,      # 利確1: +20%で半分売却
+    "take2_pct": 40,      # 利確2: +40%で残り半分を売却
+    "hold_days": 25,      # 時間切れ: 25営業日経過で手仕舞い
+    "max_pos": 10,        # 同時保有数の上限
     "lot": 100,           # 売買単位
 }
 
@@ -137,16 +138,6 @@ SCREENS = [
         "sort": lambda s: s["dy"],
     },
     {
-        "id": "div_pbr",
-        "name": "高配当×低PBR",
-        "tab": "配当×割安",
-        "desc": "配当利回りとPBRの割安さを合わせて評価",
-        "cond": ["配当利回り 3%以上", "PBR 1.0倍以下"],
-        "filter": lambda s: ok(s.get("dy")) and s["dy"] >= 3
-        and ok(s.get("pbr")) and 0 < s["pbr"] <= 1.0,
-        "sort_multi": [("dy", True), ("pbr", False)],
-    },
-    {
         "id": "low_per",
         "name": "低PER",
         "tab": "割安",
@@ -155,16 +146,6 @@ SCREENS = [
         "filter": lambda s: ok(s.get("per")) and 0 < s["per"] <= 12
         and ok(s.get("roe")) and s["roe"] >= 8,
         "sort": lambda s: -s["per"],
-    },
-    {
-        "id": "low_pbr",
-        "name": "低PBR",
-        "tab": "資産割安",
-        "desc": "純資産に対して株価が安い銘柄 (黒字のみ)",
-        "cond": ["PBR 0.8倍以下", "ROE 0%超"],
-        "filter": lambda s: ok(s.get("pbr")) and 0 < s["pbr"] <= 0.8
-        and ok(s.get("roe")) and s["roe"] > 0,
-        "sort": lambda s: -s["pbr"],
     },
     {
         "id": "high_roe",
@@ -186,17 +167,6 @@ SCREENS = [
         and ok(s.get("eg")) and s["eg"] >= 10
         and ok(s.get("mc")) and s["mc"] >= 300,
         "sort_multi": [("rg", True), ("eg", True)],
-    },
-    {
-        "id": "small_growth",
-        "name": "小型成長",
-        "tab": "発掘",
-        "desc": "まだ小さいが売上の伸びが大きい銘柄",
-        "cond": ["時価総額 300億円未満", "売上成長率 15%以上", "営業利益率 0%超"],
-        "filter": lambda s: ok(s.get("mc")) and s["mc"] < 300
-        and ok(s.get("rg")) and s["rg"] >= 15
-        and ok(s.get("opm")) and s["opm"] > 0,
-        "sort_multi": [("rg", True), ("opm", True)],
     },
     # ---- スイング向け (短期〜数週間)。テクニカル指標は fetch_prices で日足から計算
     {
@@ -628,12 +598,21 @@ def technicals(h):
     return t
 
 
-def fetch_fundamental(code):
+def fetch_fundamental(code, prev=None):
     import yfinance as yf
+    prev = prev or {}
     for attempt in range(3):
         try:
             t = yf.Ticker(f"{code}.T")
             info = t.info
+            # レート制限中は例外にならず中身の乏しい info が返るので、取り直す
+            if not any(info.get(k) for k in ("sharesOutstanding", "marketCap", "priceToBook")):
+                raise ValueError("empty info")
+            # 決算書 (自己資本比率・利益成長率) は四半期ごとにしか変わらないので、30日は前回の値を使う
+            if time.time() - prev.get("stmt_ts", 0) < STMT_MAX_AGE_DAYS * 86400:
+                stmt = {k: prev.get(k) for k in ("eg", "eg_fy", "er", "stmt_ts")}
+            else:
+                stmt = {**earnings_growth(t), "er": equity_ratio(t), "stmt_ts": time.time()}
             pct = lambda v: v * 100 if ok(v) else None
             return {
                 "per": info.get("trailingPE"),
@@ -650,8 +629,7 @@ def fetch_fundamental(code):
                 "opm": pct(info.get("operatingMargins")),
                 "rg": pct(info.get("revenueGrowth")),
                 # earningsGrowth は四半期の前年同期比で、前年が小さいと数千%に跳ねるので使わない
-                **earnings_growth(t),
-                "er": equity_ratio(t),
+                **stmt,
                 "shares": info.get("sharesOutstanding"),
                 "mc_raw": info.get("marketCap"),
                 "eps_fwd": info.get("forwardEps"),  # アナリスト予想EPS (利益成長予想に使う)
@@ -660,7 +638,7 @@ def fetch_fundamental(code):
                 "ts": time.time(),
             }
         except Exception as e:  # レート制限など
-            time.sleep(5 * (attempt + 1))
+            time.sleep(10 * (attempt + 1))
             err = e
     print(f"  fundamentals failed {code}: {err}", file=sys.stderr)
     return None
@@ -723,12 +701,13 @@ def refresh_fundamentals(codes):
     stale = [c for c in codes if now - cache.get(c, {}).get("ts", 0) > FUND_MAX_AGE_DAYS * 86400
              or "last_div_val" not in cache.get(c, {})  # 配当の取り方を変える前の古い形式も取り直す
              or "er" not in cache.get(c, {})  # 自己資本比率を追加する前の形式も取り直す
-             or "eg_fy" not in cache.get(c, {})]  # 利益成長率を年次決算から計算する前の形式も取り直す
+             or "eg_fy" not in cache.get(c, {})  # 利益成長率を年次決算から計算する前の形式も取り直す
+             or not (cache.get(c, {}).get("shares") or cache.get(c, {}).get("mc_raw"))]  # レート制限で空だったもの
     stale.sort(key=lambda c: cache.get(c, {}).get("ts", 0))  # 古い順
     todo = stale[:FUND_REFRESH_PER_RUN]
     print(f"fundamentals: {len(todo)} to refresh / {len(stale)} stale / {len(codes)} total")
-    with ThreadPoolExecutor(max_workers=4) as ex:
-        futs = {ex.submit(fetch_fundamental, c): c for c in todo}
+    with ThreadPoolExecutor(max_workers=2) as ex:  # 4並列だと Yahoo のレート制限にかかる
+        futs = {ex.submit(fetch_fundamental, c, cache.get(c)): c for c in todo}
         for f in as_completed(futs):
             r = f.result()
             if r:

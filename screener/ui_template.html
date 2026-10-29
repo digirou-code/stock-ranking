@@ -369,7 +369,6 @@ table.cal td.n { width: 6.5em; }
       <div class="table-wrap" style="border:0"><table><tbody id="rules-tbl"></tbody></table></div>
       <div class="rules-set">
         <label>運用資金<span class="in"><input id="cap" type="text" inputmode="numeric" autocomplete="off" placeholder="例 3,000,000"><span>円</span></span></label>
-        <label>1回の許容損失<span class="in"><input id="risk" type="number" min="0.1" max="5" step="0.1"><span>% 未満</span></span></label>
         <div class="calc" id="rules-calc"></div>
         <p class="note" id="rules-note"></p>
       </div>
@@ -417,8 +416,8 @@ const COLS = [
   { k: "r1m", label: "1ヶ月", sort: -1 },
   { k: "r3m", label: "3ヶ月", sort: -1 },
   { k: "sec1m", label: "業種平均", sort: -1 },
-  { k: "st", label: "ステージ(150)", cls: "l", sort: 1 },
   { k: "st75", label: "ステージ(75)", cls: "l", sort: 1 },
+  { k: "st", label: "ステージ(150)", cls: "l", sort: 1 },
   { k: "vol", label: "出来高 / 前日比", sort: -1 },
   { k: "rg", label: "売上成長", sort: -1 },
   { k: "eg", label: "利益成長", sort: -1 },
@@ -451,7 +450,7 @@ const TIPS = {
   rsi: "RSI(14)。直近14日の値上がりの強さ。30以下は売られ過ぎ、70以上は買われ過ぎの目安",
   vr: "出来高倍率。当日の出来高 ÷ 過去20日の平均出来高",
   atrp: "ATR(平均真の値幅)。1日にどれくらい値が動くかの目安",
-  stop: "取引ルールに基づく損切りと利確の目安価格",
+  stop: "取引ルールに基づく目安価格。上から損切り (-6%)、半分利確 (+20%)、残り利確 (+40%)。基準日の終値から計算",
   st: "ワインスタインのステージ。150日移動平均の傾きと株価の位置から 1底固め / 2上昇 / 3天井圏 / 4下降 を判定",
   st75: "短期版のステージ。75日移動平均の傾き (10日間の変化) と株価の位置から、150日版と同じ4段階で判定",
   stage75: "短期版のステージ。75日移動平均の傾き (10日間の変化) と株価の位置から、150日版と同じ4段階で判定",
@@ -468,7 +467,7 @@ const th = (c, sk, sd) => {
 };
 
 // トップ3カードで各スクリーニングの決め手として見せる値
-const KEY_METRIC = { sf: "sf", sm: "sm", dividend: "dy", div_pbr: "dy", low_per: "per", low_pbr: "pbr", high_roe: "roe", growth: "rg", small_growth: "rg",
+const KEY_METRIC = { sf: "sf", sm: "sm", dividend: "dy", low_per: "per", high_roe: "roe", growth: "rg",
   pullback: "dev25", rsi_pullback: "rsi", rebound_dev: "dev25", rebound_rsi: "rsi", vol_break: "vr", high_break: "vr" };
 // スイング系スクリーニングでは決め手の指標を表に1列追加する
 const EXTRA_COL = { dev25: "25日線乖離", rsi: "RSI", vr: "出来高倍率" };
@@ -490,7 +489,7 @@ const store = {
   get(k) { try { return localStorage.getItem(k); } catch (e) { return null; } },
   set(k, v) { try { v == null ? localStorage.removeItem(k) : localStorage.setItem(k, v); } catch (e) { /* 保存できなくても動く */ } },
 };
-let CAP = null, RISK = null;
+let CAP = null;
 let mkHidden = new Set();
 try { mkHidden = new Set(JSON.parse(store.get("mk.hidden") || "[]")); } catch (e) { /* 既定はすべて表示 */ }
 
@@ -751,24 +750,12 @@ function renderCalendar() {
   $("cal-src").textContent = `データ: ${CAL.source} の週間カレンダー (毎朝更新)。重要度は●の数 (3が最重要)。${cov}`;
 }
 
-// ---- 取引ルール: 終値をエントリー価格の目安にして損切り・利確・株数を出す
+// ---- 取引ルール: 終値をエントリー価格の目安にして損切り・利確の価格を出す
 function tradePlan(s) {
   const R = D.rules;
-  if (!R || !has(s.atr) || !has(s.p) || s.atr <= 0) return null;
-  const risk1 = R.stop_atr * s.atr;  // 1株あたりの損切り幅
-  const pl = { atr: s.atr, atrp: s.atr / s.p * 100, stop: s.p - risk1, take: s.p + R.take_atr * s.atr, risk1, qty: null };
-  if (CAP) {
-    const budget = CAP * RISK / 100;           // 許容損失 (この額未満に収める)
-    let byRisk = Math.floor(budget / risk1 / R.lot) * R.lot;
-    if (byRisk * risk1 >= budget) byRisk -= R.lot;
-    const byAlloc = Math.floor(CAP / R.min_pos / s.p / R.lot) * R.lot;  // 1銘柄に入れる資金の上限
-    pl.qty = Math.max(0, Math.min(byRisk, byAlloc));
-    pl.bound = byAlloc < byRisk ? "alloc" : "risk";
-    pl.cost = pl.qty * s.p; pl.loss = pl.qty * risk1;
-    // 1単元も買えない時の理由: 損失が許容を超えるか、資金配分の上限を超えるか
-    pl.over = byRisk < R.lot ? `100株で損失${(R.lot * risk1 / CAP * 100).toFixed(1)}%`
-      : `100株で資金の${(R.lot * s.p / CAP * 100).toFixed(0)}%`;
-  }
+  if (!R || !has(s.p)) return null;
+  const pl = { stop: s.p * (1 - R.stop_pct / 100), take1: s.p * (1 + R.take1_pct / 100), take2: s.p * (1 + R.take2_pct / 100) };
+  if (has(s.atr) && s.atr > 0) Object.assign(pl, { atr: s.atr, atrp: s.atr / s.p * 100 });
   return pl;
 }
 function yen(v) { return Math.round(v).toLocaleString("ja-JP"); }
@@ -777,10 +764,10 @@ function earnWarn(s) {
   return has(s.earn_bd) ? `<span class="warn" title="保有想定期間中に決算発表予定 (決算またぎは原則避ける)">決算 ${md(s.earn)}</span>` : "";
 }
 function tradeCells(s) {
-  const pl = tradePlan(s);
-  if (!pl) return '<td class="n"><span class="na-txt">—</span></td>'.repeat(2);
-  return `<td class="n">${fmt("p", pl.atr)}<span class="mv flat">${pl.atrp.toFixed(1)}%</span></td>
-    <td class="n"><span class="lvl"><span class="s">${fmt("p", pl.stop)}</span><span class="t">${fmt("p", pl.take)}</span></span></td>`;
+  const pl = tradePlan(s), na = '<td class="n"><span class="na-txt">—</span></td>';
+  if (!pl) return na.repeat(2);
+  return `${pl.atr ? `<td class="n">${fmt("p", pl.atr)}<span class="mv flat">${pl.atrp.toFixed(1)}%</span></td>` : na}
+    <td class="n"><span class="lvl"><span class="s">${fmt("p", pl.stop)}</span><span class="t">${fmt("p", pl.take1)}</span><span class="t">${fmt("p", pl.take2)}</span></span></td>`;
 }
 
 function renderRules() {
@@ -791,19 +778,18 @@ function renderRules() {
   $("rules-sum").textContent = `エントリー判断 ${wk(R.entry)} 寄り付き · 時間切れの目安 ${wk(R.exit_by)}`;
   $("rules-tbl").innerHTML = [
     ["エントリー", `シグナル成立日の翌営業日。原則として寄り付きで判断 (今回は ${wk(R.entry)})`],
-    ["損切り", `エントリー価格から ${R.stop_atr} ATR 下を初期候補にする`],
-    ["利益確定", `+${R.take_atr} ATR を初期候補にする`],
-    ["時間切れ", `${R.hold_days}営業日経過しても上昇しなければ手仕舞いを検討 (今回は ${wk(R.exit_by)})`],
-    ["同時保有数", `${R.min_pos}〜${R.max_pos}銘柄程度`],
-    ["1回の許容損失", `運用資金の${R.risk_pct}%未満`],
+    ["損切り", `エントリー価格から${R.stop_pct}%下落`],
+    ["利益確定", `エントリー価格から${R.take1_pct}%上昇で半分売却、${R.take2_pct}%上昇で残り半分売却`],
+    ["時間切れ", `${R.hold_days}営業日経過しても条件に達しなければ手仕舞い (今回は ${wk(R.exit_by)})`],
+    ["同時保有数", `最大${R.max_pos}銘柄まで`],
     ["決算またぎ", "原則として避ける (保有想定期間に決算がある銘柄に印を付けます)"],
   ].map(([k, v]) => `<tr><td>${k}</td><td>${esc(v)}</td></tr>`).join("");
   $("rules-calc").innerHTML = CAP
-    ? `<span>許容損失 (1回)</span><b>${yen(CAP * RISK / 100)}円未満</b>
-       <span>1銘柄の資金上限</span><b>${yen(CAP / R.min_pos)}円</b>
-       <span>${R.max_pos}銘柄に分けると</span><b>${yen(CAP / R.max_pos)}円</b>`
-    : '<span style="grid-column:1/-1">運用資金を入れると、許容損失額と1銘柄の資金上限を表示します。</span>';
-  $("rules-note").textContent = `ATRは${R.atr_n}日、損切り・利確は基準日の終値をエントリー価格の目安にしています (実際は翌営業日の寄り付き値で計算し直してください)。`
+    ? `<span>1銘柄の資金 (${R.max_pos}銘柄に分散)</span><b>${yen(CAP / R.max_pos)}円</b>
+       <span>損切り時の損失 (1銘柄)</span><b>${yen(CAP / R.max_pos * R.stop_pct / 100)}円 (資金の${(R.stop_pct / R.max_pos).toFixed(1)}%)</b>
+       <span>+${R.take1_pct}%で半分売却した時の利益</span><b>${yen(CAP / R.max_pos / 2 * R.take1_pct / 100)}円</b>`
+    : '<span style="grid-column:1/-1">運用資金を入れると、1銘柄に入れる資金と損切り時の損失額を表示します。</span>';
+  $("rules-note").textContent = `損切り・利確は基準日の終値をエントリー価格の目安にしています (実際は翌営業日の寄り付き値で計算し直してください)。ATR(${R.atr_n}日)は値動きの大きさの目安です。`
     + "運用資金はこのブラウザの中だけに保存され、どこにも送信されません。";
 }
 
@@ -811,10 +797,7 @@ function setupRules() {
   if (!D.rules) return;
   const c = +store.get("swing.capital");
   CAP = c > 0 ? c : null;
-  const r = +store.get("swing.risk");
-  RISK = r > 0 ? r : D.rules.risk_pct;
   $("cap").value = CAP ? CAP.toLocaleString("ja-JP") : "";
-  $("risk").value = RISK;
   if (store.get("swing.rules_open") === "0") $("rules").open = false;
   $("rules").addEventListener("toggle", () => store.set("swing.rules_open", $("rules").open ? "1" : "0"));
   const update = () => { renderRules(); if (!$("rank-view").hidden) renderTable(); };
@@ -827,12 +810,6 @@ function setupRules() {
     update();
   });
   $("cap").addEventListener("blur", () => { if (CAP) $("cap").value = CAP.toLocaleString("ja-JP"); });
-  $("risk").addEventListener("input", () => {
-    const v = parseFloat($("risk").value);
-    RISK = v > 0 ? v : D.rules.risk_pct;
-    store.set("swing.risk", v > 0 ? String(v) : null);
-    update();
-  });
 }
 
 async function load() {
@@ -892,7 +869,7 @@ function renderTable() {
     const s = { ...D.stocks[row.c], r: row.r, pr: row.pr }, pl = tradePlan(s);
     s.st = s.stage ? s.stage.stage : null;
     s.st75 = s.stage75 ? s.stage75.stage : null;
-    return pl ? { ...s, atrp: pl.atrp, stop: -pl.risk1 / s.p } : s;
+    return pl ? { ...s, atrp: pl.atrp, stop: s.p } : s;
   });
   rows = rows.filter((s) => (!q || s.n.toLowerCase().includes(q) || s.c.toLowerCase().includes(q)) && (!sec || s.sec === sec) && (!mkt || s.mkt === mkt));
   rows.sort((a, b) => {
@@ -983,8 +960,8 @@ const H_COLS = [
   { k: "sf", label: "業績", sort: -1 },
   { k: "sm", label: "勢い", sort: -1 },
   { k: "p", label: "株価 / 前日比", sort: -1 },
-  { k: "stage", label: "ステージ(150)", cls: "l", sort: 1 },
   { k: "stage75", label: "ステージ(75)", cls: "l", sort: 1 },
+  { k: "stage", label: "ステージ(150)", cls: "l", sort: 1 },
   { k: "earn", label: "決算日", cls: "l", sort: 1 },
   { k: "sell", label: "売残", sort: -1 },
   { k: "buy", label: "買残", sort: -1 },
@@ -1059,8 +1036,8 @@ function renderHoldings() {
       ${scoreTd(r, "sf")}
       ${scoreTd(r, "sm")}
       <td class="n">${fmt("p", r.p)}<span class="mv">${has(r.chg) ? signed(r.chg) : ""}</span></td>
-      <td class="l">${stagePill(r.stage)}${r.stage ? `<span class="mv flat">150日線乖離 ${r.stage.dev > 0 ? "+" : ""}${r.stage.dev}%</span>` : ""}</td>
       <td class="l">${stagePill(r.stage75)}${r.stage75 ? `<span class="mv flat">75日線乖離 ${r.stage75.dev > 0 ? "+" : ""}${r.stage75.dev}%</span>` : ""}</td>
+      <td class="l">${stagePill(r.stage)}${r.stage ? `<span class="mv flat">150日線乖離 ${r.stage.dev > 0 ? "+" : ""}${r.stage.dev}%</span>` : ""}</td>
       <td class="l">${earnCell(r.earn)}</td>
       <td class="n">${m ? m.sell.toLocaleString("ja-JP") + signedInt(m.sell_chg) : '<span class="na-txt">—</span>'}</td>
       <td class="n">${m ? m.buy.toLocaleString("ja-JP") + signedInt(m.buy_chg) : '<span class="na-txt">—</span>'}</td>
@@ -1087,9 +1064,10 @@ function openDetail(code) {
   const pl = tradePlan(s), R = D.rules;
   const planHtml = pl ? `<div class="plan"><h2>取引プランの目安</h2>
     <div class="kv">
-      <div><span>ATR(${R.atr_n})</span><b>${fmt("p", pl.atr)}円 (${pl.atrp.toFixed(1)}%)</b></div>
-      <div><span>損切り (-${R.stop_atr} ATR)</span><b class="down">${fmt("p", pl.stop)}円</b></div>
-      <div><span>利確 (+${R.take_atr} ATR)</span><b class="up">${fmt("p", pl.take)}円</b></div>
+      <div><span>損切り (-${R.stop_pct}%)</span><b class="down">${fmt("p", pl.stop)}円</b></div>
+      <div><span>利確 半分 (+${R.take1_pct}%)</span><b class="up">${fmt("p", pl.take1)}円</b></div>
+      <div><span>利確 残り (+${R.take2_pct}%)</span><b class="up">${fmt("p", pl.take2)}円</b></div>
+      ${pl.atr ? `<div><span>ATR(${R.atr_n})</span><b>${fmt("p", pl.atr)}円 (${pl.atrp.toFixed(1)}%)</b></div>` : ""}
       <div><span>次の決算</span><b>${s.earn ? md(s.earn) : "未定"}</b></div>
       <div><span>エントリー / 時間切れ</span><b>${md(R.entry)} / ${md(R.exit_by)}</b></div>
     </div>

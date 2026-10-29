@@ -8,31 +8,17 @@ jobs:
     steps:
       - uses: actions/setup-python@v6
         with: { python-version: "3.12" }
-      - run: pip install -q requests pandas xlrd openpyxl pdfplumber
+      - run: pip install -q yfinance pandas
       - shell: python
         run: |
-          import re, requests, io, pandas as pd
-          pd.set_option("display.width",250); pd.set_option("display.max_columns",20); pd.set_option("display.max_colwidth",30)
-          UA={"User-Agent":"Mozilla/5.0"}
-          J="https://www.jpx.co.jp"
-          def links(page, pat):
-              h=requests.get(page,headers=UA,timeout=30).text
-              out=re.findall(r'href="([^"]*'+pat+r')"',h)
-              print("PAGE",page,len(h),len(out)); [print("  ",x) for x in out[:12]]
-              return out
-          def show(u, **kw):
-              u=J+u if u.startswith("/") else u
-              b=requests.get(u,headers=UA,timeout=60).content
-              print("FILE",u,len(b))
-              df=pd.read_excel(io.BytesIO(b),header=None, **kw)
-              print(df.head(14).to_string()); print(df.shape)
-          import pdfplumber
-          u=J+"/markets/statistics-equities/margin/tvdivq0000001rnl-att/20261027_mtall.pdf"
-          b=requests.get(u,headers=UA,timeout=120).content; print("PDF",len(b))
-          with pdfplumber.open(io.BytesIO(b)) as pdf:
-              print("pages",len(pdf.pages))
-              for pg in [0,1,len(pdf.pages)//2]:
-                  t=pdf.pages[pg].extract_text() or ""
-                  print("--- page",pg); print(t[:2500])
-              tb=pdf.pages[1].extract_table()
-              print("TABLE", tb[:8] if tb else None)
+          import yfinance as yf
+          print("yfinance", yf.__version__)
+          for c in ["4116", "7578", "8219", "8078", "7524", "8306", "7203"]:
+              t = yf.Ticker(f"{c}.T"); i = t.info
+              print("==", c, i.get("shortName"), "price", i.get("currentPrice") or i.get("regularMarketPrice"))
+              for k in ["trailingAnnualDividendRate", "trailingAnnualDividendYield", "dividendRate", "dividendYield", "fiveYearAvgDividendYield", "lastDividendValue", "lastDividendDate", "exDividendDate", "payoutRatio", "lastSplitFactor", "lastSplitDate"]:
+                  print("  ", k, i.get(k))
+              d = t.dividends
+              print("  dividends(last 8):"); print(d.tail(8).to_string())
+              s = t.splits
+              print("  splits:", s.tail(3).to_dict())

@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
   push:
     branches-ignore: [main]
-    paths: ["backtest/run_backtest.py", "backtest/optimize.py", ".github/workflows/backtest.yml"]
+    paths: ["backtest/run_backtest.py", "backtest/optimize.py", "backtest/rule_test.py", ".github/workflows/backtest.yml"]
 
 concurrency:
   group: backtest-${{ github.ref }}
@@ -36,6 +36,7 @@ jobs:
           key: bt-prices-${{ steps.day.outputs.d }}
       - run: python backtest/run_backtest.py --cache bt_cache/prices.pkl
       - run: python backtest/optimize.py --cache bt_cache/prices.pkl
+      - run: python backtest/rule_test.py --cache bt_cache/prices.pkl
       - name: commit results
         run: |
           git config user.name "github-actions[bot]"

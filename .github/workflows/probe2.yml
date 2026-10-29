@@ -1,0 +1,25 @@
+name: probe2
+on:
+  push:
+    branches: [probe2]
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/setup-python@v6
+        with: { python-version: "3.12" }
+      - run: pip install -q yfinance requests
+      - shell: python
+        run: |
+          import requests, yfinance as yf, json
+          for t in ["^N225","NIY=F","NKD=F","^TOPX","1306.T","^DJI","^GSPC","^IXIC","^SOX","JPY=X","^VIX","^TNX","CL=F","GC=F","EURJPY=X","BTC-JPY"]:
+              try:
+                  h=yf.Ticker(t).history(period="1y",interval="1d")
+                  print(t,len(h), h.index[-1] if len(h) else None, round(float(h["Close"].iloc[-1]),2) if len(h) else None)
+              except Exception as e: print(t,"ERR",e)
+          for u in ["https://nfs.faireconomy.media/ff_calendar_thisweek.json","https://nfs.faireconomy.media/ff_calendar_nextweek.json","https://nfs.faireconomy.media/ff_calendar_lastweek.json"]:
+              r=requests.get(u,headers={"User-Agent":"Mozilla/5.0"},timeout=30)
+              print(u,r.status_code,len(r.content))
+              if r.ok:
+                  d=r.json(); print(len(d), d[:2]); print(sorted(set(x["country"] for x in d)))
+                  print([x for x in d if x["country"]=="JPY"][:5])

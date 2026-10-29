@@ -214,6 +214,15 @@ table.hold { min-width: 1600px; }
 .mk-v b { font-family: var(--font-data); font-size: 22px; font-weight: 500; font-variant-numeric: tabular-nums; }
 .mk-v span { font-family: var(--font-data); font-size: 13px; }
 .mk-chart { height: 200px; min-width: 0; }
+.mk-imp { display: grid; grid-template-columns: auto 1fr; gap: 10px; align-items: center; padding: 8px 10px; border-radius: 6px; background: var(--line-soft); }
+.mk-imp .mark { font-size: 22px; line-height: 1; font-weight: 700; width: 1.2em; text-align: center; }
+.mk-imp .mark.i3, .mk-imp .mark.i2 { color: var(--up); }
+.mk-imp .mark.i0 { color: var(--down); }
+.mk-imp .mark.i1 { color: var(--muted); }
+.mk-imp b { font-size: 13px; }
+.mk-imp small { display: block; color: var(--muted); font-size: 12px; line-height: 1.45; }
+.mk-sum { display: flex; flex-wrap: wrap; gap: 6px 16px; align-items: baseline; padding: 10px 14px; background: var(--surface); border: 1px solid var(--line); border-radius: 8px; font-size: 13px; }
+.mk-sum b { font-size: 15px; }
 .mk-foot { display: flex; justify-content: space-between; color: var(--muted); font-size: 11.5px; font-family: var(--font-data); }
 @media (max-width: 420px) { .mk-grid { grid-template-columns: minmax(0, 1fr); } }
 
@@ -302,7 +311,9 @@ table.cal td.n { width: 6.5em; }
         <div class="seg" role="group" aria-label="期間" id="mk-range"><button data-d="66">3ヶ月</button><button data-d="132">6ヶ月</button><button data-d="400">1年</button></div>
         <div class="seg" role="group" aria-label="グループ" id="mk-group"></div>
       </div>
+      <div class="mk-sum" id="mk-sum"></div>
       <div class="mk-grid" id="mk-grid"></div>
+      <p class="note">日本株への影響 (◎大変良い / 〇良い / △普通 / ×悪い) は、各指標の直近の値動きを機械的に判定した目安です。前日比が普段の値動き (過去60日の標準偏差) の何倍かを主に、25日移動平均より上か下かを少し加えて、指標ごとの向き (株価・円安は日本株にプラス、VIX・米金利の上昇はマイナス) で点数化しています。日経平均先物は日経平均の終値との差 (翌朝の寄り付きの目安) で判定します。原油・金は影響の向きが一定でないため、大きく動いた日だけ判定します。投資判断の参考の一つとしてご覧ください。</p>
       <p class="note">日足のローソク足です (日本式に陽線を赤、陰線を緑で表示)。日経平均先物はCMEの円建て、為替は日本時間の朝に締まる日足です。データはYahoo Financeから取得しています。</p>
     </div>
   </section>
@@ -496,6 +507,53 @@ function setPressed(groupId, val, attr) {
   $(groupId).querySelectorAll("button").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset[attr] === String(val))));
 }
 
+// 日本株への影響の向き: 上昇が日本株にプラスなら1、マイナスなら-1、一定でないなら0
+const IMPACT = {
+  "^N225": { dir: 1, why: "日本株そのものの地合い" },
+  "NIY=F": { dir: 1, why: "夜間の先物が日経平均の終値より高いか安いか" },
+  "^DJI": { dir: 1, why: "米国株高は翌日の日本株に追い風" },
+  "^GSPC": { dir: 1, why: "米国株高は翌日の日本株に追い風" },
+  "^IXIC": { dir: 1, why: "ハイテク株高はグロース・半導体株に追い風" },
+  "^SOX": { dir: 1, why: "半導体関連 (東京エレクトロン・アドバンテスト等) に直結" },
+  "^VIX": { dir: -1, why: "VIX上昇はリスク回避で株安につながりやすい" },
+  "^TNX": { dir: -1, why: "米金利上昇は株の割高感を強め、特にグロース株の重荷" },
+  "JPY=X": { dir: 1, why: "円安は輸出企業の業績にプラス" },
+  "EURJPY=X": { dir: 1, why: "円安は輸出企業の業績にプラス" },
+  "CL=F": { dir: 0, why: "原油高はインフレ・コスト増と資源株高の両面がある" },
+  "GC=F": { dir: 0, why: "金の上昇はリスク回避のサインになることがある" },
+};
+const MARKS = [["×", "悪い (下がりそう)"], ["△", "普通 (わからない)"], ["〇", "良い (上がりそう)"], ["◎", "大変良い (上がる)"]];
+
+function impactOf(it) {
+  const cfg = IMPACT[it.sym] || { dir: 0, why: "" };
+  const closes = it.bars.map((b) => b[4]);
+  const rets = closes.slice(1).map((c, i) => (c / closes[i] - 1) * 100).slice(-60);
+  const mean = rets.reduce((a, v) => a + v, 0) / rets.length;
+  const sd = Math.sqrt(rets.reduce((a, v) => a + (v - mean) ** 2, 0) / rets.length) || 1;
+  let move = it.chgp, label = "前日比";
+  if (it.sym === "NIY=F") {  // 先物は日経平均の終値との差で見る
+    const nk = MK.items.find((x) => x.sym === "^N225");
+    if (nk) { move = (it.last / nk.last - 1) * 100; label = "日経平均終値との差"; }
+  }
+  const z = move / sd;
+  const ma25 = closes.slice(-25).reduce((a, v) => a + v, 0) / Math.min(25, closes.length);
+  const above = it.last > ma25;
+  let score;
+  if (cfg.dir === 0) {
+    // 向きが一定でない指標は、普段の2倍を超える急変だけ警戒 (×) にする
+    score = Math.abs(z) >= 2 ? -1 : 0;
+  } else {
+    // 前日の動きを主に、25日線との位置 (トレンド) を少しだけ加える。先物は終値との差だけで見る
+    score = cfg.dir * (z + (it.sym === "NIY=F" ? 0 : above ? 0.3 : -0.3));
+  }
+  const level = score >= 1.5 ? 3 : score >= 0.5 ? 2 : score > -0.5 ? 1 : 0;
+  const sign = move > 0 ? "+" : "";
+  const size = it.unit === "%" ? `${sign}${Math.round(it.chg * 100)}bp` : `${sign}${move.toFixed(2)}%`;  // 金利は変化幅で表示
+  const trend = it.sym === "NIY=F" ? "" : `・25日線より${above ? "上" : "下"}`;
+  const reason = `${label} ${size} (普段の${Math.abs(z).toFixed(1)}倍の動き)${trend}。${cfg.why}`;
+  return { level, reason };
+}
+
 function renderMarkets() {
   mkCharts.forEach((c) => c.remove()); mkCharts = [];
   const groups = ["all", ...new Set(MK.items.map((i) => i.group))];
@@ -504,10 +562,17 @@ function renderMarkets() {
   setPressed("mk-group", mkGroup, "g"); setPressed("mk-range", mkDays, "d");
   $("mk-note").textContent = `${MK.items.length}指標の日足。更新 ${MK.generated_at.replace("T", " ").slice(0, 16)}`;
   const items = MK.items.filter((i) => mkGroup === "all" || i.group === mkGroup);
+  const lv = MK.items.map((it) => impactOf(it).level);
+  const cnt = [3, 2, 1, 0].map((l) => `${MARKS[l][0]} ${lv.filter((x) => x === l).length}`).join("　");
+  const avg = lv.reduce((a, v) => a + v, 0) / lv.length;
+  const overall = MARKS[avg >= 2.3 ? 3 : avg >= 1.6 ? 2 : avg >= 0.9 ? 1 : 0];
+  $("mk-sum").innerHTML = `<span>本日の日本株への影響 (全${lv.length}指標)</span><b>${overall[0]} ${overall[1]}</b><span class="mono">${cnt}</span>`;
   $("mk-grid").innerHTML = items.map((it, i) => {
-    const d = digits(it), c = it.chg > 0 ? "up" : it.chg < 0 ? "down" : "flat";
+    const d = digits(it), c = it.chg > 0 ? "up" : it.chg < 0 ? "down" : "flat", im = impactOf(it);
     return `<article class="mk"><div class="mk-h"><strong>${esc(it.name)}</strong><small>${esc(it.group)} · ${esc(it.date)}</small></div>
       <div class="mk-v"><b>${num(it.last, d)}</b><span class="${c}">${it.chg > 0 ? "+" : ""}${num(it.chg, d)} (${it.chgp > 0 ? "+" : ""}${num(it.chgp, 2)}%)</span></div>
+      <div class="mk-imp" title="${esc(im.reason)}"><span class="mark i${im.level}" aria-hidden="true">${MARKS[im.level][0]}</span>
+        <div><b>日本株への影響: ${MARKS[im.level][1]}</b><small>${esc(im.reason)}</small></div></div>
       <div class="mk-chart" id="mk-c${i}"></div>
       <div class="mk-foot"><span>52週高値 ${num(it.hi52, d)}</span><span>52週安値 ${num(it.lo52, d)}</span></div></article>`;
   }).join("");

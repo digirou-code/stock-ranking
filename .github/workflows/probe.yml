@@ -6,19 +6,16 @@ jobs:
   probe:
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/checkout@v5
+        with: { ref: claude/earnings-growth }
       - uses: actions/setup-python@v6
         with: { python-version: "3.12" }
-      - run: pip install -q yfinance
+      - run: pip install -q -r requirements.txt
       - shell: python
         run: |
-          import yfinance as yf, time, pandas as pd
-          pd.set_option("display.width",250)
-          rows=["Net Income Common Stockholders","Net Income","Operating Income","Pretax Income","Total Revenue"]
-          for c in ["6418","7957","4102","3933","5019","4521","7203","6758"]:
-              t=yf.Ticker(f"{c}.T"); i=t.info
-              print("==",c,"earningsGrowth",i.get("earningsGrowth"),"earningsQuarterlyGrowth",i.get("earningsQuarterlyGrowth"),"revenueGrowth",i.get("revenueGrowth"),"netIncomeToCommon",i.get("netIncomeToCommon"))
-              for nm in ("quarterly_income_stmt","income_stmt"):
-                  try:
-                      df=getattr(t,nm); print(nm, df.shape); print((df.loc[[r for r in rows if r in df.index]]/1e8).round(1).to_string())
-                  except Exception as e: print(nm,"err",e)
-              time.sleep(1)
+          import sys, time; sys.path.insert(0, "screener")
+          import yfinance as yf, build_data as b
+          for c in ["6418","7957","4102","6862","8918","3933","285A","5019","6337","4521","5491","6675","5741","4014","8616","7203","6758","9984"]:
+              t = yf.Ticker(f"{c}.T")
+              print(c, "old", t.info.get("earningsGrowth"), "new", b.earnings_growth(t))
+              time.sleep(0.5)

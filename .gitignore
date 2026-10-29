@@ -4,3 +4,4 @@ backtest/results/results_demo.json
 backtest/results/optimize_demo.json
 backtest/results/rule_test_demo.json
 backtest/results/priority_demo.json
+backtest/results/swing_score_demo.json

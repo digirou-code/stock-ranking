@@ -6,20 +6,19 @@ jobs:
   probe:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
-        with: { ref: claude/equity-ratio }
       - uses: actions/setup-python@v6
         with: { python-version: "3.12" }
-      - run: pip install -q -r requirements.txt
+      - run: pip install -q yfinance
       - shell: python
         run: |
-          import sys, time; sys.path.insert(0, "screener")
-          import yfinance as yf, build_data as b
-          for c in ["4116","7203","8306","9984","2914","6758","8591","3633","9433","7578"]:
-              t = yf.Ticker(f"{c}.T")
-              try:
-                  q = t.quarterly_balance_sheet
-                  print(c, "rows:", [r for r in q.index if "Equity" in r or r=="Total Assets"][:6], "cols:", list(q.columns[:2]))
-              except Exception as e: print(c, "err", e)
-              print(c, "ER =", b.equity_ratio(t), "D/E =", t.info.get("debtToEquity"))
+          import yfinance as yf, time, pandas as pd
+          pd.set_option("display.width",250)
+          rows=["Net Income Common Stockholders","Net Income","Operating Income","Pretax Income","Total Revenue"]
+          for c in ["6418","7957","4102","3933","5019","4521","7203","6758"]:
+              t=yf.Ticker(f"{c}.T"); i=t.info
+              print("==",c,"earningsGrowth",i.get("earningsGrowth"),"earningsQuarterlyGrowth",i.get("earningsQuarterlyGrowth"),"revenueGrowth",i.get("revenueGrowth"),"netIncomeToCommon",i.get("netIncomeToCommon"))
+              for nm in ("quarterly_income_stmt","income_stmt"):
+                  try:
+                      df=getattr(t,nm); print(nm, df.shape); print((df.loc[[r for r in rows if r in df.index]]/1e8).round(1).to_string())
+                  except Exception as e: print(nm,"err",e)
               time.sleep(1)

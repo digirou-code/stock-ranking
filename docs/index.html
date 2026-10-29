@@ -206,6 +206,8 @@ table.hold { min-width: 1600px; }
 .seg button + button { border-left: 1px solid var(--line); }
 .seg button[aria-pressed="true"] { background: var(--ai); color: var(--surface); font-weight: 700; }
 .seg button:focus-visible { outline: 2px solid var(--ai); outline-offset: -2px; }
+.mk-pick { display: grid; gap: 6px; }
+.mk-pick > span { color: var(--muted); font-size: 12px; }
 .mk-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: 14px; }
 .mk { background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 12px 14px 8px; display: grid; gap: 6px; min-width: 0; }
 .mk-h { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; flex-wrap: wrap; }
@@ -320,9 +322,10 @@ table.cal td.n { width: 6.5em; }
     <div class="stack" style="display:grid; gap:14px">
       <div class="screen-head"><h3 id="mkh">マーケット</h3><p id="mk-note"></p></div>
       <div class="mk-tools">
-        <div class="seg" role="group" aria-label="期間" id="mk-range"><button data-d="66">3ヶ月</button><button data-d="132">6ヶ月</button><button data-d="400">1年</button></div>
+        <div class="seg" role="group" aria-label="期間" id="mk-range"><button data-d="22">1ヶ月</button><button data-d="66">3ヶ月</button><button data-d="132">6ヶ月</button><button data-d="400">1年</button></div>
         <div class="seg" role="group" aria-label="グループ" id="mk-group"></div>
       </div>
+      <div class="mk-pick"><span>表示する指標</span><div class="sec-chips" id="mk-pick" role="group" aria-label="表示する指標"></div></div>
       <div class="mk-sum" id="mk-sum"></div>
       <div class="mk-grid" id="mk-grid"></div>
       <section class="sec-box" id="sec-box" aria-labelledby="sech" hidden>
@@ -471,6 +474,8 @@ const store = {
   set(k, v) { try { v == null ? localStorage.removeItem(k) : localStorage.setItem(k, v); } catch (e) { /* 保存できなくても動く */ } },
 };
 let CAP = null, RISK = null;
+let mkHidden = new Set();
+try { mkHidden = new Set(JSON.parse(store.get("mk.hidden") || "[]")); } catch (e) { /* 既定はすべて表示 */ }
 
 let D, cur, sortKey = "r", sortDir = 1;
 const $ = (id) => document.getElementById(id);
@@ -653,7 +658,18 @@ function renderMarkets() {
   $("mk-group").querySelectorAll("button").forEach((b) => b.addEventListener("click", () => { mkGroup = b.dataset.g; renderMarkets(); }));
   setPressed("mk-group", mkGroup, "g"); setPressed("mk-range", mkDays, "d");
   $("mk-note").textContent = `${MK.items.length}指標の日足。更新 ${MK.generated_at.replace("T", " ").slice(0, 16)}`;
-  const items = MK.items.filter((i) => mkGroup === "all" || i.group === mkGroup);
+  const pool = MK.items.filter((i) => mkGroup === "all" || i.group === mkGroup);
+  const allOn = pool.every((i) => !mkHidden.has(i.sym));
+  $("mk-pick").innerHTML = `<button data-s="*" aria-pressed="${allOn}">すべて表示</button>` +
+    pool.map((i) => `<button data-s="${esc(i.sym)}" aria-pressed="${!mkHidden.has(i.sym)}">${esc(i.name)}</button>`).join("");
+  $("mk-pick").querySelectorAll("button").forEach((b) => b.addEventListener("click", () => {
+    const k = b.dataset.s;
+    if (k === "*") pool.forEach((i) => mkHidden.delete(i.sym));
+    else mkHidden.has(k) ? mkHidden.delete(k) : mkHidden.add(k);
+    store.set("mk.hidden", JSON.stringify([...mkHidden]));
+    renderMarkets();
+  }));
+  const items = pool.filter((i) => !mkHidden.has(i.sym));
   const lv = MK.items.map((it) => impactOf(it).level);
   const cnt = [3, 2, 1, 0].map((l) => `${MARKS[l][0]} ${lv.filter((x) => x === l).length}`).join("　");
   const avg = lv.reduce((a, v) => a + v, 0) / lv.length;
@@ -667,7 +683,7 @@ function renderMarkets() {
         <div><b>日本株への影響: ${MARKS[im.level][1]}</b><small>${esc(im.reason)}</small></div></div>
       <div class="mk-chart" id="mk-c${i}"></div>
       <div class="mk-foot"><span>52週高値 ${num(it.hi52, d)}</span><span>52週安値 ${num(it.lo52, d)}</span></div></article>`;
-  }).join("");
+  }).join("") || '<p class="note">表示する指標が選ばれていません。上のボタンで選んでください。</p>';
   if (!window.LightweightCharts) {
     $("mk-grid").insertAdjacentHTML("beforeend", '<p class="note">チャートの部品を読み込めませんでした。通信状況を確認して再読み込みしてください。</p>');
     return;

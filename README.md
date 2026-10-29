@@ -43,6 +43,16 @@
 
 `holdings.csv` を更新してpushすると、ワークフローが自動で走って反映されます。
 
+## マーケット (`#markets`) と経済スケジュール (`#calendar`)
+
+- マーケット: 日経平均、日経平均先物 (CME円建て)、NYダウ、S&P500、ナスダック、SOX、VIX、米10年債利回り、
+  ドル円、ユーロ円、WTI原油、金の日足ローソク足 (Yahoo Finance、1年分)。指標は `build_markets.py` の `INDICES` で増減できます。
+- 経済スケジュール: Forex Factory の公開週間カレンダー (日本時間に変換、主なイベント名は日本語訳付き) を
+  毎日 `cache/calendar_store.json` に蓄積し、過去3日〜10日先を表示します。公開フィードは今週分だけなので、
+  来週以降の予定は週が替わってから入ります。
+- 平日7:00 JST にもマーケットとスケジュールだけ更新します。
+- チャートは TradingView Lightweight Charts (Apache-2.0) を `docs/vendor/` に同梱しています。
+
 ## 総合SCORE
 
 PER・PBR・配当利回り・ROE・営業利益率・売上成長率・利益成長率・負債資本倍率・3ヶ月騰落率・

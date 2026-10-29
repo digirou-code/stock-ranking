@@ -2,6 +2,7 @@
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<script src="vendor/lightweight-charts.standalone.production.js"></script>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+JP:wght@400;500;700&family=IBM+Plex+Mono:wght@400;500&family=Shippori+Mincho+B1:wght@600;800&display=swap">
 <style>
 /* Layout: 相場表のような台帳。上に「条件別トップ3」の早見、下に選んだスクリーニングの全順位表 */
@@ -159,7 +160,7 @@ footer p { margin: 0; max-width: 72ch; }
   .controls .shown { margin-left: 0; width: 100%; }
 }
 /* ページ切替 */
-.nav { display: flex; gap: 6px; }
+.nav { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 6px; }
 .nav a { color: var(--muted); text-decoration: none; padding: 5px 12px; border-radius: 99px; border: 1px solid var(--line); font-size: 13px; }
 .nav a[aria-current="page"] { background: var(--ai); border-color: var(--ai); color: var(--surface); font-weight: 700; }
 .nav a:focus-visible { outline: 2px solid var(--ai); outline-offset: 2px; }
@@ -182,6 +183,46 @@ footer p { margin: 0; max-width: 72ch; }
 table.hold { min-width: 1120px; }
 .funds { margin: 0; padding: 0; list-style: none; display: grid; gap: 4px; color: var(--muted); font-size: 13px; }
 @media (max-width: 640px) { .hsum { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+/* マーケット */
+.mk-tools { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; justify-content: space-between; }
+.seg { display: inline-flex; border: 1px solid var(--line); border-radius: 6px; overflow: hidden; }
+.seg button { font: inherit; font-size: 13px; border: 0; background: var(--surface); color: var(--muted); padding: 5px 12px; cursor: pointer; }
+.seg button + button { border-left: 1px solid var(--line); }
+.seg button[aria-pressed="true"] { background: var(--ai); color: var(--surface); font-weight: 700; }
+.seg button:focus-visible { outline: 2px solid var(--ai); outline-offset: -2px; }
+.mk-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: 14px; }
+.mk { background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 12px 14px 8px; display: grid; gap: 6px; min-width: 0; }
+.mk-h { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; flex-wrap: wrap; }
+.mk-h strong { font-weight: 700; }
+.mk-h small { color: var(--muted); font-size: 11.5px; }
+.mk-v { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
+.mk-v b { font-family: var(--font-data); font-size: 22px; font-weight: 500; font-variant-numeric: tabular-nums; }
+.mk-v span { font-family: var(--font-data); font-size: 13px; }
+.mk-chart { height: 200px; min-width: 0; }
+.mk-foot { display: flex; justify-content: space-between; color: var(--muted); font-size: 11.5px; font-family: var(--font-data); }
+@media (max-width: 420px) { .mk-grid { grid-template-columns: minmax(0, 1fr); } }
+
+/* 経済スケジュール */
+.cal-day { display: grid; gap: 0; }
+.cal-day h4 { margin: 0; padding: 8px 12px; font-size: 14px; font-weight: 700; background: var(--line-soft); border-bottom: 1px solid var(--line); display: flex; gap: 10px; align-items: baseline; }
+.cal-day h4 small { color: var(--muted); font-weight: 400; font-size: 12px; }
+.cal-day.today h4 { background: var(--ai-soft); color: var(--ai); }
+.cal-day.past { opacity: .62; }
+table.cal { min-width: 720px; }
+table.cal td { white-space: normal; vertical-align: top; }
+table.cal td.t { width: 4.5em; font-family: var(--font-data); color: var(--muted); white-space: nowrap; }
+table.cal td.cc { width: 6.5em; white-space: nowrap; }
+table.cal td.ev small { display: block; color: var(--muted); font-size: 11.5px; }
+table.cal td.n { width: 6.5em; }
+.cc-chip { font-size: 12px; padding: 1px 8px; border-radius: 4px; background: var(--line-soft); color: var(--ink); }
+.cc-chip.jp { background: var(--st2-bg); color: var(--st2-fg); }
+.cc-chip.us { background: var(--ai-soft); color: var(--ai); }
+.imp { letter-spacing: 1px; font-size: 12px; color: var(--bar-track); white-space: nowrap; }
+.imp i { font-style: normal; color: var(--up); }
+.imp.h0 { color: var(--muted); letter-spacing: 0; }
+.cal-wrap { background: var(--surface); border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
+.cal-wrap .table-wrap { border: 0; border-radius: 0; }
+
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
 </style>
 
@@ -192,7 +233,7 @@ table.hold { min-width: 1120px; }
       <p class="sub">複数のスクリーニングと総合SCOREで、毎営業日の注目銘柄を並べます</p>
     </div>
     <div style="display:grid; gap:10px; justify-items:end">
-      <nav class="nav" aria-label="ページ"><a href="#score" id="nav-rank">ランキング</a><a href="#holdings" id="nav-hold" hidden>保有銘柄</a></nav>
+      <nav class="nav" aria-label="ページ"><a href="#score" id="nav-rank">ランキング</a><a href="#holdings" id="nav-hold" hidden>保有銘柄</a><a href="#markets" id="nav-mk" hidden>マーケット</a><a href="#calendar" id="nav-cal" hidden>経済スケジュール</a></nav>
       <div class="meta" id="meta"></div>
     </div>
   </header>
@@ -205,6 +246,30 @@ table.hold { min-width: 1120px; }
       <div class="table-wrap"><table id="htbl" class="hold"><thead></thead><tbody></tbody></table></div>
       <div id="funds-box"></div>
       <p class="note">ステージはワインスタインのステージ分析に基づき、150日(約30週)移動平均の傾きと株価の位置から判定しています。上昇=移動平均が上向きで株価がその上、下降=下向きで株価がその下、天井圏/底固め=横ばいまたは転換の途中。信用残はJPXの銘柄別信用取引残高 (申込日基準)、決算日はJPXの決算発表予定日 (未掲載の銘柄はYahooの予定日) です。</p>
+    </div>
+  </section>
+
+  <section id="mk-view" aria-labelledby="mkh" hidden>
+    <div class="stack" style="display:grid; gap:14px">
+      <div class="screen-head"><h3 id="mkh">マーケット</h3><p id="mk-note"></p></div>
+      <div class="mk-tools">
+        <div class="seg" role="group" aria-label="期間" id="mk-range"><button data-d="66">3ヶ月</button><button data-d="132">6ヶ月</button><button data-d="400">1年</button></div>
+        <div class="seg" role="group" aria-label="グループ" id="mk-group"></div>
+      </div>
+      <div class="mk-grid" id="mk-grid"></div>
+      <p class="note">日足のローソク足です (日本式に陽線を赤、陰線を緑で表示)。日経平均先物はCMEの円建て、為替は日本時間の朝に締まる日足です。データはYahoo Financeから取得しています。</p>
+    </div>
+  </section>
+
+  <section id="cal-view" aria-labelledby="calh" hidden>
+    <div class="stack" style="display:grid; gap:14px">
+      <div class="screen-head"><h3 id="calh">経済スケジュール</h3><p id="cal-note"></p></div>
+      <div class="mk-tools">
+        <div class="seg" role="group" aria-label="地域" id="cal-cc"><button data-v="all">すべて</button><button data-v="JPY">日本</button><button data-v="USD">米国</button><button data-v="JPYUSD">日本+米国</button></div>
+        <div class="seg" role="group" aria-label="重要度" id="cal-imp"><button data-v="1">すべて</button><button data-v="2">中以上</button><button data-v="3">高のみ</button></div>
+      </div>
+      <div class="cal-wrap" id="cal-list"></div>
+      <p class="note" id="cal-src"></p>
     </div>
   </section>
 
@@ -243,6 +308,7 @@ table.hold { min-width: 1120px; }
 const EMBEDDED = /*__DATA__*/null;
 const EMBEDDED_H = /*__HOLDINGS__*/null;
 let H = null, hSortKey = "score", hSortDir = -1;
+let MK = null, CAL = null, mkDays = 132, mkGroup = "all", calCc = "all", calImp = 1, mkCharts = [];
 
 const COLS = [
   { k: "r", label: "順位", cls: "l", sort: 1 },
@@ -300,6 +366,84 @@ async function loadHoldings() {
     const res = await fetch("data/holdings.json", { cache: "no-cache" });
     return res.ok ? res.json() : null;
   } catch (e) { return null; }
+}
+
+async function loadJSON(name) {
+  if (EMBEDDED) return null;
+  try {
+    const res = await fetch(`data/${name}.json`, { cache: "no-cache" });
+    return res.ok ? res.json() : null;
+  } catch (e) { return null; }
+}
+function css(name) { return getComputedStyle(document.documentElement).getPropertyValue(name).trim(); }
+function num(v, d) { return has(v) ? v.toLocaleString("ja-JP", { minimumFractionDigits: d, maximumFractionDigits: d }) : "—"; }
+function digits(it) { return Math.abs(it.last) >= 1000 ? 0 : Math.abs(it.last) >= 100 ? 2 : it.unit === "%" ? 3 : 2; }
+
+function setPressed(groupId, val, attr) {
+  $(groupId).querySelectorAll("button").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset[attr] === String(val))));
+}
+
+function renderMarkets() {
+  mkCharts.forEach((c) => c.remove()); mkCharts = [];
+  const groups = ["all", ...new Set(MK.items.map((i) => i.group))];
+  $("mk-group").innerHTML = groups.map((g) => `<button data-g="${esc(g)}">${g === "all" ? "すべて" : esc(g)}</button>`).join("");
+  $("mk-group").querySelectorAll("button").forEach((b) => b.addEventListener("click", () => { mkGroup = b.dataset.g; renderMarkets(); }));
+  setPressed("mk-group", mkGroup, "g"); setPressed("mk-range", mkDays, "d");
+  $("mk-note").textContent = `${MK.items.length}指標の日足。更新 ${MK.generated_at.replace("T", " ").slice(0, 16)}`;
+  const items = MK.items.filter((i) => mkGroup === "all" || i.group === mkGroup);
+  $("mk-grid").innerHTML = items.map((it, i) => {
+    const d = digits(it), c = it.chg > 0 ? "up" : it.chg < 0 ? "down" : "flat";
+    return `<article class="mk"><div class="mk-h"><strong>${esc(it.name)}</strong><small>${esc(it.group)} · ${esc(it.date)}</small></div>
+      <div class="mk-v"><b>${num(it.last, d)}</b><span class="${c}">${it.chg > 0 ? "+" : ""}${num(it.chg, d)} (${it.chgp > 0 ? "+" : ""}${num(it.chgp, 2)}%)</span></div>
+      <div class="mk-chart" id="mk-c${i}"></div>
+      <div class="mk-foot"><span>52週高値 ${num(it.hi52, d)}</span><span>52週安値 ${num(it.lo52, d)}</span></div></article>`;
+  }).join("");
+  if (!window.LightweightCharts) {
+    $("mk-grid").insertAdjacentHTML("beforeend", '<p class="note">チャートの部品を読み込めませんでした。通信状況を確認して再読み込みしてください。</p>');
+    return;
+  }
+  const up = css("--up"), down = css("--down"), ink = css("--muted"), grid = css("--line-soft");
+  items.forEach((it, i) => {
+    const el = $(`mk-c${i}`);
+    const chart = LightweightCharts.createChart(el, {
+      autoSize: true, layout: { background: { type: "solid", color: "transparent" }, textColor: ink, fontSize: 11, fontFamily: css("--font-data") },
+      grid: { vertLines: { visible: false }, horzLines: { color: grid } },
+      rightPriceScale: { borderVisible: false }, timeScale: { borderVisible: false },
+      handleScroll: false, handleScale: false, crosshair: { mode: 0 },
+      localization: { locale: "ja-JP" },
+    });
+    const s = chart.addCandlestickSeries({ upColor: up, downColor: down, wickUpColor: up, wickDownColor: down, borderVisible: false,
+      priceFormat: { type: "price", precision: digits(it), minMove: 1 / 10 ** digits(it) } });
+    s.setData(it.bars.slice(-mkDays).map(([t, o, h, l, c]) => ({ time: t, open: o, high: h, low: l, close: c })));
+    chart.timeScale().fitContent();
+    mkCharts.push(chart);
+  });
+}
+
+function renderCalendar() {
+  setPressed("cal-cc", calCc, "v"); setPressed("cal-imp", calImp, "v");
+  const today = new Date().toLocaleDateString("sv-SE", { timeZone: "Asia/Tokyo" });
+  const ev = CAL.events.filter((e) => (calCc === "all" || calCc.includes(e.cc)) && (e.impact >= calImp || (e.impact === 0 && calImp === 1)));
+  const days = {};
+  ev.forEach((e) => { (days[e.t.slice(0, 10)] ||= []).push(e); });
+  const wk = "日月火水木金土";
+  $("cal-note").textContent = `${CAL.from} 〜 ${CAL.to} (日本時間)。${ev.length}件を表示中`;
+  const keys = Object.keys(days).sort();
+  $("cal-list").innerHTML = keys.length ? keys.map((d) => {
+    const dd = new Date(d + "T00:00:00");
+    const cls = d === today ? "today" : d < today ? "past" : "";
+    const rows = days[d].map((e) => `<tr>
+      <td class="t">${e.allday ? "終日" : e.t.slice(11, 16)}</td>
+      <td class="cc"><span class="cc-chip ${e.cc === "JPY" ? "jp" : e.cc === "USD" ? "us" : ""}">${esc(e.country)}</span></td>
+      <td class="ev">${esc(e.ja)}${e.ja !== e.title ? `<small>${esc(e.title)}</small>` : ""}</td>
+      <td>${e.impact ? `<span class="imp" aria-label="重要度${e.impact}"><i>${"●".repeat(e.impact)}</i>${"●".repeat(3 - e.impact)}</span>` : '<span class="imp h0">休場</span>'}</td>
+      <td class="n">${e.forecast ? esc(e.forecast) : '<span class="na-txt">—</span>'}</td>
+      <td class="n">${e.previous ? esc(e.previous) : '<span class="na-txt">—</span>'}</td></tr>`).join("");
+    return `<div class="cal-day ${cls}"><h4>${dd.getMonth() + 1}月${dd.getDate()}日 (${wk[dd.getDay()]})${d === today ? "<small>今日</small>" : ""}</h4>
+      <div class="table-wrap"><table class="cal"><thead><tr><th class="l">時刻</th><th class="l">地域</th><th class="l">イベント</th><th class="l">重要度</th><th>予想</th><th>前回</th></tr></thead><tbody>${rows}</tbody></table></div></div>`;
+  }).join("") : '<p class="empty">条件に合うイベントがありません。</p>';
+  const cov = CAL.covered_until && CAL.covered_until < CAL.to ? `予定は${CAL.covered_until}までしか公開されていないため、それ以降は週が替わると追加されます。` : "";
+  $("cal-src").textContent = `データ: ${CAL.source} の週間カレンダー (毎朝更新)。重要度は●の数 (3が最重要)。${cov}`;
 }
 
 async function load() {
@@ -515,19 +659,31 @@ function openDetail(code) {
 
 function route() {
   const id = location.hash.slice(1);
-  const hold = id === "holdings" && H;
-  $("hold-view").hidden = !hold;
-  $("rank-view").hidden = !!hold;
-  $("nav-hold").setAttribute("aria-current", hold ? "page" : "false");
-  $("nav-rank").setAttribute("aria-current", hold ? "false" : "page");
-  if (hold) { renderHoldings(); return; }
+  const view = id === "holdings" && H ? "hold" : id === "markets" && MK ? "mk" : id === "calendar" && CAL ? "cal" : "rank";
+  $("hold-view").hidden = view !== "hold";
+  $("mk-view").hidden = view !== "mk";
+  $("cal-view").hidden = view !== "cal";
+  $("rank-view").hidden = view !== "rank";
+  [["nav-rank", "rank"], ["nav-hold", "hold"], ["nav-mk", "mk"], ["nav-cal", "cal"]].forEach(([n, v]) => $(n).setAttribute("aria-current", view === v ? "page" : "false"));
+  if (view === "hold") { renderHoldings(); return; }
+  if (view === "mk") { renderMarkets(); return; }
+  if (view === "cal") { renderCalendar(); return; }
   cur = D.screens.find((s) => s.id === id) || D.screens[0];
   sortKey = "r"; sortDir = 1;
   renderTabs(); renderHead(); renderTable();
 }
 
-Promise.all([load(), loadHoldings()]).then(([data, hold]) => {
-  D = data; H = hold;
+Promise.all([load(), loadHoldings(), loadJSON("markets"), loadJSON("calendar")]).then(([data, hold, mk, cal]) => {
+  D = data; H = hold; MK = mk; CAL = cal;
+  if (MK) {
+    $("nav-mk").hidden = false;
+    $("mk-range").querySelectorAll("button").forEach((b) => b.addEventListener("click", () => { mkDays = +b.dataset.d; renderMarkets(); }));
+  }
+  if (CAL) {
+    $("nav-cal").hidden = false;
+    $("cal-cc").querySelectorAll("button").forEach((b) => b.addEventListener("click", () => { calCc = b.dataset.v; renderCalendar(); }));
+    $("cal-imp").querySelectorAll("button").forEach((b) => b.addEventListener("click", () => { calImp = +b.dataset.v; renderCalendar(); }));
+  }
   if (H) {
     $("nav-hold").hidden = false;
     H.rows.forEach((r) => { if (!D.stocks[r.c]) D.stocks[r.c] = r; else D.stocks[r.c].stage = r.stage; });

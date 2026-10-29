@@ -2,7 +2,8 @@ name: daily-ranking
 
 on:
   schedule:
-    - cron: "30 7 * * 1-5"   # 平日 16:30 JST (大引け後)
+    - cron: "30 7 * * 1-5"   # 平日 16:30 JST (大引け後): 全部更新
+    - cron: "0 22 * * 0-4"   # 平日 7:00 JST (米国市場の引け後): マーケットと経済スケジュールだけ更新
   workflow_dispatch:
   push:
     paths: ["holdings.csv"]   # 保有銘柄を更新したらすぐ反映
@@ -25,13 +26,18 @@ jobs:
           python-version: "3.12"
           cache: pip
       - run: pip install -r requirements.txt
-      - run: python screener/build_data.py
+      - name: markets and calendar
+        run: python screener/build_markets.py
+        continue-on-error: true
+      - name: rankings and holdings
+        if: github.event.schedule != '0 22 * * 0-4'
+        run: python screener/build_data.py
       - run: python screener/build_page.py
       - name: commit data
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add docs cache
-          git diff --cached --quiet || git commit -m "daily ranking $(TZ=Asia/Tokyo date +%F)"
+          git diff --cached --quiet || git commit -m "daily update $(TZ=Asia/Tokyo date +%F)"
           git pull --rebase origin main
           git push

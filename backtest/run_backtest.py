@@ -10,7 +10,7 @@
 前提:
     - シグナルは screener/build_data.py の6条件を日足で毎日判定したもの
     - エントリーはシグナル翌営業日の寄り付き。保有N営業日 = エントリー日を1日目としてN日目の大引けで手仕舞い
-    - 「ルール」列はユーザーの取引ルール (損切り -1.5ATR / 利確 +2ATR / 10営業日で手仕舞い)
+    - 「ルール」はユーザー指定の損切り -1.5ATR / 利確 +2.5ATR / 最大10営業日
     - 同じ銘柄は保有中に出た次のシグナルを数えない (重複カウント防止)
     - 対象は現在の上場銘柄のみ (無料データでは上場廃止銘柄の株価が取れないため = 生存者バイアス)
 """
@@ -37,7 +37,9 @@ JST = dt.timezone(dt.timedelta(hours=9))
 
 START = os.environ.get("BT_START", "2022-01-01")  # 200日線などの計算期間を含めた取得開始日
 HOLDS = [1, 3, 5, 10]
-RULE = {"stop_atr": 1.5, "take_atr": 2.0, "max_days": 10}
+RULE = {"stop_atr": 1.5, "take_atr": 2.5, "max_days": 10}
+# 2026-10-29 ユーザー指定: 出来高倍率は全条件で1.5倍、高値突破は直近10日
+PARAMS = {"vol_ratio": 1.5, "break_days": 10}
 SLOTS = 10  # ルール売買のポートフォリオ試算で同時に持つ銘柄数
 
 # 売買コスト (片道, %)。SBI証券などの国内株手数料0円コースを前提に手数料は0、
@@ -46,11 +48,6 @@ COMMISSION = 0.0
 COST_TIERS = [(10, 0.10), (3, 0.15), (1, 0.25), (0, 0.40)]  # (売買代金 億円以上, 片道%)
 TAX = 20.315  # 譲渡益課税 (%)。年間の損益通算後の利益にかかる
 
-STRATEGIES = {
-    "s1": {"name": "戦略① 押し目", "conds": ["pullback", "rsi_pullback"]},
-    "s2": {"name": "戦略② リバウンド", "conds": ["rebound_dev", "rebound_rsi"]},
-    "s3": {"name": "戦略③ 初動", "conds": ["vol_break", "high_break"]},
-}
 
 
 # ---------------------------------------------------------------- データ
@@ -156,7 +153,7 @@ def indicators(D, funds):
         "near_hi": (C / H - 1) * 100,
         "bull": C > O,
         "chg": (C / prev - 1) * 100,
-        "hi60_break": C > C.shift(1).rolling(60).max(),
+        "hi_break": C > C.shift(1).rolling(PARAMS["break_days"]).max(),
         "r3m": (C / C.shift(63) - 1) * 100,
         "r6m": (C / C.shift(126) - 1) * 100,
         "atr": tr.ewm(alpha=1 / 14, adjust=False).mean(),
@@ -183,7 +180,8 @@ def btw(x, lo, hi):
 
 
 def conditions(T):
-    """各スクリーニングの (価格・出来高のみの条件, 財務条件, 並び順キー)。build_data.SCREENS と同じ基準"""
+    """各スクリーニングの (価格・出来高のみの条件, 財務条件, 並び順キー)。
+    build_data.SCREENS と同じ基準。ただし出来高倍率と高値突破期間は PARAMS で上書き"""
     return {
         "pullback": (
             T["ma75_up"] & T["above75"] & T["ma25_over75"] & btw(T["dev25"], -3, 1)
@@ -199,15 +197,15 @@ def conditions(T):
             (T["rg"] > 0) & (T["eg"] > 0) & (T["roe"] >= 8) & btw(T["per"], 1e-9, 20),
             -T["dev25"]),
         "rebound_rsi": (
-            (T["rsi_min5"] <= 30) & T["bull"] & (T["chg"] >= 1) & (T["vr"] >= 1.2),
+            (T["rsi_min5"] <= 30) & T["bull"] & (T["chg"] >= 1) & (T["vr"] >= PARAMS["vol_ratio"]),
             (T["eg"] > 0) & (T["roe"] >= 8),
             T["chg"]),
         "vol_break": (
-            (T["vr"] >= 2) & (T["chg"] >= 3) & (T["near_hi"] >= -1) & (T["dev25"] > 0) & (T["to1"] >= 3),
+            (T["vr"] >= PARAMS["vol_ratio"]) & (T["chg"] >= 3) & (T["near_hi"] >= -1) & (T["dev25"] > 0) & (T["to1"] >= 3),
             None,
             T["vr"]),
         "high_break": (
-            T["hi60_break"] & (T["vr"] >= 1.5) & T["ma25_over75"] & (T["to"] >= 1),
+            T["hi_break"] & (T["vr"] >= PARAMS["vol_ratio"]) & T["ma25_over75"] & (T["to"] >= 1),
             None,
             T["vr"]),
     }
@@ -267,7 +265,7 @@ class Market:
         return (self.C[x, j] / self.O[e, j] - 1) * 100, x
 
     def rule_exit(self, i, j):
-        """損切り -1.5ATR / 利確 +2ATR / 10営業日。同じ日に両方触れたら損切りを優先 (保守的)"""
+        """損切り / 利確 (ATR倍数) / 最大保有日数。同じ日に両方触れたら損切りを優先 (保守的)"""
         e = i + 1
         atr = self.atr[i, j]
         if not (np.isfinite(atr) and atr > 0):
@@ -316,7 +314,7 @@ def make_trades(M, sig, key):
                 continue
             g, x = r
             busy[N][j] = x - 1  # x日目の大引けで売るので、x-1日目のシグナルまでは保有中
-            out[N].append((i, j, g, g - cost, g - M.bench[N][i], keyv[i, j]))
+            out[N].append((i, j, g, g - cost, g - M.bench[N][i], N, keyv[i, j], x))
         if i > busy["rule"].get(j, -1):
             r = M.rule_exit(i, j)
             if r is not None:
@@ -349,6 +347,7 @@ def stats(rows, M, N):
         "avg_win": float(wins.mean()) if len(wins) else None,
         "avg_loss": float(losses.mean()) if len(losses) else None,
         "pf": float(pf) if pf is not None else None,
+        "payoff": float(wins.mean() / -losses.mean()) if len(wins) and len(losses) and losses.mean() < 0 else None,
         "day_net": float(day.mean()),
         "t": float(tstat) if tstat is not None else None,
         "p10": float(np.percentile(net, 10)),
@@ -368,22 +367,23 @@ def stats(rows, M, N):
     return out
 
 
-def portfolio(rule_rows, M):
-    """ルール売買を SLOTS 枠で運用した場合の試算。
-    各枠に資金の1/SLOTSを入れ、空き枠があればシグナルを並び順キーの高い順に採用。
-    損益は確定時に計上 (複利なし)。"""
+def portfolio(rows, M):
+    """資金を SLOTS 等分し、空き枠があればその日のシグナルを並び順キーの高い順に買った場合の試算。
+    rows: (i, j, gross, net, _, _, key, exit_idx)。単利・毎日の終値で評価 (含み損益込み)。"""
+    if not rows:
+        return None
     by_day = {}
-    for r in rule_rows:
+    for r in rows:
         by_day.setdefault(r[0], []).append(r)
-    held, curve, pnl, taken = [], {}, 0.0, 0
-    for i in range(len(M.idx)):
-        e = i + 1
-        for h in [h for h in held if h[7] < e]:  # 前日までに手仕舞った枠を空ける
-            pnl += h[3] / SLOTS
+    held, realized, taken = [], 0.0, 0
+    eq = {}
+    first = min(by_day) + 1
+    for k in range(first, len(M.idx)):
+        for h in [h for h in held if h[7] < k]:
+            realized += h[3] / SLOTS
             held.remove(h)
-        cands = sorted(by_day.get(i, []), key=lambda r: -(r[6] if np.isfinite(r[6]) else -1e9))
         codes = {h[1] for h in held}
-        for r in cands:
+        for r in sorted(by_day.get(k - 1, []), key=lambda r: -(r[6] if np.isfinite(r[6]) else -1e9)):
             if len(held) >= SLOTS:
                 break
             if r[1] in codes:
@@ -391,24 +391,30 @@ def portfolio(rule_rows, M):
             held.append(r)
             codes.add(r[1])
             taken += 1
-        curve[i] = pnl
-    for h in held:
-        pnl += h[3] / SLOTS
-    s = pd.Series(curve)
+        open_pnl = 0.0
+        for h in held:
+            if h[7] == k:
+                open_pnl += h[3] / SLOTS
+                continue
+            c = M.C[k, h[1]]
+            ent = M.O[h[0] + 1, h[1]]
+            if np.isfinite(c):
+                open_pnl += ((c / ent - 1) * 100 - (h[2] - h[3])) / SLOTS
+        eq[k] = 100 + realized + open_pnl
+        if not held and k > max(by_day) + 1:
+            break
+    s = pd.Series(eq)
     s.index = M.idx[s.index]
-    if s.empty:
-        return None
-    start = M.idx[min(by_day)] if by_day else s.index[0]
-    s = s[s.index >= start]
-    dd = (s - s.cummax()).min()
+    dd = (s / s.cummax() - 1).min() * 100
+    total = s.iloc[-1] - 100
+    yrs = max((s.index[-1] - s.index[0]).days / 365.25, 1 / 12)
     monthly = s.resample("ME").last()
-    yrs = max((s.index[-1] - s.index[0]).days / 365.25, 1e-9)
     return {
         "trades": taken,
-        "total": float(pnl),
-        "annual": float(pnl / yrs),
+        "total": float(total),
+        "annual": float(total / yrs),
         "max_dd": float(dd),
-        "curve": [[d.strftime("%Y-%m"), round(float(v), 2)] for d, v in monthly.items()],
+        "curve": [[d.strftime("%Y-%m-%d"), round(float(v) - 100, 2)] for d, v in monthly.items()],
     }
 
 
@@ -417,55 +423,44 @@ def run(D, funds, demo):
     M = Market(D, T)
     conds = conditions(T)
     first_valid = T["above200"].index[200] if len(T["above200"]) > 200 else T["above200"].index[0]
-    period = M.idx >= first_valid
-    res = {"variants": {}}
-    for variant in ("price", "fund"):
-        V = {"conds": {}, "strategies": {}}
-        all_rows = {}
-        for cid, (tech, fund, key) in conds.items():
-            sig = tech.fillna(False).astype(bool)
-            if variant == "fund" and fund is not None:
-                sig = sig & fund.fillna(False).astype(bool)
-            sig = sig & pd.Series(period, index=M.idx).to_numpy()[:, None]
-            trades = make_trades(M, sig, key)
-            all_rows[cid] = trades
-            V["conds"][cid] = {"name": COND_NAMES[cid],
-                               "signals": int(sig.to_numpy().sum()),
-                               "hold": {str(N): stats(trades[N], M, N) for N in [*HOLDS, "rule"]},
-                               "portfolio": portfolio(trades["rule"], M)}
-            print(f"[{variant}] {cid}: signals={V['conds'][cid]['signals']} "
-                  f"5d n={V['conds'][cid]['hold']['5'].get('n')} net={V['conds'][cid]['hold']['5'].get('net')}")
-        for sid, st in STRATEGIES.items():
-            hold = {}
-            for N in [*HOLDS, "rule"]:
-                seen, rows = set(), []
-                for cid in st["conds"]:
-                    for r in all_rows[cid][N]:
-                        if (r[0], r[1]) not in seen:
-                            seen.add((r[0], r[1]))
-                            rows.append(r)
-                hold[str(N)] = stats(rows, M, N)
-            rule_rows = [r for cid in st["conds"] for r in all_rows[cid]["rule"]]
-            V["strategies"][sid] = {"name": st["name"], "conds": st["conds"], "hold": hold,
-                                    "portfolio": portfolio(rule_rows, M)}
-        res["variants"][variant] = V
-    bench = {str(N): float(np.nanmean(np.where(period, M.bench[N], np.nan))) for N in HOLDS}
+    one_year = max(first_valid, M.idx[-1] - pd.DateOffset(years=1))
+    periods = {"1y": one_year, "all": first_valid}
+    res = {"periods": {}}
+    for pid, start in periods.items():
+        mask = (M.idx >= start)[:, None]
+        P = {"start": start.strftime("%Y-%m-%d"), "trading_days": int(mask.sum()), "variants": {}}
+        for variant in ("price", "fund"):
+            V = {}
+            for cid, (tech, fund, key) in conds.items():
+                sig = tech.fillna(False).astype(bool)
+                if variant == "fund" and fund is not None:
+                    sig = sig & fund.fillna(False).astype(bool)
+                sig = sig & mask
+                trades = make_trades(M, sig, key)
+                V[cid] = {"name": COND_NAMES[cid],
+                          "signals": int(sig.to_numpy().sum()),
+                          "hold": {str(N): {**stats(trades[N], M, N),
+                                            "portfolio": portfolio(trades[N], M)} for N in [*HOLDS, "rule"]}}
+                h5 = V[cid]["hold"]["5"]
+                print(f"[{pid} {variant}] {cid}: signals={V[cid]['signals']} 5d n={h5.get('n')} "
+                      f"net={h5.get('net')} rule net={V[cid]['hold']['rule'].get('net')}")
+            P["variants"][variant] = V
+        P["bench_mean"] = {str(N): float(np.nanmean(np.where(mask[:, 0], M.bench[N], np.nan))) for N in HOLDS}
+        res["periods"][pid] = P
     res["meta"] = {
         "demo": demo,
         "generated_at": dt.datetime.now(JST).isoformat(timespec="minutes"),
         "data_start": M.idx[0].strftime("%Y-%m-%d"),
-        "test_start": first_valid.strftime("%Y-%m-%d"),
         "test_end": M.idx[-1].strftime("%Y-%m-%d"),
-        "trading_days": int(period.sum()),
         "tickers": len(M.cols),
         "with_fundamentals": int(sum(1 for c in M.cols if c in funds)),
         "holds": HOLDS,
         "rule": RULE,
+        "params": PARAMS,
         "slots": SLOTS,
         "commission": COMMISSION,
         "cost_tiers": COST_TIERS,
         "tax": TAX,
-        "bench_mean": bench,
     }
     return res
 

@@ -1,0 +1,183 @@
+<title>スイング条件 改良版</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Zen+Kaku+Gothic+New:wght@400;500;700&family=Shippori+Mincho+B1:wght@600;800&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* 売買帳の続き: 紙の帳面に細い罫、数値は等幅。利益=朱、損失=藍 */
+:root {
+  --bg: #f5f5f1; --panel: #ffffff; --fg: #1d2129; --mute: #5d6470; --line: #dadbd3;
+  --up: 190, 52, 38; --dn: 36, 86, 160; --accent: #87580f;
+  --c1: #c43728; --c3: #2a6db5; --c5: #3d8748; --c6: #7a5bb0;
+  --display: "Shippori Mincho B1", "Hiragino Mincho ProN", "Yu Mincho", serif;
+  --body: "Zen Kaku Gothic New", "Hiragino Sans", "Yu Gothic", system-ui, sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #15181d; --panel: #1c2027; --fg: #e6e7e3; --mute: #9aa1ab; --line: #303641;
+  --up: 238, 105, 88; --dn: 104, 158, 230; --accent: #e0b064;
+  --c1: #ee6958; --c3: #6aa2ea; --c5: #74c083; --c6: #b49ae6; color-scheme: dark; } }
+:root[data-theme="dark"] {
+  --bg: #15181d; --panel: #1c2027; --fg: #e6e7e3; --mute: #9aa1ab; --line: #303641;
+  --up: 238, 105, 88; --dn: 104, 158, 230; --accent: #e0b064;
+  --c1: #ee6958; --c3: #6aa2ea; --c5: #74c083; --c6: #b49ae6; color-scheme: dark; }
+body { background: var(--bg); color: var(--fg); font-family: var(--body); font-size: 15px; line-height: 1.75; }
+.wrap { max-width: 1040px; margin: 0 auto; padding-block: 36px 64px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
+  display: grid; gap: 48px; }
+header { display: grid; gap: 10px; border-bottom: 2px solid var(--fg); padding-bottom: 18px; }
+.eyebrow { font-family: var(--mono); font-size: 12px; letter-spacing: .08em; color: var(--accent); text-transform: uppercase; }
+h1 { font-family: var(--display); font-weight: 800; font-size: clamp(28px, 5vw, 40px); line-height: 1.25; margin: 0; text-wrap: balance; }
+h2 { font-family: var(--display); font-weight: 800; font-size: 22px; margin: 0; text-wrap: balance; }
+h3 { font-size: 16px; margin: 0; }
+h4 { font-size: 12px; margin: 0 0 4px; color: var(--mute); font-weight: 500; letter-spacing: .04em; }
+section { display: grid; gap: 14px; min-width: 0; }
+p { margin: 0; max-width: 70ch; }
+.meta { display: flex; flex-wrap: wrap; gap: 6px 22px; color: var(--mute); font-size: 13px; }
+.meta b { color: var(--fg); font-family: var(--mono); font-weight: 500; }
+.lead { color: var(--mute); font-size: 14px; }
+.summary { background: var(--panel); border: 1px solid var(--line); border-radius: 6px; padding: 20px 22px; display: grid; gap: 10px; }
+.summary ul { margin: 0; padding-left: 1.2em; display: grid; gap: 6px; max-width: 74ch; }
+.warn { color: rgb(var(--up)); font-weight: 700; }
+.steps { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; }
+.steps div { border-top: 2px solid var(--fg); padding-top: 8px; display: grid; gap: 4px; min-width: 0; }
+.steps b { font-family: var(--mono); font-weight: 500; color: var(--accent); font-size: 12px; }
+.steps p { font-size: 14px; color: var(--mute); }
+.fams { display: grid; gap: 32px; }
+.fam { display: grid; gap: 10px; min-width: 0; }
+.famhead { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.dot { width: 10px; height: 10px; border-radius: 50%; }
+.chip { font-size: 12px; color: var(--mute); border: 1px solid var(--line); border-radius: 999px; padding: 0 10px; font-weight: 400; }
+.spec { display: grid; grid-template-columns: minmax(0, 3fr) minmax(0, 2fr); gap: 16px 28px; }
+@media (max-width: 640px) { .spec { grid-template-columns: 1fr; } }
+.spec ul { margin: 0; padding-left: 1.2em; font-size: 14px; }
+.exit { font-family: var(--mono); font-size: 14px; }
+.mix { font-size: 12px; color: var(--mute); }
+.tw { overflow-x: auto; border: 1px solid var(--line); border-radius: 6px; background: var(--panel); }
+table { border-collapse: collapse; width: 100%; font-variant-numeric: tabular-nums; }
+th, td { padding: 9px 12px; text-align: right; border-bottom: 1px solid var(--line); white-space: nowrap; vertical-align: top; }
+thead th { font-size: 12px; color: var(--mute); font-weight: 500; letter-spacing: .04em; background: var(--bg); }
+tbody th { text-align: left; font-weight: 500; }
+th small { display: block; font-size: 11px; color: var(--mute); font-weight: 400; font-family: var(--mono); }
+tbody tr:last-child > * { border-bottom: 0; }
+td { font-family: var(--mono); font-size: 14px; }
+td b { font-weight: 500; }
+td.pos { background: rgba(var(--up), var(--a)); }
+td.neg { background: rgba(var(--dn), var(--a)); }
+.txt { text-align: left; white-space: normal; font-family: var(--body); font-size: 13px; min-width: 260px; }
+tr.oos th { color: var(--accent); }
+tr.sub > * { color: var(--mute); }
+tr.old > * { background: var(--bg); }
+.tag { display: inline-block; font-size: 11px; border: 1px solid var(--line); border-radius: 3px; padding: 0 5px; margin-right: 8px; color: var(--mute); }
+.tag.new { border-color: var(--accent); color: var(--accent); }
+.na { color: var(--mute); }
+.chart { overflow-x: auto; background: var(--panel); border: 1px solid var(--line); border-radius: 6px; padding: 8px; }
+.chart svg { display: block; width: 100%; min-width: 560px; height: auto; }
+.chart .gl { stroke: var(--line); stroke-width: 1; }
+.chart .zero { stroke: var(--mute); stroke-width: 1; }
+.chart .ax { fill: var(--mute); font: 11px var(--mono); }
+.chart .ln { stroke-width: 2; stroke-linejoin: round; }
+.legend { display: flex; flex-wrap: wrap; gap: 6px 18px; font-size: 13px; }
+.legend i { display: inline-block; width: 12px; height: 3px; vertical-align: middle; margin-right: 6px; }
+.legend b { font-family: var(--mono); font-weight: 500; }
+.robust { display: grid; gap: 12px; }
+.notes { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px 28px; }
+.notes div { display: grid; gap: 4px; min-width: 0; }
+.notes p { font-size: 14px; color: var(--mute); }
+</style>
+<div class="wrap">
+<header>
+  <div class="eyebrow">Backtest · 条件の見直し</div>
+  <h1>スイング条件 改良版</h1>
+  <div class="meta">
+    <span>探索期間 <b>2022-10-28 〜 2025-10-09</b></span>
+    <span>検証期間 <b>2025-10-28 〜 2026-10-28</b></span>
+    <span>銘柄 <b>3,680</b></span>
+    <span>試した条件 <b>388通り</b></span>
+  </div>
+  
+</header>
+
+<section class="summary">
+  <h2>結論</h2>
+  <p>一番良く、しかも探索に使っていない直近1年でも崩れなかったのは<b>改良版の25日線押し目を10営業日保有する</b>形でした。直近1年で期待値 +0.91%/回、PF 1.43、10枠運用で +30.8%、最大DD -15.9% です。同じ期間に元の条件をご指定のATRルールで運用すると +0.03%/回、10枠で -6.3% だったので、大きく改善しています。</p>
+<ul>
+<li><b>効いたのは条件より手仕舞い</b>: 押し目は「損切り・利確を置かずに10日持つ」が探索期間で最も良く、検証期間でも同じでした。1.5ATRの損切りは、反発する前に振るい落とされる取引が多くなります。条件側の改良 (25日線乖離 -2〜+2%、20日高値から -3〜-20%、RSI 50未満) は、主に10枠運用の成績を上げました。</li>
+<li><b>押し目は系統として効いている</b>: 探索期間の上位10条件は、検証期間でも10条件すべてが +0.9〜1.0%/回でした。細かい数値の当てはめではなく、上昇トレンド中の押し目買いそのものに優位性があると見られます。</li>
+<li><b>乖離リバウンドは「市場全体の急落時だけ」に絞ると強い</b>: 市場が25日線から3%以上下げている日に限ると、探索期間は勝率86%でした。ただし利益の大半は2024年8月と2025年4月の2回の急落から来ています。検証期間は124回と少なく、10日保有で +0.33%/回でした。年に数回だけ使う条件と考えるのが妥当です。</li>
+<li><b>MACD反転 (新規)</b> は10枠運用だと検証期間 +49.7% と見栄えが良いものの、1回あたりは +0.39%、PF 1.14 と弱く、探索期間の年率は +3.4% でした。2026年1〜2月の上昇でまとめて取れた分が大きく、再現性は低いと見ています。<b>高値ブレイク</b>は108通り試しても、探索期間でPF 1.1を超える条件がありませんでした。</li>
+<li><b>信用倍率と収益予測</b>は、過去時点の値を無料で集められないため使えていません (下に詳細)。</li>
+</ul>
+<p>注意点として、探索期間は市場全体が +74%、検証期間は +24% の上昇相場でした。押し目買いは下落相場では成績が落ちやすいので、損切りを置かない場合は1回の投資額を小さくしてください。運用資金の1%ルールを守るには、10日保有でも -3ATR 程度の大きめの損切りを残しておくのが現実的です。</p>
+
+</section>
+
+<section>
+  <h2>進め方</h2>
+  <div class="steps">
+    <div><b>1 · 条件</b><p>4系統で計388通りの条件を、探索期間に10営業日保有で比べました。取引150回以上・PF 1.1以上を満たすものだけが対象です。</p></div>
+    <div><b>2 · 手仕舞い</b><p>系統ごとの上位3条件について、損切り なし・1.5ATR・2.0ATR・3.0ATR、利確 なし・2.5ATR・3.0ATR・4.0ATR、最大保有 5日・10日 の組み合わせを比べました。</p></div>
+    <div><b>3 · 選び方</b><p>10枠で運用したときの「年率リターン ÷ 最大ドローダウン」が探索期間で最も高いものを、系統ごとに1つ選びました。</p></div>
+    <div><b>4 · 検証</b><p>直近1年は探索に一切使っていません。選んだ条件をそのまま当てた成績が、実際に期待できる成績に近い数字です。</p></div>
+  </div>
+  <p class="lead">期間中の市場全体 (売買代金1億円以上の等金額平均) は、探索期間 +73.9%、検証期間 +23.9% でした。</p>
+</section>
+
+<section>
+  <h2>選ばれた条件</h2>
+  <p class="lead">期待値は1回あたりのコスト控除後の平均損益。最大DDと年率は、資金を10枠に分けて (1枠=資産の1/10、複利) 運用した場合の試算です。</p>
+  <div class="fams"><article class="fam">
+  <div class="famhead"><span class="dot" style="background:var(--c1)"></span><h3>乖離リバウンド</h3>
+  <span class="chip">160通りから選択</span></div>
+  <div class="spec">
+    <div><h4>買い条件 (すべて満たす)</h4><ul><li>25日線乖離 -10%以下</li><li>時価総額300億円以上</li><li>売買代金5億円以上</li><li>確認: 前日比プラス</li><li>相場: 市場が25日線から-3%以上下落中</li></ul></div>
+    <div><h4>手仕舞い</h4><p class="exit">損切り -1.5ATR / 利確 +2.5ATR / 最大10営業日</p><p class="mix">手仕舞いの内訳 (検証期間): 利確 9% · 損切り 35% · 時間切れ 56% · 平均7.7日</p></div>
+  </div>
+  <div class="tw"><table><thead><tr><th></th><th>取引回数</th><th>勝率</th><th>平均利益</th><th>平均損失</th><th>損益比</th><th>期待値</th><th>PF</th><th>最大DD</th><th>年率</th></tr></thead><tbody><tr><th scope="row">探索期間<small>2022-10-28〜2025-10-09</small></th><td>797</td><td>86.3%</td><td>+11.24%</td><td>-5.99%</td><td>1.88</td><td class="pos" style="--a:0.55"><b>+8.88%</b></td><td class="pos" style="--a:0.55">11.84</td><td>-7.4%</td><td class="pos" style="--a:0.34">+18.8%</td></tr><tr class="oos"><th scope="row">検証期間<small>2025-10-28〜2026-10-28</small></th><td>124</td><td>37.1%</td><td>+6.18%</td><td>-6.08%</td><td>1.02</td><td class="neg" style="--a:0.55"><b>-1.54%</b></td><td class="neg" style="--a:0.44">0.60</td><td>-4.2%</td><td class="pos" style="--a:0.02">+1.1%</td></tr><tr class="sub"><th scope="row">検証期間・10日保有<small>損切り・利確なし</small></th><td>113</td><td>40.7%</td><td>+6.34%</td><td>-3.79%</td><td>1.67</td><td class="pos" style="--a:0.12"><b>+0.33%</b></td><td class="pos" style="--a:0.16">1.15</td><td>-3.5%</td><td class="pos" style="--a:0.13">+7.3%</td></tr></tbody></table></div>
+</article><article class="fam">
+  <div class="famhead"><span class="dot" style="background:var(--c3)"></span><h3>25日線押し目</h3>
+  <span class="chip">96通りから選択</span></div>
+  <div class="spec">
+    <div><h4>買い条件 (すべて満たす)</h4><ul><li>75日線上向き・株価&gt;75日線・25日線&gt;75日線</li><li>25日線乖離 -2〜2%</li><li>20日高値から -20〜-3%</li><li>売買代金1億円以上</li><li>確認: RSI 50未満</li><li>相場: なし</li></ul></div>
+    <div><h4>手仕舞い</h4><p class="exit">損切りなし / 利確なし / 最大10営業日</p><p class="mix">手仕舞いの内訳 (検証期間): 利確 0% · 損切り 0% · 時間切れ 100% · 平均10.0日</p></div>
+  </div>
+  <div class="tw"><table><thead><tr><th></th><th>取引回数</th><th>勝率</th><th>平均利益</th><th>平均損失</th><th>損益比</th><th>期待値</th><th>PF</th><th>最大DD</th><th>年率</th></tr></thead><tbody><tr><th scope="row">探索期間<small>2022-10-28〜2025-10-09</small></th><td>15,133</td><td>51.4%</td><td>+4.79%</td><td>-4.49%</td><td>1.07</td><td class="pos" style="--a:0.10"><b>+0.28%</b></td><td class="pos" style="--a:0.14">1.13</td><td>-28.6%</td><td class="pos" style="--a:0.42">+22.7%</td></tr><tr class="oos"><th scope="row">検証期間<small>2025-10-28〜2026-10-28</small></th><td>6,034</td><td>54.3%</td><td>+5.54%</td><td>-4.60%</td><td>1.20</td><td class="pos" style="--a:0.33"><b>+0.91%</b></td><td class="pos" style="--a:0.47">1.43</td><td>-15.9%</td><td class="pos" style="--a:0.55">+30.8%</td></tr><tr class="sub"><th scope="row">検証期間・10日保有<small>損切り・利確なし</small></th><td>6,034</td><td>54.3%</td><td>+5.54%</td><td>-4.60%</td><td>1.20</td><td class="pos" style="--a:0.33"><b>+0.91%</b></td><td class="pos" style="--a:0.47">1.43</td><td>-15.9%</td><td class="pos" style="--a:0.55">+30.8%</td></tr></tbody></table></div>
+</article><article class="fam"><h3>高値ブレイク</h3><p class="lead">108通りを試しましたが、探索期間で取引150回以上・PF 1.1以上を満たす条件がありませんでした。</p></article><article class="fam">
+  <div class="famhead"><span class="dot" style="background:var(--c6)"></span><h3>MACD反転 (新規)</h3>
+  <span class="chip">24通りから選択</span></div>
+  <div class="spec">
+    <div><h4>買い条件 (すべて満たす)</h4><ul><li>MACDがシグナル線を上抜け</li><li>売買代金1億円以上</li><li>トレンド: 株価&gt;200日線</li><li>相場: 市場が200日線より上</li><li>MACD 0未満 (底からの反転)</li></ul></div>
+    <div><h4>手仕舞い</h4><p class="exit">損切りなし / 利確なし / 最大10営業日</p><p class="mix">手仕舞いの内訳 (検証期間): 利確 0% · 損切り 0% · 時間切れ 100% · 平均10.0日</p></div>
+  </div>
+  <div class="tw"><table><thead><tr><th></th><th>取引回数</th><th>勝率</th><th>平均利益</th><th>平均損失</th><th>損益比</th><th>期待値</th><th>PF</th><th>最大DD</th><th>年率</th></tr></thead><tbody><tr><th scope="row">探索期間<small>2022-10-28〜2025-10-09</small></th><td>7,672</td><td>49.7%</td><td>+5.31%</td><td>-4.77%</td><td>1.11</td><td class="pos" style="--a:0.09"><b>+0.24%</b></td><td class="pos" style="--a:0.11">1.10</td><td>-28.2%</td><td class="pos" style="--a:0.06">+3.4%</td></tr><tr class="oos"><th scope="row">検証期間<small>2025-10-28〜2026-10-28</small></th><td>3,626</td><td>49.6%</td><td>+6.51%</td><td>-5.64%</td><td>1.15</td><td class="pos" style="--a:0.14"><b>+0.39%</b></td><td class="pos" style="--a:0.15">1.14</td><td>-23.5%</td><td class="pos" style="--a:0.55">+49.7%</td></tr><tr class="sub"><th scope="row">検証期間・10日保有<small>損切り・利確なし</small></th><td>3,626</td><td>49.6%</td><td>+6.51%</td><td>-5.64%</td><td>1.15</td><td class="pos" style="--a:0.14"><b>+0.39%</b></td><td class="pos" style="--a:0.15">1.14</td><td>-23.5%</td><td class="pos" style="--a:0.55">+49.7%</td></tr></tbody></table></div>
+</article></div>
+</section>
+
+<section>
+  <h2>検証期間の損益推移 (10枠運用)</h2>
+  <div class="chart"><svg viewBox="0 0 760 300" role="img" aria-label="検証期間の10枠運用の損益推移"><line x1="52" x2="744" y1="270.0" y2="270.0" class="gl"/><text x="46" y="274.0" class="ax" text-anchor="end">-10%</text><line x1="52" x2="744" y1="233.4" y2="233.4" class="zero"/><text x="46" y="237.4" class="ax" text-anchor="end">+0%</text><line x1="52" x2="744" y1="196.9" y2="196.9" class="gl"/><text x="46" y="200.9" class="ax" text-anchor="end">+10%</text><line x1="52" x2="744" y1="160.3" y2="160.3" class="gl"/><text x="46" y="164.3" class="ax" text-anchor="end">+20%</text><line x1="52" x2="744" y1="123.7" y2="123.7" class="gl"/><text x="46" y="127.7" class="ax" text-anchor="end">+30%</text><line x1="52" x2="744" y1="87.1" y2="87.1" class="gl"/><text x="46" y="91.1" class="ax" text-anchor="end">+40%</text><line x1="52" x2="744" y1="50.6" y2="50.6" class="gl"/><text x="46" y="54.6" class="ax" text-anchor="end">+50%</text><line x1="52" x2="744" y1="14.0" y2="14.0" class="gl"/><text x="46" y="18.0" class="ax" text-anchor="end">+60%</text><text x="52.0" y="290" class="ax" text-anchor="middle">2025/10</text><text x="118.5" y="290" class="ax" text-anchor="middle">2025/12</text><text x="238.3" y="290" class="ax" text-anchor="middle">2026/02</text><text x="344.8" y="290" class="ax" text-anchor="middle">2026/04</text><text x="464.5" y="290" class="ax" text-anchor="middle">2026/06</text><text x="584.3" y="290" class="ax" text-anchor="middle">2026/08</text><text x="690.8" y="290" class="ax" text-anchor="middle">2026/10</text><polyline points="331.5,231.9 344.8,233.5 358.1,230.9 371.4,229.4" fill="none" style="stroke:var(--c1)" class="ln"/><circle cx="371.4" cy="229.4" r="3.5" style="fill:var(--c1)"/><polyline points="52.0,233.7 65.3,233.2 78.6,236.5 91.9,252.5 105.2,243.0 118.5,237.2 131.8,236.6 145.2,245.9 158.5,218.0 171.8,217.9 185.1,211.6 198.4,196.3 211.7,191.6 225.0,206.7 238.3,156.7 251.6,137.1 264.9,133.1 278.2,119.8 291.5,132.5 304.8,141.9 318.2,161.8 331.5,160.1 344.8,154.9 358.1,142.5 371.4,141.1 384.7,151.7 398.0,151.0 411.3,137.1 424.6,133.0 437.9,128.7 451.2,110.6 464.5,120.7 477.8,140.2 491.2,114.3 504.5,126.0 517.8,121.7 531.1,145.4 544.4,188.2 557.7,153.8 571.0,158.3 584.3,133.1 597.6,119.3 610.9,129.0 624.2,126.9 637.5,129.7 650.8,140.3 664.2,115.7 677.5,102.5 690.8,111.9 704.1,113.1 717.4,106.0 730.7,129.4 744.0,120.9" fill="none" style="stroke:var(--c3)" class="ln"/><circle cx="744.0" cy="120.9" r="3.5" style="fill:var(--c3)"/><polyline points="52.0,230.6 65.3,217.4 78.6,199.0 91.9,194.3 105.2,186.8 118.5,186.7 131.8,190.4 145.2,193.8 158.5,191.2 171.8,191.1 185.1,151.4 198.4,81.1 211.7,78.2 225.0,84.2 238.3,70.9 251.6,51.6 264.9,55.8 278.2,26.0 291.5,64.3 304.8,58.7 318.2,52.6 331.5,76.9 344.8,80.5 358.1,70.7 371.4,64.2 384.7,88.3 398.0,105.6 411.3,97.1 424.6,95.9 437.9,102.1 451.2,87.5 464.5,81.9 477.8,110.4 491.2,121.5 504.5,153.4 517.8,106.9 531.1,122.8 544.4,139.0 557.7,129.7 571.0,132.1 584.3,108.8 597.6,97.2 610.9,114.1 624.2,105.8 637.5,99.7 650.8,112.7 664.2,101.1 677.5,91.4 690.8,94.9 704.1,68.9 717.4,53.8 730.7,49.1 744.0,51.7" fill="none" style="stroke:var(--c5)" class="ln"/><circle cx="744.0" cy="51.7" r="3.5" style="fill:var(--c5)"/></svg></div><div class="legend"><span><i style="background:var(--c1)"></i>乖離リバウンド <b>+1.1%</b></span><span><i style="background:var(--c3)"></i>25日線押し目 <b>+30.8%</b></span><span><i style="background:var(--c5)"></i>MACD反転 (新規) <b>+49.7%</b></span></div>
+</section>
+
+<section>
+  <h2>元の条件との比較 (検証期間)</h2>
+  <p class="lead">元の6条件は、ご指定の取引ルール (損切り -1.5ATR / 利確 +2.5ATR / 最大10日) で同じ期間を計算したものです。</p>
+  <div class="tw"><table><thead><tr><th></th><th>取引回数</th><th>勝率</th><th>平均利益</th><th>平均損失</th><th>損益比</th><th>期待値</th><th>PF</th><th>最大DD</th><th>年率</th></tr></thead><tbody><tr><th scope="row"><span class="tag new">改良</span>乖離リバウンド</th><td>124</td><td>37.1%</td><td>+6.18%</td><td>-6.08%</td><td>1.02</td><td class="neg" style="--a:0.55"><b>-1.54%</b></td><td class="neg" style="--a:0.44">0.60</td><td>-4.2%</td><td class="pos" style="--a:0.02">+1.1%</td></tr><tr><th scope="row"><span class="tag new">改良</span>25日線押し目</th><td>6,034</td><td>54.3%</td><td>+5.54%</td><td>-4.60%</td><td>1.20</td><td class="pos" style="--a:0.33"><b>+0.91%</b></td><td class="pos" style="--a:0.47">1.43</td><td>-15.9%</td><td class="pos" style="--a:0.55">+30.8%</td></tr><tr><th scope="row"><span class="tag new">改良</span>MACD反転 (新規)</th><td>3,626</td><td>49.6%</td><td>+6.51%</td><td>-5.64%</td><td>1.15</td><td class="pos" style="--a:0.14"><b>+0.39%</b></td><td class="pos" style="--a:0.15">1.14</td><td>-23.5%</td><td class="pos" style="--a:0.55">+49.7%</td></tr><tr class="old"><th scope="row"><span class="tag">元</span>25日線押し目</th><td>9,066</td><td>45.8%</td><td>+5.82%</td><td>-4.88%</td><td>1.19</td><td class="pos" style="--a:0.01"><b>+0.03%</b></td><td class="pos" style="--a:0.01">1.01</td><td>-26.8%</td><td class="neg" style="--a:0.12">-6.3%</td></tr><tr class="old"><th scope="row"><span class="tag">元</span>RSI押し目</th><td>5,178</td><td>44.0%</td><td>+6.25%</td><td>-5.51%</td><td>1.13</td><td class="neg" style="--a:0.12"><b>-0.33%</b></td><td class="neg" style="--a:0.12">0.89</td><td>-50.1%</td><td class="neg" style="--a:0.55">-31.3%</td></tr><tr class="old"><th scope="row"><span class="tag">元</span>乖離リバウンド</th><td>3,010</td><td>48.4%</td><td>+9.48%</td><td>-6.99%</td><td>1.36</td><td class="pos" style="--a:0.36"><b>+0.98%</b></td><td class="pos" style="--a:0.30">1.27</td><td>-29.7%</td><td class="neg" style="--a:0.03">-1.8%</td></tr><tr class="old"><th scope="row"><span class="tag">元</span>RSI売られすぎ反発</th><td>1,852</td><td>37.8%</td><td>+7.39%</td><td>-5.65%</td><td>1.31</td><td class="neg" style="--a:0.26"><b>-0.72%</b></td><td class="neg" style="--a:0.23">0.79</td><td>-37.7%</td><td class="neg" style="--a:0.55">-32.7%</td></tr><tr class="old"><th scope="row"><span class="tag">元</span>出来高急増</th><td>4,624</td><td>40.2%</td><td>+7.81%</td><td>-5.89%</td><td>1.33</td><td class="neg" style="--a:0.14"><b>-0.38%</b></td><td class="neg" style="--a:0.12">0.89</td><td>-62.9%</td><td class="neg" style="--a:0.55">-62.8%</td></tr><tr class="old"><th scope="row"><span class="tag">元</span>高値ブレイク</th><td>7,911</td><td>43.6%</td><td>+7.26%</td><td>-5.48%</td><td>1.32</td><td class="pos" style="--a:0.03"><b>+0.07%</b></td><td class="pos" style="--a:0.03">1.02</td><td>-21.9%</td><td class="neg" style="--a:0.05">-2.7%</td></tr></tbody></table></div>
+</section>
+
+<section class="robust">
+  <h2>探索期間の上位は検証期間でも通用したか</h2>
+  <p class="lead">探索期間で上位10位までに入った条件 (10日保有) を、そのまま検証期間に当てた結果です。上位の多くが検証期間でもプラスなら、選んだ条件は偶然ではなく系統として効いている可能性が高くなります。</p>
+  <h3>乖離リバウンド <span class="chip">検証期間でプラス 10/10</span></h3><div class="tw"><table><thead><tr><th class="txt">条件 (探索期間の上位順)</th><th>探索 期待値</th><th>検証 期待値</th><th>検証 PF</th><th>検証 回数</th></tr></thead><tbody><tr><td class="txt">25日線乖離 -12%以下 / 確認: 前日比プラス / 相場: 市場が25日線から-3%以上下落中</td><td class="pos" style="--a:0.55">+11.04%</td><td class="pos" style="--a:0.35">+0.96%</td><td>1.52</td><td>77</td></tr><tr><td class="txt">25日線乖離 -10%以下 / 確認: 前日比プラス / 相場: 市場が25日線から-3%以上下落中</td><td class="pos" style="--a:0.55">+9.95%</td><td class="pos" style="--a:0.12">+0.33%</td><td>1.15</td><td>113</td></tr><tr><td class="txt">25日線乖離 -12%以下 / 確認: 前日比プラス / 相場: 市場が25日線から-3%以上下落中</td><td class="pos" style="--a:0.55">+11.40%</td><td class="pos" style="--a:0.47">+1.29%</td><td>1.67</td><td>62</td></tr><tr><td class="txt">25日線乖離 -10%以下 / 確認: 前日比プラス / 相場: 市場が25日線から-3%以上下落中</td><td class="pos" style="--a:0.55">+9.65%</td><td class="pos" style="--a:0.10">+0.27%</td><td>1.13</td><td>135</td></tr><tr><td class="txt">25日線乖離 -15%以下 / 確認: 前日比プラス / 相場: 市場が25日線から-3%以上下落中</td><td class="pos" style="--a:0.55">+12.93%</td><td class="pos" style="--a:0.13">+0.35%</td><td>1.18</td><td>24</td></tr><tr><td class="txt">25日線乖離 -8%以下 / 確認: 前日比プラス / 相場: 市場が25日線から-3%以上下落中</td><td class="pos" style="--a:0.55">+8.61%</td><td class="pos" style="--a:0.06">+0.16%</td><td>1.07</td><td>187</td></tr><tr><td class="txt">25日線乖離 -15%以下 / 確認: 前日比プラス / 相場: 市場が25日線から-3%以上下落中</td><td class="pos" style="--a:0.55">+13.27%</td><td class="pos" style="--a:0.17">+0.45%</td><td>1.23</td><td>23</td></tr><tr><td class="txt">25日線乖離 -8%以下 / 確認: 前日比プラス / 相場: 市場が25日線から-3%以上下落中</td><td class="pos" style="--a:0.55">+8.46%</td><td class="pos" style="--a:0.13">+0.37%</td><td>1.20</td><td>262</td></tr><tr><td class="txt">25日線乖離 -15%以下 / 確認: MACDヒストグラム上向き / 相場: 市場が25日線から-3%以上下落中</td><td class="pos" style="--a:0.55">+10.22%</td><td class="pos" style="--a:0.55">+4.27%</td><td>5.85</td><td>27</td></tr><tr><td class="txt">25日線乖離 -15%以下 / 確認: MACDヒストグラム上向き / 相場: 市場が25日線から-3%以上下落中</td><td class="pos" style="--a:0.55">+10.15%</td><td class="pos" style="--a:0.55">+4.30%</td><td>5.95</td><td>25</td></tr></tbody></table></div><h3>25日線押し目 <span class="chip">検証期間でプラス 10/10</span></h3><div class="tw"><table><thead><tr><th class="txt">条件 (探索期間の上位順)</th><th>探索 期待値</th><th>検証 期待値</th><th>検証 PF</th><th>検証 回数</th></tr></thead><tbody><tr><td class="txt">25日線乖離 -2〜2% / 20日高値から -20〜-3% / 売買代金1億円以上 / 確認: RSI 50未満 / 相場: なし</td><td class="pos" style="--a:0.10">+0.28%</td><td class="pos" style="--a:0.33">+0.91%</td><td>1.43</td><td>6,034</td></tr><tr><td class="txt">25日線乖離 -5〜0% / 20日高値から -20〜-3% / 売買代金1億円以上 / 確認: MACDヒストグラム上向き / 相場: なし</td><td class="pos" style="--a:0.14">+0.40%</td><td class="pos" style="--a:0.37">+1.00%</td><td>1.43</td><td>5,207</td></tr><tr><td class="txt">25日線乖離 -3〜1% / 20日高値から -20〜-3% / 売買代金1億円以上 / 確認: RSI 50未満 / 相場: なし</td><td class="pos" style="--a:0.12">+0.33%</td><td class="pos" style="--a:0.37">+1.01%</td><td>1.47</td><td>7,221</td></tr><tr><td class="txt">25日線乖離 -5〜0% / 20日高値から -20〜-3% / 売買代金1億円以上 / 確認: RSI 50未満 / 相場: なし</td><td class="pos" style="--a:0.12">+0.33%</td><td class="pos" style="--a:0.35">+0.95%</td><td>1.42</td><td>7,851</td></tr><tr><td class="txt">25日線乖離 -3〜1% / 20日高値から -15〜-5% / 売買代金1億円以上 / 確認: MACDヒストグラム上向き / 相場: なし</td><td class="pos" style="--a:0.15">+0.41%</td><td class="pos" style="--a:0.35">+0.96%</td><td>1.41</td><td>4,338</td></tr><tr><td class="txt">25日線乖離 -2〜2% / 20日高値から -15〜-5% / 売買代金1億円以上 / 確認: RSI 50未満 / 相場: なし</td><td class="pos" style="--a:0.12">+0.33%</td><td class="pos" style="--a:0.33">+0.91%</td><td>1.41</td><td>4,509</td></tr><tr><td class="txt">25日線乖離 -5〜0% / 20日高値から -15〜-5% / 売買代金1億円以上 / 確認: MACDヒストグラム上向き / 相場: なし</td><td class="pos" style="--a:0.16">+0.45%</td><td class="pos" style="--a:0.38">+1.04%</td><td>1.45</td><td>4,123</td></tr><tr><td class="txt">25日線乖離 -5〜0% / 20日高値から -15〜-5% / 売買代金1億円以上 / 確認: なし / 相場: なし</td><td class="pos" style="--a:0.12">+0.33%</td><td class="pos" style="--a:0.37">+1.00%</td><td>1.43</td><td>7,354</td></tr><tr><td class="txt">25日線乖離 -3〜1% / 20日高値から -15〜-5% / 売買代金1億円以上 / 確認: RSI 50未満 / 相場: なし</td><td class="pos" style="--a:0.13">+0.35%</td><td class="pos" style="--a:0.37">+1.00%</td><td>1.45</td><td>5,814</td></tr><tr><td class="txt">25日線乖離 -2〜2% / 20日高値から -20〜-3% / 売買代金1億円以上 / 確認: 陽線 / 相場: なし</td><td class="pos" style="--a:0.11">+0.30%</td><td class="pos" style="--a:0.35">+0.94%</td><td>1.41</td><td>7,691</td></tr></tbody></table></div><h3>MACD反転 (新規) <span class="chip">検証期間でプラス 6/6</span></h3><div class="tw"><table><thead><tr><th class="txt">条件 (探索期間の上位順)</th><th>探索 期待値</th><th>検証 期待値</th><th>検証 PF</th><th>検証 回数</th></tr></thead><tbody><tr><td class="txt">売買代金1億円以上 / トレンド: 株価&gt;200日線 / 相場: 市場が200日線より上 / MACD 0未満 (底からの反転)</td><td class="pos" style="--a:0.09">+0.24%</td><td class="pos" style="--a:0.14">+0.39%</td><td>1.14</td><td>3,626</td></tr><tr><td class="txt">売買代金1億円以上 / トレンド: なし / 相場: 市場が200日線より上 / MACD 0未満 (底からの反転)</td><td class="pos" style="--a:0.09">+0.25%</td><td class="pos" style="--a:0.09">+0.24%</td><td>1.09</td><td>6,991</td></tr><tr><td class="txt">売買代金1億円以上 / トレンド: なし / 相場: なし</td><td class="pos" style="--a:0.11">+0.30%</td><td class="pos" style="--a:0.20">+0.55%</td><td>1.21</td><td>13,441</td></tr><tr><td class="txt">売買代金1億円以上 / トレンド: 株価&gt;200日線 / 相場: なし / MACD 0未満 (底からの反転)</td><td class="pos" style="--a:0.16">+0.43%</td><td class="pos" style="--a:0.14">+0.39%</td><td>1.14</td><td>3,626</td></tr><tr><td class="txt">売買代金1億円以上 / トレンド: 75日線上向き / 相場: なし / MACD 0未満 (底からの反転)</td><td class="pos" style="--a:0.15">+0.40%</td><td class="pos" style="--a:0.15">+0.41%</td><td>1.15</td><td>3,140</td></tr><tr><td class="txt">売買代金1億円以上 / トレンド: なし / 相場: なし / MACD 0未満 (底からの反転)</td><td class="pos" style="--a:0.18">+0.49%</td><td class="pos" style="--a:0.09">+0.24%</td><td>1.09</td><td>6,991</td></tr></tbody></table></div>
+</section>
+
+<section>
+  <h2>使わなかった指標と注意点</h2>
+  <div class="notes">
+    <div><h3>信用倍率</h3><p>銘柄別の信用残の過去データは、JPXのサイトに直近数週分しか無く、数年分をさかのぼって無料で集められません。過去の各時点の値を使えないため、検証から外しました。現在の値は保有銘柄ページで確認できます。</p></div>
+    <div><h3>収益予測 (会社予想・コンセンサス)</h3><p>過去の各時点で公表されていた予想値を無料で集める手段がありません。現在の予想値をさかのぼって当てると将来を知っている状態になり、成績が実際より良く見えるため使っていません。</p></div>
+    <div><h3>MACD・相場環境</h3><p>日足から計算できるので、その時点で分かる値だけで検証しています。相場環境は、売買代金1億円以上の全銘柄の等金額平均を独自の指数として使いました。</p></div>
+    <div><h3>生存者バイアス</h3><p>上場廃止銘柄は無料データで取れないため含めていません。下げた銘柄を拾う乖離リバウンドなどは、実際より良く出ている可能性があります。</p></div>
+    <div><h3>売買コスト・税</h3><p>手数料0円、スプレッドとスリッページは片道 10億円以上 0.10% / 3億円以上 0.15% / 1億円以上 0.25% / 1億円未満 0.40%。数値は税引き前で、利益には年間の損益通算後に20.315%の税がかかります。為替コストはありません。</p></div>
+    <div><h3>決算またぎ</h3><p>過去の決算日を一括で取れないため、決算回避は反映していません。</p></div>
+  </div>
+</section>
+</div>

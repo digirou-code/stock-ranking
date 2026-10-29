@@ -200,7 +200,8 @@ class Sim:
         t = {"i": ii[ok], "j": jj[ok], "g": g[ok], "net": net[ok], "x": xi[ok], "why": why[ok], "key": kv[ok]}
         return dedupe(t)
 
-    def evaluate(self, t, with_curve=False):
+    def evaluate(self, t, with_curve=False, years=None):
+        """years: 期間の長さ (年)。年率はシグナルの出た期間ではなく、評価期間全体で割る"""
         if t is None or len(t["i"]) == 0:
             return {"n": 0}
         net = t["net"]
@@ -221,7 +222,8 @@ class Sim:
             "exit": {k: float((t["why"] == v).mean() * 100) for k, v in (("time", 0), ("stop", 1), ("take", 2))},
             "hold_days": float((t["x"] - t["i"]).mean()),
             "pf_total": p.get("total"),
-            "pf_annual": p.get("annual"),
+            "pf_annual": (((1 + p["total"] / 100) ** (1 / years) - 1) * 100 if p["total"] > -100 else -100.0)
+            if years and p.get("total") is not None else p.get("annual"),
             "pf_dd": p.get("max_dd"),
             "pf_trades": p.get("trades"),
         }
@@ -274,6 +276,8 @@ def run(D, funds, demo):
     last_is = np.nonzero(is_mask)[0].max()
     is_mask[max(0, last_is - 10):] = False
     oos_mask = M.idx >= split
+    yrs = lambda mask: max((M.idx[mask].max() - M.idx[mask].min()).days / 365.25, 0.1)
+    Y_IS, Y_OOS = yrs(is_mask), yrs(oos_mask)
     fams = families(T)
     print(f"indicators ready {time.time() - t0:.0f}s; candidates "
           + " ".join(f"{k}={len(v)}" for k, v in fams.items()))
@@ -283,39 +287,44 @@ def run(D, funds, demo):
         # 1) 条件の探索 (10日保有)
         scored = []
         for c in cands:
-            r = S.evaluate(S.trades(c["sig"], is_mask, days=10, key=c["key"]))
+            r = S.evaluate(S.trades(c["sig"], is_mask, days=10, key=c["key"]), years=Y_IS)
             scored.append((score(r), c, r))
         scored.sort(key=lambda x: -x[0])
-        # 2) 上位について手仕舞いルールの探索
+        # 2) 上位について手仕舞いルールの探索。1つの条件だけに合わせた手仕舞いにならないよう、
+        #    上位3条件の平均スコアが最も高い手仕舞いを選び、その手仕舞いで最も良い条件を採用する
+        top = [(sc, c) for sc, c, _ in scored[:TOP_PER_FAMILY] if sc > -math.inf]
+        grid = {}
+        for sc, c in top:
+            for ex in itertools.product(STOPS, TAKES, MAX_DAYS):
+                r = S.evaluate(S.trades(c["sig"], is_mask, *ex, c["key"]), years=Y_IS)
+                grid.setdefault(ex, []).append((score(r), c, r))
+        avg = lambda rs: np.mean([max(s, -5) for s, _, _ in rs])
+        ranked_exits = sorted(grid, key=lambda ex: -avg(grid[ex]))
         best = []
-        for sc, c, _ in scored[:TOP_PER_FAMILY]:
-            if sc == -math.inf:
-                continue
-            for stop, take, days in itertools.product(STOPS, TAKES, MAX_DAYS):
-                r = S.evaluate(S.trades(c["sig"], is_mask, stop, take, days, c["key"]))
-                best.append((score(r), c, (stop, take, days), r))
-        best.sort(key=lambda x: -x[0])
+        if ranked_exits:
+            ex = ranked_exits[0]
+            s_, c_, r_ = max(grid[ex], key=lambda x: x[0])
+            best = [(s_, c_, ex, r_)]
         # 頑健性: 探索期間の上位10候補 (10日保有) が検証期間でどうだったか
         robust = []
         for sc, c, r_is in scored[:10]:
             if sc == -math.inf:
                 continue
-            r_oos = S.evaluate(S.trades(c["sig"], oos_mask, days=10, key=c["key"]))
+            r_oos = S.evaluate(S.trades(c["sig"], oos_mask, days=10, key=c["key"]), years=Y_OOS)
             robust.append({"cond": c["cond"], "is_net": r_is.get("net"), "is_pf": r_is.get("pf"),
                            "oos_net": r_oos.get("net"), "oos_pf": r_oos.get("pf"), "oos_n": r_oos.get("n")})
         F = {"name": FAMILY_NAMES[fam], "tested": len(cands), "passed": sum(1 for s in scored if s[0] > -math.inf),
              "robust": robust}
         if best:
             sc, c, (stop, take, days), r_is = best[0]
-            r_is = S.evaluate(S.trades(c["sig"], is_mask, stop, take, days, c["key"]), with_curve=True)
-            r_oos = S.evaluate(S.trades(c["sig"], oos_mask, stop, take, days, c["key"]), with_curve=True)
-            r_oos10 = S.evaluate(S.trades(c["sig"], oos_mask, days=10, key=c["key"]))
+            r_is = S.evaluate(S.trades(c["sig"], is_mask, stop, take, days, c["key"]), with_curve=True, years=Y_IS)
+            r_oos = S.evaluate(S.trades(c["sig"], oos_mask, stop, take, days, c["key"]), with_curve=True, years=Y_OOS)
+            r_oos10 = S.evaluate(S.trades(c["sig"], oos_mask, days=10, key=c["key"]), years=Y_OOS)
             F.update({"cond": c["cond"], "exit": {"stop": stop, "take": take, "days": days,
                                                   "label": exit_label(stop, take, days)},
                       "score": sc, "is": r_is, "oos": r_oos, "oos_hold10": r_oos10,
-                      "exit_grid": [{"label": exit_label(*ex), "score": s, "net": r.get("net"), "pf": r.get("pf"),
-                                     "annual": r.get("pf_annual"), "dd": r.get("pf_dd")}
-                                    for s, cc, ex, r in best[:8] if cc is c]})
+                      "exit_grid": [{"label": exit_label(*ex), "avg_score": float(avg(grid[ex]))}
+                                    for ex in ranked_exits[:8]]})
             print(f"[{fam}] best IS score={sc:.2f} {c['cond']} {exit_label(stop, take, days)}\n"
                   f"   IS net={r_is['net']:+.2f} pf={r_is['pf']:.2f} ann={r_is['pf_annual']:+.1f} dd={r_is['pf_dd']:.1f}"
                   f" | OOS n={r_oos.get('n')} net={r_oos.get('net')} pf={r_oos.get('pf')} "
@@ -325,9 +334,9 @@ def run(D, funds, demo):
     # 元の6条件 + ユーザーのATRルール (損切り1.5 / 利確2.5 / 10日) を同じ期間で
     for cid, (tech, _, key) in bt.conditions(T).items():
         sig = tech.fillna(False).astype(bool)
-        r_is = S.evaluate(S.trades(sig, is_mask, 1.5, 2.5, 10, key))
-        r_oos = S.evaluate(S.trades(sig, oos_mask, 1.5, 2.5, 10, key))
-        r_oos10 = S.evaluate(S.trades(sig, oos_mask, days=10, key=key))
+        r_is = S.evaluate(S.trades(sig, is_mask, 1.5, 2.5, 10, key), years=Y_IS)
+        r_oos = S.evaluate(S.trades(sig, oos_mask, 1.5, 2.5, 10, key), years=Y_OOS)
+        r_oos10 = S.evaluate(S.trades(sig, oos_mask, days=10, key=key), years=Y_OOS)
         res["baseline"][cid] = {"name": bt.COND_NAMES[cid], "is": r_is, "oos": r_oos, "oos_hold10": r_oos10}
 
     mkt = pd.Series(idx.to_numpy(), index=M.idx)

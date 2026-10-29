@@ -41,6 +41,18 @@ FUND_REFRESH_PER_RUN = int(os.environ.get("FUND_REFRESH_PER_RUN", "4000"))
 FUND_MAX_AGE_DAYS = int(os.environ.get("FUND_MAX_AGE_DAYS", "7"))
 TOP_N = 50
 
+# ---------------------------------------------------------------- 取引ルール (スイング)
+# 損切り・利確は終値からのATR倍数、時間切れは営業日数。WebUIの株数目安と決算警告もこれを使う
+RULES = {
+    "atr_n": 14,          # ATRの期間
+    "stop_atr": 1.5,      # 損切り: エントリー価格 - 1.5 ATR
+    "take_atr": 2.0,      # 利確: エントリー価格 + 2 ATR
+    "hold_days": 10,      # 時間切れ: 10営業日経過で手仕舞いを検討
+    "max_pos": 10, "min_pos": 6,  # 同時保有数
+    "risk_pct": 1.0,      # 1回の許容損失: 運用資金のこの%未満
+    "lot": 100,           # 売買単位
+}
+
 # ---------------------------------------------------------------- スコア定義
 # 総合SCOREの定量11項目: (キー, ラベル, カテゴリ, 高い方が良いか)
 SCORE_ITEMS = [
@@ -314,6 +326,37 @@ def run_screens(stocks, prev_ranks):
     return result
 
 
+def jp_business_days(start: dt.date, n: int):
+    """start の翌営業日から n 営業日分の日付 (土日・祝日・年末年始を除く)"""
+    try:
+        import jpholiday
+        holiday = jpholiday.is_holiday
+    except ImportError:  # 祝日判定なしでも土日だけは除く
+        holiday = lambda d: False
+    out, d = [], start
+    while len(out) < n:
+        d += dt.timedelta(days=1)
+        if d.weekday() < 5 and not holiday(d) and not (d.month == 12 and d.day == 31) \
+                and not (d.month == 1 and d.day <= 3):
+            out.append(d)
+    return out
+
+
+def add_trade_plan(stocks, asof: str, earnings):
+    """決算発表日を付け、保有想定期間 (翌営業日のエントリーから hold_days 営業日) に入るか調べる"""
+    today = dt.date.fromisoformat(asof)
+    days = jp_business_days(today, RULES["hold_days"] + 1)  # [0]がエントリー日、[-1]が時間切れの日
+    for s in stocks:
+        e = hd.next_earnings(s["c"], earnings, s.get("earn_ts"), today)
+        if not e:
+            continue
+        d = dt.date.fromisoformat(e["date"])
+        s["earn"] = e["date"]
+        if today < d <= days[-1]:
+            s["earn_bd"] = next(i for i, x in enumerate(days, 1) if x >= d)  # 何営業日目か
+    return {"entry": days[0].isoformat(), "exit_by": days[-1].isoformat()}
+
+
 def load_prev_ranks(today: str):
     """前営業日のスナップショットから各スクリーニングの順位を読む"""
     if not HIST_DIR.exists():
@@ -326,8 +369,9 @@ def load_prev_ranks(today: str):
     return ranks, prev["asof"]
 
 
-def write_output(stocks, asof: str, demo: bool, universe: int):
+def write_output(stocks, asof: str, demo: bool, universe: int, earnings=None):
     score_stocks(stocks)
+    plan = add_trade_plan(stocks, asof, earnings or {})
     prev_ranks, prev_asof = load_prev_ranks(asof)
     screens = run_screens(stocks, prev_ranks)
     used = {row["c"] for sc in screens for row in sc["rows"]}
@@ -340,6 +384,7 @@ def write_output(stocks, asof: str, demo: bool, universe: int):
         "scored": sum(1 for s in stocks if s.get("score") is not None),
         "items": [{"k": k, "label": l, "cat": c, "hi": h} for k, l, c, h in SCORE_ITEMS],
         "categories": CATEGORIES,
+        "rules": {**RULES, **plan},
         "screens": screens,
         # ランキングに出た銘柄だけ詳細を持たせて軽くする
         "stocks": {s["c"]: compact(s) for s in stocks if s["c"] in used},
@@ -360,7 +405,7 @@ def write_output(stocks, asof: str, demo: bool, universe: int):
 def compact(s):
     keys = ["c", "n", "sec", "mkt", "p", "chg", "mc", "per", "pbr", "dy", "roe",
             "opm", "rg", "eg", "de", "r3m", "r6m", "pos52", "to", "score", "sub", "items",
-            "stage", "dev25", "rsi", "vr", "off20"]
+            "stage", "dev25", "rsi", "vr", "off20", "atr", "earn", "earn_bd"]
     out = {}
     for k in keys:
         v = s.get(k)
@@ -455,6 +500,7 @@ def rsi_series(close, n=14):
 
 def technicals(h):
     """スイング向けスクリーニングで使う指標を日足 (Open/High/Low/Close/Volume) から計算する"""
+    import pandas as pd
     close, vol = h["Close"], h["Volume"]
     last = float(close.iloc[-1])
     f = lambda v: float(v) if ok(float(v)) else None
@@ -469,6 +515,11 @@ def technicals(h):
         t["ma25_over75"] = bool(ma25.iloc[-1] > ma75.iloc[-1])
     if len(close) >= 200:
         t["above200"] = bool(last > close.tail(200).mean())
+    # ATR (Wilder の平滑化)。損切り・利確の幅と株数目安に使う
+    prev = close.shift(1)
+    tr = pd.concat([h["High"] - h["Low"], (h["High"] - prev).abs(), (h["Low"] - prev).abs()], axis=1).max(axis=1)
+    if len(close) > RULES["atr_n"]:
+        t["atr"] = f(tr.ewm(alpha=1 / RULES["atr_n"], adjust=False).mean().iloc[-1])
     rsi = rsi_series(close)
     if len(close) >= 30:
         t["rsi"] = f(rsi.iloc[-1])
@@ -559,14 +610,14 @@ def build_real():
         stocks.append(s)
         dates.append(pr["date"])
     asof = max(set(dates), key=dates.count)  # 最も多い株価基準日
-    screens = write_output(stocks, asof, demo=False, universe=len(universe))
+    try:
+        earnings = hd.load_earnings_schedule()
+    except Exception as e:
+        print(f"earnings schedule failed: {e}")
+        earnings = {}
+    screens = write_output(stocks, asof, demo=False, universe=len(universe), earnings=earnings)
     if holdings:
         hcodes = [h["c"] for h in holdings]
-        try:
-            earnings = hd.load_earnings_schedule()
-        except Exception as e:
-            print(f"earnings schedule failed: {e}")
-            earnings = {}
         try:
             margin, margin_date = hd.load_margin(hcodes)
         except Exception as e:
@@ -629,6 +680,8 @@ def build_demo(seed=None, asof=None):
             "hi60_break": s["pos52"] > 92 and day.random() < 0.5,
         })
         s["to1"] = s["to"] * s["vr"]
+        s["atr"] = s["p"] * max(0.008, rnd.gauss(0.025, 0.01))
+        s["earn_ts"] = time.time() + rnd.uniform(-2, 80) * 86400
     asof = asof or dt.datetime.now(JST).strftime("%Y-%m-%d")
     write_output(stocks, asof, demo=True, universe=len(stocks))
 

@@ -422,6 +422,7 @@ const COLS = [
   { k: "dy", label: "配当", sort: -1 },
   { k: "roe", label: "ROE", sort: -1 },
   { k: "rg", label: "売上成長", sort: -1 },
+  { k: "eg", label: "利益成長", sort: -1 },
   { k: "pos52", label: "52週", sort: -1 },
   { k: "r1m", label: "1ヶ月", sort: -1 },
   { k: "r3m", label: "3ヶ月", sort: -1 },
@@ -437,6 +438,7 @@ const TIPS = {
   dy: "配当利回り = 年間配当 ÷ 株価。4%以上は黄色の下線で強調",
   roe: "自己資本利益率 = 純利益 ÷ 自己資本。株主のお金で効率よく稼げているか (目安8%以上)。15%以上は黄色の下線で強調",
   rg: "売上高成長率 (直近四半期の前年同期比)。20%以上は黄色の下線で強調",
+  eg: "純利益成長率 (直近四半期の前年同期比)。前年が小さいと大きく振れる。30%以上は黄色の下線で強調",
   pos52: "52週レンジ位置。過去1年の安値を0%、高値を100%としたときの現在の位置。95%以上 (高値圏)は黄色の下線で強調",
   r1m: "1ヶ月騰落率。約21営業日前の終値からの値上がり率。+15%以上は黄色の下線で強調",
   r3m: "3ヶ月騰落率。約63営業日前の終値からの値上がり率。+30%以上は黄色の下線で強調",
@@ -926,6 +928,7 @@ const HL = {
   dy: (v) => v >= 4 && "配当利回り 4%以上",
   roe: (v) => v >= 15 && "ROE 15%以上 (高収益)",
   rg: (v) => v >= 20 && "売上成長 20%以上",
+  eg: (v) => v >= 30 && "利益成長 30%以上",
   vchg: (v) => v >= 100 && "出来高が前日の2倍以上",
   pos52: (v) => v >= 95 && "52週高値圏 (レンジの95%以上)",
   r1m: (v) => v >= 15 && "1ヶ月で15%以上の上昇",
@@ -946,6 +949,7 @@ function restCells(s, withStage) {
       <td class="n">${hl("dy", s.dy, fmt("dy", s.dy))}</td>
       <td class="n">${hl("roe", s.roe, fmt("roe", s.roe))}</td>
       <td class="n">${hl("rg", s.rg, fmt("rg", s.rg))}</td>
+      <td class="n">${hl("eg", s.eg, fmt("eg", s.eg))}</td>
       <td class="n">${has(s.pos52) ? `<span class="r52"><span class="track"><span class="dot" style="left:${s.pos52}%"></span></span>${hl("pos52", s.pos52, `<span>${Math.round(s.pos52)}%</span>`)}</span>` : fmt("pos52", null)}</td>
       <td class="n">${hl("r1m", s.r1m, fmt("r1m", s.r1m))}</td>
       <td class="n">${hl("r3m", s.r3m, fmt("r3m", s.r3m))}</td>`;

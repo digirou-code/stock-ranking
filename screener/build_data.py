@@ -28,6 +28,8 @@ import holdings as hd  # noqa: E402
 ROOT = Path(__file__).resolve().parent.parent
 DATA_DIR = ROOT / "docs" / "data"
 HIST_DIR = DATA_DIR / "history"
+BARS_DIR = DATA_DIR / "bars"
+BAR_DAYS = 130  # 詳細チャートに出す日数 (約6ヶ月)
 CACHE_FILE = ROOT / "cache" / "fundamentals.json"
 JST = dt.timezone(dt.timedelta(hours=9))
 
@@ -485,9 +487,28 @@ def fetch_prices(codes):
                 "pos52": pos52,
                 "to": float((h["Close"] * h["Volume"]).tail(20).mean()) / 1e8,  # 億円
                 "date": h.index[-1].strftime("%Y-%m-%d"),
+                "bars": [[i.strftime("%Y-%m-%d"), *(round(float(r[k]), 1) for k in ("Open", "High", "Low", "Close")),
+                          int(r["Volume"]) if ok(float(r["Volume"])) else 0]
+                         for i, r in h.tail(BAR_DAYS).iterrows()],
             }
         time.sleep(1)
     return out
+
+
+def write_bars(prices, codes):
+    """詳細画面のチャート用に、銘柄ごとの日足を docs/data/bars/<コード>.json に書く"""
+    BARS_DIR.mkdir(parents=True, exist_ok=True)
+    keep = set()
+    for c in codes:
+        pr = prices.get(c)
+        if not pr:
+            continue
+        (BARS_DIR / f"{c}.json").write_text(json.dumps({"c": c, "bars": pr["bars"]}, separators=(",", ":")))
+        keep.add(f"{c}.json")
+    for p in BARS_DIR.glob("*.json"):  # ランキングから外れた銘柄は消す
+        if p.name not in keep:
+            p.unlink()
+    print(f"bars: {len(keep)} files")
 
 
 def rsi_series(close, n=14):
@@ -624,6 +645,7 @@ def build_real():
             print(f"margin failed: {e}")
             margin, margin_date = {}, None
         hd.write_holdings(holdings, funds, by_code, screens, asof, earnings, margin, margin_date)
+    write_bars(prices, {row["c"] for sc in screens for row in sc["rows"]} | {h["c"] for h in holdings})
 
 
 # ---------------------------------------------------------------- デモデータ

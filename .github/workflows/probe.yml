@@ -13,7 +13,7 @@ jobs:
         run: |
           import yfinance as yf
           print("yfinance", yf.__version__)
-          for c in ["4116", "7578", "8219", "8078", "7524", "8306", "7203"]:
+          for c in ["6191", "2811", "3633", "7282", "8219", "4116", "9433", "8591"]:
               t = yf.Ticker(f"{c}.T"); i = t.info
               print("==", c, i.get("shortName"), "price", i.get("currentPrice") or i.get("regularMarketPrice"))
               for k in ["trailingAnnualDividendRate", "trailingAnnualDividendYield", "dividendRate", "dividendYield", "fiveYearAvgDividendYield", "lastDividendValue", "lastDividendDate", "exDividendDate", "payoutRatio", "lastSplitFactor", "lastSplitDate"]:

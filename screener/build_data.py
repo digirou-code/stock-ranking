@@ -65,7 +65,7 @@ SCORE_ITEMS = [
     ("opm", "営業利益率", "profit", True),
     ("rg", "売上成長率", "growth", True),
     ("eg", "利益成長率", "growth", True),
-    ("de", "負債資本倍率", "health", False),
+    ("er", "自己資本比率", "health", True),
     ("r3m", "3ヶ月騰落率", "momentum", True),
     ("pos52", "52週レンジ位置", "momentum", True),
     ("to", "売買代金", "momentum", True),
@@ -151,9 +151,9 @@ SCREENS = [
         "name": "高ROE",
         "tab": "収益",
         "desc": "自己資本を効率よく利益に変えている銘柄",
-        "cond": ["ROE 15%以上", "負債資本倍率 100%未満"],
+        "cond": ["ROE 15%以上", "自己資本比率 30%以上"],
         "filter": lambda s: ok(s.get("roe")) and s["roe"] >= 15
-        and (not ok(s.get("de")) or s["de"] < 100),
+        and (not ok(s.get("er")) or s["er"] >= 30),
         "sort": lambda s: s["roe"],
     },
     {
@@ -406,7 +406,7 @@ def write_output(stocks, asof: str, demo: bool, universe: int, earnings=None):
 
 def compact(s):
     keys = ["c", "n", "sec", "mkt", "p", "chg", "mc", "per", "pbr", "dy", "roe",
-            "opm", "rg", "eg", "de", "r1m", "r3m", "r6m", "pos52", "to", "score", "sub", "items",
+            "opm", "rg", "eg", "er", "r1m", "r3m", "r6m", "pos52", "to", "score", "sub", "items",
             "stage", "stage75", "dev25", "rsi", "vr", "vol", "vchg", "off20", "atr", "earn", "earn_bd"]
     out = {}
     for k in keys:
@@ -594,7 +594,8 @@ def fetch_fundamental(code):
     import yfinance as yf
     for attempt in range(3):
         try:
-            info = yf.Ticker(f"{code}.T").info
+            t = yf.Ticker(f"{code}.T")
+            info = t.info
             pct = lambda v: v * 100 if ok(v) else None
             return {
                 "per": info.get("trailingPE"),
@@ -611,7 +612,7 @@ def fetch_fundamental(code):
                 "opm": pct(info.get("operatingMargins")),
                 "rg": pct(info.get("revenueGrowth")),
                 "eg": pct(info.get("earningsGrowth")),
-                "de": info.get("debtToEquity"),
+                "er": equity_ratio(t),
                 "shares": info.get("sharesOutstanding"),
                 "mc_raw": info.get("marketCap"),
                 "earn_ts": info.get("earningsTimestamp") or info.get("earningsTimestampStart"),
@@ -621,6 +622,21 @@ def fetch_fundamental(code):
             time.sleep(5 * (attempt + 1))
             err = e
     print(f"  fundamentals failed {code}: {err}", file=sys.stderr)
+    return None
+
+
+def equity_ratio(t):
+    """自己資本比率 (%) = 株主資本 / 総資産。直近四半期、なければ直近年度の貸借対照表から"""
+    for bs in ("quarterly_balance_sheet", "balance_sheet"):
+        try:
+            df = getattr(t, bs)
+            eq = next(df.loc[k] for k in ("Stockholders Equity", "Common Stock Equity") if k in df.index)
+            col = next(c for c in df.columns if ok(eq[c]) and ok(df.loc["Total Assets", c]))
+            ta = float(df.loc["Total Assets", col])
+            if ta > 0:
+                return float(eq[col]) / ta * 100
+        except Exception:
+            continue
     return None
 
 
@@ -649,7 +665,8 @@ def refresh_fundamentals(codes):
     cache = json.loads(CACHE_FILE.read_text()) if CACHE_FILE.exists() else {}
     now = time.time()
     stale = [c for c in codes if now - cache.get(c, {}).get("ts", 0) > FUND_MAX_AGE_DAYS * 86400
-             or "last_div_val" not in cache.get(c, {})]  # 配当の取り方を変える前の古い形式も取り直す
+             or "last_div_val" not in cache.get(c, {})  # 配当の取り方を変える前の古い形式も取り直す
+             or "er" not in cache.get(c, {})]  # 自己資本比率を追加する前の形式も取り直す
     stale.sort(key=lambda c: cache.get(c, {}).get("ts", 0))  # 古い順
     todo = stale[:FUND_REFRESH_PER_RUN]
     print(f"fundamentals: {len(todo)} to refresh / {len(stale)} stale / {len(codes)} total")
@@ -678,7 +695,7 @@ def build_real():
             continue
         f = funds_cache.get(u["c"], {})
         s = {**u, **{k: v for k, v in pr.items() if k != "date"}}
-        for k in ("per", "pbr", "roe", "opm", "rg", "eg", "de", "earn_ts"):
+        for k in ("per", "pbr", "roe", "opm", "rg", "eg", "er", "earn_ts"):
             s[k] = f.get(k)
         dy = dividend_yield(f, s["p"])
         if dy is not None:
@@ -743,7 +760,7 @@ def build_demo(seed=None, asof=None):
             "opm": rnd.gauss(9, 7),
             "rg": rg,
             "eg": rg * 1.4 + rnd.gauss(0, 15),
-            "de": abs(rnd.gauss(60, 50)),
+            "er": min(90.0, max(3.0, rnd.gauss(50, 18))),
             "r1m": rnd.gauss(1, 7) + day.gauss(0, 2),
             "r3m": rnd.gauss(3, 14) + day.gauss(0, 2),
             "r6m": rnd.gauss(5, 20),

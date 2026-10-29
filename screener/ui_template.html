@@ -393,7 +393,7 @@ table.cal td.n { width: 6.5em; }
   </div>
 
   <footer>
-    <p>SCOREは定量11項目 (PER・PBR・配当利回り・ROE・営業利益率・売上成長率・利益成長率・負債資本倍率・3ヶ月騰落率・52週レンジ位置・売買代金) を対象銘柄内の順位で0〜100に換算し、平均したものです。欠損項目は中央値として扱います。</p>
+    <p>SCOREは定量11項目 (PER・PBR・配当利回り・ROE・営業利益率・売上成長率・利益成長率・自己資本比率・3ヶ月騰落率・52週レンジ位置・売買代金) を対象銘柄内の順位で0〜100に換算し、平均したものです。欠損項目は中央値として扱います。</p>
     <p>色は日本の相場表の慣習に合わせ、上昇を赤、下落を緑で表示しています。株価は基準日の終値、財務指標は直近の開示ベースで数日おきに更新されます。</p>
     <p>このランキングは投資判断の材料であり、売買を推奨するものではありません。データの正確性は保証されません。</p>
   </footer>
@@ -502,7 +502,7 @@ function fmt(k, v) {
     case "mc": return v >= 10000 ? (v / 10000).toFixed(1) + "兆" : Math.round(v).toLocaleString("ja-JP") + "億";
     case "per": return v <= 0 ? '<span class="na-txt">赤字</span>' : v.toFixed(1) + "倍";
     case "pbr": return v.toFixed(2) + "倍";
-    case "de": case "pos52": return Math.round(v) + "%";
+    case "er": case "pos52": return Math.round(v) + "%";
     case "to": return v.toFixed(1) + "億";
     case "dy": case "roe": case "opm": return v.toFixed(1) + "%";
     case "vol": return v >= 1e8 ? (v / 1e8).toFixed(1) + "億株" : v >= 1e4 ? (v / 1e4).toFixed(v >= 1e6 ? 0 : 1) + "万株" : Math.round(v).toLocaleString("ja-JP") + "株";
@@ -1051,7 +1051,7 @@ function openDetail(code) {
   const ranks = D.screens.map((sc) => { const r = sc.rows.find((x) => x.c === code); return r ? `${sc.name} ${r.r}位` : null; }).filter(Boolean);
   const kv = [["株価", fmt("p", s.p) + "円"], ["前日比", fmt("chg", s.chg)], ["時価総額", fmt("mc", s.mc) + "円"], ["売買代金(20日平均)", fmt("to", s.to) + "円"],
     ["PER", fmt("per", s.per)], ["PBR", fmt("pbr", s.pbr)], ["配当利回り", fmt("dy", s.dy)], ["ROE", fmt("roe", s.roe)],
-    ["営業利益率", fmt("opm", s.opm)], ["売上成長率", fmt("rg", s.rg)], ["利益成長率", fmt("eg", s.eg)], ["負債資本倍率", fmt("de", s.de)],
+    ["営業利益率", fmt("opm", s.opm)], ["売上成長率", fmt("rg", s.rg)], ["利益成長率", fmt("eg", s.eg)], ["自己資本比率", fmt("er", s.er)],
     ["出来高", fmt("vol", s.vol) + (has(s.vchg) ? ` (前日比 ${signed(s.vchg)})` : "")], ["1ヶ月騰落", fmt("r1m", s.r1m)],
     ["3ヶ月騰落", fmt("r3m", s.r3m)], ["6ヶ月騰落", fmt("r6m", s.r6m)], ["52週レンジ位置", fmt("pos52", s.pos52)],
     ["25日線乖離", fmt("dev25", s.dev25)], ["RSI(14)", fmt("rsi", s.rsi)], ["出来高倍率(対20日)", fmt("vr", s.vr)], ["20日高値から", fmt("off20", s.off20)]];
@@ -1081,7 +1081,7 @@ function openDetail(code) {
         const p = (s.items || {})[it.k];
         return `<div class="item"><span>${it.label}</span><span class="cat">${D.categories[it.cat]}</span><span class="track"><span class="fill" style="width:${p ?? 0}%"></span></span><span class="pv">${p ?? "—"}</span></div>`;
       }).join("")}</div>
-      <p class="note" style="margin-top:8px">数値は対象銘柄の中での順位 (100が最良)。PER・PBR・負債資本倍率は低いほど高評価です。</p></div>
+      <p class="note" style="margin-top:8px">数値は対象銘柄の中での順位 (100が最良)。PER・PBRは低いほど高評価です。</p></div>
     ${ranks.length ? `<p class="note">ランクイン: ${ranks.map(esc).join(" / ")}</p>` : ""}
     ${real ? `<div class="links"><a href="https://finance.yahoo.co.jp/quote/${esc(s.c)}.T" target="_blank" rel="noopener">Yahoo!ファイナンス</a><a href="https://kabutan.jp/stock/?code=${esc(s.c)}" target="_blank" rel="noopener">株探</a><a href="https://irbank.net/${esc(s.c)}" target="_blank" rel="noopener">IR BANK</a></div>` : ""}`;
   $("dlg-close").addEventListener("click", () => $("dlg").close());

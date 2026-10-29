@@ -22,6 +22,7 @@
   --bar: #24477a;
   --bar-track: #e6e9ef;
   --ma25: #d08a00; --ma75: #6b5bd6;  /* 移動平均線 */
+  --s1: #2f6fd6; --s2: #e07b00; --s3: #0f9488; --s4: #c2378a; --s5: #7c5cd6; --s6: #6d8f1d; --s7: #0b84b8; --s8: #9a5b2c;  /* セクター比較の線 */
   --vol-up: rgba(199, 50, 47, 0.35); --vol-down: rgba(31, 122, 77, 0.35);
   --st1-bg: #eef0f3; --st1-fg: #4b5563;  /* 底固め */
   --st2-bg: #fde4e2; --st2-fg: #a32522;  /* 上昇 (赤) */
@@ -36,14 +37,14 @@
     --bg: #11151c; --surface: #181d26; --ink: #e7eaf0; --muted: #98a1b0;
     --line: #2b323e; --line-soft: #222833; --ai: #8fb0e3; --ai-soft: #1f2a3b;
     --up: #ff7b72; --down: #4fc98a; --warn-bg: #3a3014; --warn-fg: #f1d48a;
-    --bar: #8fb0e3; --bar-track: #2a313c; --ma25: #f0b54a; --ma75: #a99cff; --vol-up: rgba(255, 123, 114, 0.35); --vol-down: rgba(79, 201, 138, 0.35); --st1-bg: #262c36; --st1-fg: #b5bdc9; --st2-bg: #3b1f1f; --st2-fg: #ff9b93; --st3-bg: #3a3014; --st3-fg: #f1d48a; --st4-bg: #15301f; --st4-fg: #6fd6a0; color-scheme: dark;
+    --bar: #8fb0e3; --bar-track: #2a313c; --ma25: #f0b54a; --ma75: #a99cff; --s1: #6ea0f5; --s2: #f5a54a; --s3: #3cc4b6; --s4: #ec74b8; --s5: #a993f5; --s6: #a6c75a; --s7: #4cb8e6; --s8: #d29a6c; --vol-up: rgba(255, 123, 114, 0.35); --vol-down: rgba(79, 201, 138, 0.35); --st1-bg: #262c36; --st1-fg: #b5bdc9; --st2-bg: #3b1f1f; --st2-fg: #ff9b93; --st3-bg: #3a3014; --st3-fg: #f1d48a; --st4-bg: #15301f; --st4-fg: #6fd6a0; color-scheme: dark;
   }
 }
 :root[data-theme="dark"] {
   --bg: #11151c; --surface: #181d26; --ink: #e7eaf0; --muted: #98a1b0;
   --line: #2b323e; --line-soft: #222833; --ai: #8fb0e3; --ai-soft: #1f2a3b;
   --up: #ff7b72; --down: #4fc98a; --warn-bg: #3a3014; --warn-fg: #f1d48a;
-  --bar: #8fb0e3; --bar-track: #2a313c; --ma25: #f0b54a; --ma75: #a99cff; --vol-up: rgba(255, 123, 114, 0.35); --vol-down: rgba(79, 201, 138, 0.35); --st1-bg: #262c36; --st1-fg: #b5bdc9; --st2-bg: #3b1f1f; --st2-fg: #ff9b93; --st3-bg: #3a3014; --st3-fg: #f1d48a; --st4-bg: #15301f; --st4-fg: #6fd6a0; color-scheme: dark;
+  --bar: #8fb0e3; --bar-track: #2a313c; --ma25: #f0b54a; --ma75: #a99cff; --s1: #6ea0f5; --s2: #f5a54a; --s3: #3cc4b6; --s4: #ec74b8; --s5: #a993f5; --s6: #a6c75a; --s7: #4cb8e6; --s8: #d29a6c; --vol-up: rgba(255, 123, 114, 0.35); --vol-down: rgba(79, 201, 138, 0.35); --st1-bg: #262c36; --st1-fg: #b5bdc9; --st2-bg: #3b1f1f; --st2-fg: #ff9b93; --st3-bg: #3a3014; --st3-fg: #f1d48a; --st4-bg: #15301f; --st4-fg: #6fd6a0; color-scheme: dark;
 }
 * { box-sizing: border-box; }
 body {
@@ -223,6 +224,17 @@ table.hold { min-width: 1600px; }
 .mk-imp small { display: block; color: var(--muted); font-size: 12px; line-height: 1.45; }
 .mk-sum { display: flex; flex-wrap: wrap; gap: 6px 16px; align-items: baseline; padding: 10px 14px; background: var(--surface); border: 1px solid var(--line); border-radius: 8px; font-size: 13px; }
 .mk-sum b { font-size: 15px; }
+.sec-box { background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 14px; display: grid; gap: 10px; min-width: 0; }
+.sec-chart { height: 340px; min-width: 0; }
+.sec-legend { display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: 12.5px; }
+.sec-legend span { display: inline-flex; align-items: center; gap: 6px; }
+.sec-legend i { width: 16px; height: 3px; border-radius: 2px; display: inline-block; }
+.sec-legend b { font-family: var(--font-data); font-weight: 500; }
+.sec-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.sec-chips button { font: inherit; font-size: 12.5px; border: 1px solid var(--line); background: var(--surface); color: var(--ink); border-radius: 99px; padding: 3px 10px; cursor: pointer; display: inline-flex; gap: 6px; align-items: baseline; }
+.sec-chips button small { font-family: var(--font-data); font-size: 11.5px; }
+.sec-chips button[aria-pressed="true"] { border-color: var(--chip-c, var(--ai)); box-shadow: inset 0 0 0 1px var(--chip-c, var(--ai)); background: var(--ai-soft); font-weight: 700; }
+.sec-chips button:focus-visible { outline: 2px solid var(--ai); outline-offset: 1px; }
 .mk-foot { display: flex; justify-content: space-between; color: var(--muted); font-size: 11.5px; font-family: var(--font-data); }
 @media (max-width: 420px) { .mk-grid { grid-template-columns: minmax(0, 1fr); } }
 
@@ -313,6 +325,16 @@ table.cal td.n { width: 6.5em; }
       </div>
       <div class="mk-sum" id="mk-sum"></div>
       <div class="mk-grid" id="mk-grid"></div>
+      <section class="sec-box" id="sec-box" aria-labelledby="sech" hidden>
+        <div class="mk-tools">
+          <h3 id="sech" style="margin:0; font-family:var(--font-display); font-size:18px">セクター平均株価の比較</h3>
+          <div class="seg" role="group" aria-label="比較期間" id="sec-range"><button data-d="22">1ヶ月</button><button data-d="66">3ヶ月</button><button data-d="132">6ヶ月</button><button data-d="400">1年</button></div>
+        </div>
+        <p class="note" id="sec-note"></p>
+        <div class="sec-chart" id="sec-chart"></div>
+        <div class="sec-legend" id="sec-legend"></div>
+        <div class="sec-chips" id="sec-chips" role="group" aria-label="表示するセクター"></div>
+      </section>
       <p class="note">日本株への影響 (◎大変良い / 〇良い / △普通 / ×悪い) は、各指標の直近の値動きを機械的に判定した目安です。前日比が普段の値動き (過去60日の標準偏差) の何倍かを主に、25日移動平均より上か下かを少し加えて、指標ごとの向き (株価・円安は日本株にプラス、VIX・米金利の上昇はマイナス) で点数化しています。日経平均先物は日経平均の終値との差 (翌朝の寄り付きの目安) で判定します。原油・金は影響の向きが一定でないため、大きく動いた日だけ判定します。投資判断の参考の一つとしてご覧ください。</p>
       <p class="note">日足のローソク足です (日本式に陽線を赤、陰線を緑で表示)。日経平均先物はCMEの円建て、為替は日本時間の朝に締まる日足です。データはYahoo Financeから取得しています。</p>
     </div>
@@ -378,6 +400,7 @@ table.cal td.n { width: 6.5em; }
 const EMBEDDED = /*__DATA__*/null;
 const EMBEDDED_H = /*__HOLDINGS__*/null;
 let H = null, hSortKey = "score", hSortDir = -1;
+let SEC = null, secDays = 66, secSel = null, secChart = null, secRO = null;
 let MK = null, CAL = null, mkDays = 132, mkGroup = "all", calCc = "all", calImp = 1, mkCharts = [];
 
 const COLS = [
@@ -554,6 +577,75 @@ function impactOf(it) {
   return { level, reason };
 }
 
+const SEC_MAX = 8, NK = "日経平均";
+function secSeries() {
+  // 各系列を [{time, value}] で返す。日経平均はマーケットの日足から同じ日付だけ取り出す
+  const out = {};
+  SEC.dates.forEach((d, i) => Object.entries(SEC.series).forEach(([k, v]) => { (out[k] ||= []).push({ time: d, value: v[i] }); }));
+  const nk = MK && MK.items.find((x) => x.sym === "^N225");
+  if (nk) {
+    const set = new Set(SEC.dates);
+    out[NK] = nk.bars.filter((b) => set.has(b[0])).map((b) => ({ time: b[0], value: b[4] }));
+  }
+  return out;
+}
+function renderSectors() {
+  if (!SEC) return;
+  $("sec-box").hidden = false;
+  setPressed("sec-range", secDays, "d");
+  const all = secSeries();
+  // 期間の初日を0%として騰落率に直す
+  const rebased = {}, perf = {};
+  Object.entries(all).forEach(([k, pts]) => {
+    const p = pts.slice(-secDays);
+    if (!p.length) return;
+    const base = p[0].value;
+    rebased[k] = p.map((x) => ({ time: x.time, value: (x.value / base - 1) * 100 }));
+    perf[k] = rebased[k][rebased[k].length - 1].value;
+  });
+  if (!secSel) {
+    let saved = null;
+    try { saved = JSON.parse(store.get("sector.sel") || "null"); } catch (e) { saved = null; }
+    const ranked = Object.keys(perf).filter((k) => k !== NK).sort((a, b) => perf[b] - perf[a]);
+    secSel = Array.isArray(saved) && saved.length ? saved.filter((k) => k in perf) : [NK, ...ranked.slice(0, 2), ...ranked.slice(-2)];
+  }
+  const colorOf = (k) => k === NK ? css("--ink") : css(`--s${secSel.filter((x) => x !== NK).indexOf(k) + 1}`);
+  const fmtP = (v) => `${v > 0 ? "+" : ""}${v.toFixed(1)}%`;
+  const keys = [NK, ...Object.keys(perf).filter((k) => k !== NK).sort((a, b) => perf[b] - perf[a])].filter((k) => k in perf);
+  $("sec-chips").innerHTML = keys.map((k) => {
+    const on = secSel.includes(k);
+    return `<button data-k="${esc(k)}" aria-pressed="${on}" ${on ? `style="--chip-c:${colorOf(k)}"` : ""}>${esc(k)}<small class="${perf[k] > 0 ? "up" : perf[k] < 0 ? "down" : "flat"}">${fmtP(perf[k])}</small></button>`;
+  }).join("");
+  $("sec-chips").querySelectorAll("button").forEach((b) => b.addEventListener("click", () => {
+    const k = b.dataset.k;
+    if (secSel.includes(k)) secSel = secSel.filter((x) => x !== k);
+    else if (secSel.filter((x) => x !== NK).length < SEC_MAX || k === NK) secSel = [...secSel, k];
+    store.set("sector.sel", JSON.stringify(secSel));
+    renderSectors();
+  }));
+  const shown = secSel.filter((k) => k in rebased);
+  $("sec-legend").innerHTML = shown.map((k) => `<span><i style="background:${colorOf(k)}"></i>${esc(k)} <b class="${perf[k] > 0 ? "up" : perf[k] < 0 ? "down" : "flat"}">${fmtP(perf[k])}</b></span>`).join("");
+  const days = rebased[keys[1]] ? rebased[keys[1]] : [];
+  $("sec-note").textContent = `東証33業種ごとに、プライム・スタンダード・グロースの構成銘柄の日々の騰落率を単純平均してつないだ指数です。期間の初日 (${days[0] ? days[0].time : "—"}) を0%として比べています。下のボタンでセクターを選べます (最大${SEC_MAX}業種、ボタンの数値は期間の騰落率)。`;
+  if (secChart) { secChart.remove(); secChart = null; }
+  if (!window.LightweightCharts) return;
+  secChart = LightweightCharts.createChart($("sec-chart"), {
+    autoSize: true, layout: { background: { type: "solid", color: "transparent" }, textColor: css("--muted"), fontSize: 11, fontFamily: css("--font-data") },
+    grid: { vertLines: { visible: false }, horzLines: { color: css("--line-soft") } },
+    rightPriceScale: { borderVisible: false }, timeScale: { borderVisible: false },
+    localization: { locale: "ja-JP", priceFormatter: (v) => `${v > 0 ? "+" : ""}${v.toFixed(1)}%` },
+    handleScroll: false, handleScale: false,
+  });
+  shown.forEach((k) => {
+    secChart.addLineSeries({ color: colorOf(k), lineWidth: k === NK ? 3 : 2, priceLineVisible: false, lastValueVisible: true, title: "" }).setData(rebased[k]);
+  });
+  secChart.timeScale().fitContent();
+  if (!secRO) {
+    secRO = new ResizeObserver(() => secChart && secChart.timeScale().fitContent());
+    secRO.observe($("sec-chart"));
+  }
+}
+
 function renderMarkets() {
   mkCharts.forEach((c) => c.remove()); mkCharts = [];
   const groups = ["all", ...new Set(MK.items.map((i) => i.group))];
@@ -596,6 +688,7 @@ function renderMarkets() {
     chart.timeScale().fitContent();
     mkCharts.push(chart);
   });
+  renderSectors();
 }
 
 function renderCalendar() {
@@ -998,8 +1091,9 @@ function route() {
   renderTabs(); renderHead(); renderTable();
 }
 
-Promise.all([load(), loadHoldings(), loadJSON("markets"), loadJSON("calendar")]).then(([data, hold, mk, cal]) => {
-  D = data; H = hold; MK = mk; CAL = cal;
+Promise.all([load(), loadHoldings(), loadJSON("markets"), loadJSON("calendar"), loadJSON("sectors")]).then(([data, hold, mk, cal, sec]) => {
+  D = data; H = hold; MK = mk; CAL = cal; SEC = sec;
+  $("sec-range").querySelectorAll("button").forEach((b) => b.addEventListener("click", () => { secDays = +b.dataset.d; renderSectors(); }));
   if (MK) {
     $("nav-mk").hidden = false;
     $("mk-range").querySelectorAll("button").forEach((b) => b.addEventListener("click", () => { mkDays = +b.dataset.d; renderMarkets(); }));

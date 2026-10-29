@@ -487,12 +487,39 @@ def fetch_prices(codes):
                 "pos52": pos52,
                 "to": float((h["Close"] * h["Volume"]).tail(20).mean()) / 1e8,  # 億円
                 "date": h.index[-1].strftime("%Y-%m-%d"),
+                "_close": close,  # セクター平均の計算用 (出力しない)
                 "bars": [[i.strftime("%Y-%m-%d"), *(round(float(r[k]), 1) for k in ("Open", "High", "Low", "Close")),
                           int(r["Volume"]) if ok(float(r["Volume"])) else 0]
                          for i, r in h.tail(BAR_DAYS).iterrows()],
             }
         time.sleep(1)
     return out
+
+
+def write_sectors(prices, universe):
+    """33業種ごとの等ウェイト平均株価指数 (初日=100) を docs/data/sectors.json に書く"""
+    import pandas as pd
+    sec_of = {u["c"]: u["sec"] for u in universe if u.get("sec")}
+    rets = {}
+    for c, pr in prices.items():
+        if c in sec_of and "_close" in pr:
+            r = pr["_close"].pct_change()
+            r.index = r.index.strftime("%Y-%m-%d")
+            rets[c] = r.clip(-0.3, 0.3)  # 分割の取り漏れなど異常値を抑える
+    df = pd.DataFrame(rets).sort_index()
+    df = df[df.count(axis=1) >= df.count(axis=1).max() * 0.5]  # 銘柄がそろっていない日は除く
+    series, counts = {}, {}
+    for sec in sorted(set(sec_of.values())):
+        cols = [c for c in df.columns if sec_of.get(c) == sec]
+        if len(cols) < 3:
+            continue
+        idx = (1 + df[cols].mean(axis=1, skipna=True).fillna(0)).cumprod() * 100
+        idx.iloc[0] = 100.0
+        series[sec] = [round(float(v), 2) for v in idx.values]
+        counts[sec] = len(cols)
+    out = {"dates": list(df.index), "series": series, "counts": counts}
+    (DATA_DIR / "sectors.json").write_text(json.dumps(out, ensure_ascii=False, separators=(",", ":")), encoding="utf-8")
+    print(f"sectors: {len(series)} sectors, {len(df)} days")
 
 
 def write_bars(prices, codes):
@@ -645,6 +672,10 @@ def build_real():
             print(f"margin failed: {e}")
             margin, margin_date = {}, None
         hd.write_holdings(holdings, funds, by_code, screens, asof, earnings, margin, margin_date)
+    try:
+        write_sectors(prices, universe)
+    except Exception as e:
+        print(f"sectors failed: {e}")
     write_bars(prices, {row["c"] for sc in screens for row in sc["rows"]} | {h["c"] for h in holdings})
 
 

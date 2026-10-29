@@ -159,7 +159,7 @@
     "days": 10,
     "label": "損切り -1.5ATR / 利確 +2.5ATR / 最大10営業日"
    },
-   "score": 2.406,
+   "score": 1.8787,
    "is": {
     "n": 797,
     "win": 86.3237,
@@ -176,7 +176,7 @@
     },
     "hold_days": 7.5332,
     "pf_total": 66.1362,
-    "pf_annual": 24.0604,
+    "pf_annual": 18.7866,
     "pf_dd": -7.3991,
     "pf_trades": 80,
     "by_year": {
@@ -712,7 +712,7 @@
     },
     "hold_days": 7.6935,
     "pf_total": 1.087,
-    "pf_annual": 13.8526,
+    "pf_annual": 1.0877,
     "pf_dd": -4.1782,
     "pf_trades": 13,
     "by_year": {
@@ -756,7 +756,7 @@
     },
     "hold_days": 10.0,
     "pf_total": 7.3395,
-    "pf_annual": 133.9447,
+    "pf_annual": 7.3447,
     "pf_dd": -3.46,
     "pf_trades": 10,
     "by_year": {
@@ -769,35 +769,35 @@
    "exit_grid": [
     {
      "label": "損切り -1.5ATR / 利確 +2.5ATR / 最大10営業日",
-     "score": 2.406,
-     "net": 8.8798,
-     "pf": 11.8365,
-     "annual": 24.0604,
-     "dd": -7.3991
+     "avg_score": 1.8239
     },
     {
      "label": "損切り -1.5ATR / 利確 +3.0ATR / 最大10営業日",
-     "score": 2.3416,
-     "net": 9.1078,
-     "pf": 11.9415,
-     "annual": 23.4158,
-     "dd": -7.3991
+     "avg_score": 1.7751
+    },
+    {
+     "label": "損切り -1.5ATR / 利確なし / 最大10営業日",
+     "avg_score": 1.7084
     },
     {
      "label": "損切り -3.0ATR / 利確 +2.5ATR / 最大10営業日",
-     "score": 2.2139,
-     "net": 9.2321,
-     "pf": 15.0076,
-     "annual": 22.1389,
-     "dd": -7.0006
+     "avg_score": 1.6504
     },
     {
      "label": "損切り -3.0ATR / 利確 +3.0ATR / 最大10営業日",
-     "score": 2.2068,
-     "net": 9.4746,
-     "pf": 15.1192,
-     "annual": 22.0684,
-     "dd": -7.0006
+     "avg_score": 1.6353
+    },
+    {
+     "label": "損切り -1.5ATR / 利確 +4.0ATR / 最大10営業日",
+     "avg_score": 1.6229
+    },
+    {
+     "label": "損切り -3.0ATR / 利確なし / 最大10営業日",
+     "avg_score": 1.5924
+    },
+    {
+     "label": "損切りなし / 利確なし / 最大10営業日",
+     "avg_score": 1.5674
     }
    ]
   },
@@ -971,7 +971,7 @@
     "days": 10,
     "label": "損切りなし / 利確なし / 最大10営業日"
    },
-   "score": 0.7821,
+   "score": 0.7942,
    "is": {
     "n": 15133,
     "win": 51.3844,
@@ -988,7 +988,7 @@
     },
     "hold_days": 10.0,
     "pf_total": 82.862,
-    "pf_annual": 22.3699,
+    "pf_annual": 22.7144,
     "pf_dd": -28.6015,
     "pf_trades": 730,
     "by_year": {
@@ -1656,7 +1656,7 @@
     },
     "hold_days": 10.0,
     "pf_total": 30.7625,
-    "pf_annual": 30.883,
+    "pf_annual": 30.7866,
     "pf_dd": -15.8855,
     "pf_trades": 240,
     "by_year": {
@@ -1900,7 +1900,7 @@
     },
     "hold_days": 10.0,
     "pf_total": 30.7625,
-    "pf_annual": 30.883,
+    "pf_annual": 30.7866,
     "pf_dd": -15.8855,
     "pf_trades": 240,
     "by_year": {
@@ -1917,19 +1917,35 @@
    "exit_grid": [
     {
      "label": "損切りなし / 利確なし / 最大10営業日",
-     "score": 0.7821,
-     "net": 0.283,
-     "pf": 1.1298,
-     "annual": 22.3699,
-     "dd": -28.6015
+     "avg_score": 0.5751
     },
     {
      "label": "損切りなし / 利確 +4.0ATR / 最大10営業日",
-     "score": 0.1723,
-     "net": 0.2664,
-     "pf": 1.1232,
-     "annual": 7.3707,
-     "dd": -42.7737
+     "avg_score": 0.2378
+    },
+    {
+     "label": "損切りなし / 利確 +3.0ATR / 最大10営業日",
+     "avg_score": 0.0748
+    },
+    {
+     "label": "損切りなし / 利確 +2.5ATR / 最大10営業日",
+     "avg_score": 0.049
+    },
+    {
+     "label": "損切り -3.0ATR / 利確なし / 最大10営業日",
+     "avg_score": -3.2715
+    },
+    {
+     "label": "損切り -3.0ATR / 利確 +4.0ATR / 最大10営業日",
+     "avg_score": -3.3204
+    },
+    {
+     "label": "損切り -3.0ATR / 利確 +2.5ATR / 最大10営業日",
+     "avg_score": -3.3936
+    },
+    {
+     "label": "損切り -3.0ATR / 利確 +3.0ATR / 最大10営業日",
+     "avg_score": -3.4025
     }
    ]
   },
@@ -2041,7 +2057,7 @@
     "days": 10,
     "label": "損切りなし / 利確なし / 最大10営業日"
    },
-   "score": 0.1199,
+   "score": 0.121,
    "is": {
     "n": 7672,
     "win": 49.7393,
@@ -2058,7 +2074,7 @@
     },
     "hold_days": 10.0,
     "pf_total": 10.3963,
-    "pf_annual": 3.3793,
+    "pf_annual": 3.4112,
     "pf_dd": -28.1847,
     "pf_trades": 699,
     "by_year": {
@@ -2722,7 +2738,7 @@
     },
     "hold_days": 10.0,
     "pf_total": 49.6929,
-    "pf_annual": 49.9004,
+    "pf_annual": 49.7343,
     "pf_dd": -23.456,
     "pf_trades": 233,
     "by_year": {
@@ -2966,7 +2982,7 @@
     },
     "hold_days": 10.0,
     "pf_total": 49.6929,
-    "pf_annual": 49.9004,
+    "pf_annual": 49.7343,
     "pf_dd": -23.456,
     "pf_trades": 233,
     "by_year": {
@@ -2983,19 +2999,35 @@
    "exit_grid": [
     {
      "label": "損切りなし / 利確なし / 最大10営業日",
-     "score": 0.1199,
-     "net": 0.2437,
-     "pf": 1.1017,
-     "annual": 3.3793,
-     "dd": -28.1847
+     "avg_score": 0.0308
+    },
+    {
+     "label": "損切りなし / 利確 +4.0ATR / 最大10営業日",
+     "avg_score": -1.6638
+    },
+    {
+     "label": "損切りなし / 利確 +3.0ATR / 最大10営業日",
+     "avg_score": -3.3181
+    },
+    {
+     "label": "損切りなし / 利確 +2.5ATR / 最大10営業日",
+     "avg_score": -3.3629
     },
     {
      "label": "損切りなし / 利確なし / 最大5営業日",
-     "score": null,
-     "net": -0.2801,
-     "pf": 0.8544,
-     "annual": -18.8243,
-     "dd": -52.6796
+     "avg_score": -5.0
+    },
+    {
+     "label": "損切りなし / 利確 +2.5ATR / 最大5営業日",
+     "avg_score": -5.0
+    },
+    {
+     "label": "損切りなし / 利確 +3.0ATR / 最大5営業日",
+     "avg_score": -5.0
+    },
+    {
+     "label": "損切りなし / 利確 +4.0ATR / 最大5営業日",
+     "avg_score": -5.0
     }
    ]
   }
@@ -3019,7 +3051,7 @@
     },
     "hold_days": 6.8304,
     "pf_total": -7.0666,
-    "pf_annual": -2.4325,
+    "pf_annual": -2.4548,
     "pf_dd": -31.3374,
     "pf_trades": 1077,
     "by_year": {
@@ -3057,7 +3089,7 @@
     },
     "hold_days": 6.6906,
     "pf_total": -6.3036,
-    "pf_annual": -6.3246,
+    "pf_annual": -6.3078,
     "pf_dd": -26.7725,
     "pf_trades": 352,
     "by_year": {
@@ -3087,7 +3119,7 @@
     },
     "hold_days": 10.0,
     "pf_total": 15.2223,
-    "pf_annual": 15.3236,
+    "pf_annual": 15.2335,
     "pf_dd": -16.3185,
     "pf_trades": 240,
     "by_year": {
@@ -3120,7 +3152,7 @@
     },
     "hold_days": 7.3069,
     "pf_total": -23.7009,
-    "pf_annual": -8.6507,
+    "pf_annual": -8.7657,
     "pf_dd": -45.0742,
     "pf_trades": 973,
     "by_year": {
@@ -3158,7 +3190,7 @@
     },
     "hold_days": 7.1701,
     "pf_total": -31.3175,
-    "pf_annual": -31.5488,
+    "pf_annual": -31.3352,
     "pf_dd": -50.1219,
     "pf_trades": 317,
     "by_year": {
@@ -3188,7 +3220,7 @@
     },
     "hold_days": 10.0,
     "pf_total": 21.1783,
-    "pf_annual": 21.2583,
+    "pf_annual": 21.1943,
     "pf_dd": -22.2168,
     "pf_trades": 233,
     "by_year": {
@@ -3221,7 +3253,7 @@
     },
     "hold_days": 6.8416,
     "pf_total": -14.065,
-    "pf_annual": -4.9436,
+    "pf_annual": -5.0107,
     "pf_dd": -50.8065,
     "pf_trades": 923,
     "by_year": {
@@ -3259,7 +3291,7 @@
     },
     "hold_days": 7.6877,
     "pf_total": -1.8419,
-    "pf_annual": -1.8482,
+    "pf_annual": -1.8431,
     "pf_dd": -29.6568,
     "pf_trades": 294,
     "by_year": {
@@ -3289,7 +3321,7 @@
     },
     "hold_days": 10.0,
     "pf_total": 7.1377,
-    "pf_annual": 7.163,
+    "pf_annual": 7.1427,
     "pf_dd": -35.6961,
     "pf_trades": 233,
     "by_year": {
@@ -3322,7 +3354,7 @@
     },
     "hold_days": 6.6022,
     "pf_total": -73.6369,
-    "pf_annual": -36.0556,
+    "pf_annual": -36.3734,
     "pf_dd": -74.7452,
     "pf_trades": 1093,
     "by_year": {
@@ -3360,7 +3392,7 @@
     },
     "hold_days": 6.1971,
     "pf_total": -32.6698,
-    "pf_annual": -32.8347,
+    "pf_annual": -32.6881,
     "pf_dd": -37.7422,
     "pf_trades": 397,
     "by_year": {
@@ -3390,7 +3422,7 @@
     },
     "hold_days": 10.0,
     "pf_total": -27.2252,
-    "pf_annual": -27.3046,
+    "pf_annual": -27.241,
     "pf_dd": -42.0688,
     "pf_trades": 227,
     "by_year": {
@@ -3423,7 +3455,7 @@
     },
     "hold_days": 5.0731,
     "pf_total": -94.1718,
-    "pf_annual": -61.6926,
+    "pf_annual": -61.8628,
     "pf_dd": -94.2714,
     "pf_trades": 2087,
     "by_year": {
@@ -3461,7 +3493,7 @@
     },
     "hold_days": 4.838,
     "pf_total": -62.7759,
-    "pf_annual": -62.902,
+    "pf_annual": -62.8011,
     "pf_dd": -62.8704,
     "pf_trades": 653,
     "by_year": {
@@ -3491,7 +3523,7 @@
     },
     "hold_days": 10.0,
     "pf_total": -19.8988,
-    "pf_annual": -19.9598,
+    "pf_annual": -19.911,
     "pf_dd": -39.2598,
     "pf_trades": 240,
     "by_year": {
@@ -3524,7 +3556,7 @@
     },
     "hold_days": 5.3086,
     "pf_total": -82.775,
-    "pf_annual": -44.5619,
+    "pf_annual": -44.9251,
     "pf_dd": -85.0318,
     "pf_trades": 1759,
     "by_year": {
@@ -3562,7 +3594,7 @@
     },
     "hold_days": 5.0135,
     "pf_total": -2.7183,
-    "pf_annual": -2.7649,
+    "pf_annual": -2.7201,
     "pf_dd": -21.9387,
     "pf_trades": 628,
     "by_year": {
@@ -3592,7 +3624,7 @@
     },
     "hold_days": 10.0,
     "pf_total": 9.7218,
-    "pf_annual": 9.7567,
+    "pf_annual": 9.7287,
     "pf_dd": -25.0342,
     "pf_trades": 240,
     "by_year": {
@@ -3610,7 +3642,7 @@
  },
  "meta": {
   "demo": false,
-  "generated_at": "2026-10-29T12:33+09:00",
+  "generated_at": "2026-10-29T12:48+09:00",
   "is_start": "2022-10-28",
   "is_end": "2025-10-09",
   "oos_start": "2025-10-28",
@@ -3657,6 +3689,6 @@
   "tax": 20.315,
   "mkt_is": 73.8721,
   "mkt_oos": 23.941,
-  "elapsed_s": 110
+  "elapsed_s": 130
  }
 }

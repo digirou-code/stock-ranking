@@ -438,6 +438,7 @@ const TIPS = {
   r1m: "1ヶ月騰落率。約21営業日前の終値からの値上がり率",
   r3m: "3ヶ月騰落率。約63営業日前の終値からの値上がり率",
   vol: "基準日の出来高 (株数)。下は前営業日の出来高と比べた増減率",
+  swing: "トレンド・押し目度・RSI・売買代金の4要素 (各0〜100) の平均。10日前後のスイングに向くかの目安。詳細画面で内訳を表示",
   dev25: "25日移動平均線からの乖離率。マイナスは平均より下 (押し目・売られ過ぎの目安)",
   rsi: "RSI(14)。直近14日の値上がりの強さ。30以下は売られ過ぎ、70以上は買われ過ぎの目安",
   vr: "出来高倍率。当日の出来高 ÷ 過去20日の平均出来高",
@@ -457,10 +458,10 @@ const th = (c, sk, sd) => {
 };
 
 // トップ3カードで各スクリーニングの決め手として見せる値
-const KEY_METRIC = { score: "score", dividend: "dy", div_pbr: "dy", low_per: "per", low_pbr: "pbr", high_roe: "roe", growth: "rg", small_growth: "rg",
+const KEY_METRIC = { score: "score", swing: "swing", dividend: "dy", div_pbr: "dy", low_per: "per", low_pbr: "pbr", high_roe: "roe", growth: "rg", small_growth: "rg",
   pullback: "dev25", rsi_pullback: "rsi", rebound_dev: "dev25", rebound_rsi: "rsi", vol_break: "vr", high_break: "vr" };
 // スイング系スクリーニングでは決め手の指標を表に1列追加する
-const EXTRA_COL = { dev25: "25日線乖離", rsi: "RSI", vr: "出来高倍率" };
+const EXTRA_COL = { swing: "スイングSCORE", dev25: "25日線乖離", rsi: "RSI", vr: "出来高倍率" };
 const colsFor = (sc) => {
   const k = KEY_METRIC[sc.id];
   const head = EXTRA_COL[k] ? [...COLS.slice(0, 4), { k, label: EXTRA_COL[k], sort: k === "dev25" ? 1 : -1 }] : COLS.slice(0, 4);
@@ -468,7 +469,7 @@ const colsFor = (sc) => {
 };
 
 // 取引ルールの株数目安などを出すスイング系スクリーニング
-const SWING = new Set(["pullback", "rsi_pullback", "rebound_dev", "rebound_rsi", "vol_break", "high_break"]);
+const SWING = new Set(["swing", "pullback", "rsi_pullback", "rebound_dev", "rebound_rsi", "vol_break", "high_break"]);
 const TRADE_COLS = [
   { k: "atrp", label: "ATR", sort: -1 },
   { k: "stop", label: "損切り / 利確", sort: -1 },
@@ -490,7 +491,7 @@ const has = (v) => v !== null && v !== undefined && !Number.isNaN(v);
 function fmt(k, v) {
   if (!has(v)) return '<span class="na-txt">—</span>';
   switch (k) {
-    case "score": return v.toFixed(1);
+    case "score": case "swing": return v.toFixed(1);
     case "p": return v >= 1000 ? Math.round(v).toLocaleString("ja-JP") : v.toFixed(1);
     case "mc": return v >= 10000 ? (v / 10000).toFixed(1) + "兆" : Math.round(v).toLocaleString("ja-JP") + "億";
     case "per": return v <= 0 ? '<span class="na-txt">赤字</span>' : v.toFixed(1) + "倍";
@@ -1046,6 +1047,12 @@ function openDetail(code) {
       <div class="dlg-legend"><span><i style="background:var(--ma25)"></i>25日線</span><span><i style="background:var(--ma75)"></i>75日線</span><span>日足・約6ヶ月 (陽線=赤、陰線=緑)</span></div></div>
     <div class="kv">${kv.map(([k, v]) => `<div><span>${k}</span><b>${v}</b></div>`).join("")}</div>
     ${planHtml}
+    ${has(s.swing) && s.swp && D.swing_parts ? `<div><h2 style="font-size:16px">スイングSCORE ${fmt("swing", s.swing)} の内訳</h2>
+      <div class="items">${Object.entries(D.swing_parts).map(([k, label]) => {
+        const p = s.swp[k];
+        return `<div class="item"><span>${label}</span><span class="cat">短期</span><span class="track"><span class="fill" style="width:${p ?? 0}%"></span></span><span class="pv">${p ?? "—"}</span></div>`;
+      }).join("")}</div>
+      <p class="note" style="margin-top:8px">トレンドは75日線の向きと位置、押し目度は25日線乖離 -2〜+2%・20日高値から -3〜-20% にどれだけ近いか、RSIは40以下で満点、売買代金は1億円以上の銘柄の中での順位です。</p></div>` : ""}
     <div><h2 style="font-size:16px">SCORE ${fmt("score", s.score)} の内訳</h2>
       <div class="items">${D.items.map((it) => {
         const p = (s.items || {})[it.k];

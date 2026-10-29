@@ -80,6 +80,9 @@ CATEGORIES = {
 }
 MIN_COVERAGE = 8  # 11項目中この数以上そろった銘柄だけ総合SCOREに載せる
 
+# スイングSCOREの4要素 (backtest/swing_score_test.py と同じ定義。その日の株価から分かる値だけで作る)
+SWING_PARTS = {"trend": "トレンド", "pullback": "押し目度", "rsi": "RSI", "liq": "売買代金"}
+
 
 def ok(v) -> bool:
     return v is not None and not (isinstance(v, float) and math.isnan(v))
@@ -179,6 +182,16 @@ SCREENS = [
         "sort_multi": [("rg", True), ("opm", True)],
     },
     # ---- スイング向け (短期〜数週間)。テクニカル指標は fetch_prices で日足から計算
+    {
+        "id": "swing",
+        "name": "スイングSCORE",
+        "tab": "スイング",
+        "desc": "トレンド・押し目度・RSI・売買代金の4要素で、10日前後のスイングに向く銘柄を並べたもの",
+        "cond": ["トレンド: 75日線上向き・株価>75日線・25日線>75日線", "押し目度: 25日線乖離 -2〜+2%・20日高値から -3〜-20%",
+                 "RSI: 40以下で満点、60以上で0", "売買代金: 1億円以上の中での順位", "保有想定期間中に決算がある銘柄は除外"],
+        "filter": lambda s: s.get("swing") is not None and not ok(s.get("earn_bd")),
+        "sort": lambda s: s["swing"],
+    },
     {
         "id": "pullback",
         "name": "25日線押し目",
@@ -307,6 +320,34 @@ def score_stocks(stocks):
             s["score"] = None
 
 
+def _band(x, lo, hi, w):
+    """lo〜hi なら1、範囲から w 離れると0になる台形"""
+    if not ok(x):
+        return None
+    return min(1.0, max(0.0, 1 - max(lo - x, x - hi, 0) / w))
+
+
+def swing_score_stocks(stocks):
+    """スイングSCORE = トレンド・押し目度・RSI・売買代金 (各0〜1) の平均 × 100。売買代金1億円未満は対象外"""
+    liquid = [s for s in stocks if ok(s.get("to")) and s["to"] >= 1]
+    liq = dict(zip(map(id, liquid), percentiles([s["to"] for s in liquid])))
+    for s in stocks:
+        s["swing"] = s["swp"] = None
+        if id(s) not in liq or s.get("ma75_up") is None:
+            continue
+        dev, off = _band(s.get("dev25"), -2, 2, 5), _band(s.get("off20"), -20, -3, 5)
+        if dev is None or off is None or not ok(s.get("rsi")):
+            continue
+        parts = {
+            "trend": (bool(s["ma75_up"]) + bool(s.get("above75")) + bool(s.get("ma25_over75"))) / 3,
+            "pullback": (dev + off) / 2,
+            "rsi": min(1.0, max(0.0, (60 - s["rsi"]) / 20)),
+            "liq": liq[id(s)],
+        }
+        s["swp"] = {k: round(v * 100) for k, v in parts.items()}
+        s["swing"] = round(sum(parts.values()) / len(parts) * 100, 1)
+
+
 def run_screens(stocks, prev_ranks):
     result = []
     for sc in SCREENS:
@@ -373,6 +414,7 @@ def load_prev_ranks(today: str):
 
 def write_output(stocks, asof: str, demo: bool, universe: int, earnings=None):
     score_stocks(stocks)
+    swing_score_stocks(stocks)
     plan = add_trade_plan(stocks, asof, earnings or {})
     prev_ranks, prev_asof = load_prev_ranks(asof)
     screens = run_screens(stocks, prev_ranks)
@@ -386,6 +428,7 @@ def write_output(stocks, asof: str, demo: bool, universe: int, earnings=None):
         "scored": sum(1 for s in stocks if s.get("score") is not None),
         "items": [{"k": k, "label": l, "cat": c, "hi": h} for k, l, c, h in SCORE_ITEMS],
         "categories": CATEGORIES,
+        "swing_parts": SWING_PARTS,
         "rules": {**RULES, **plan},
         "screens": screens,
         # ランキングに出た銘柄だけ詳細を持たせて軽くする
@@ -407,7 +450,7 @@ def write_output(stocks, asof: str, demo: bool, universe: int, earnings=None):
 def compact(s):
     keys = ["c", "n", "sec", "mkt", "p", "chg", "mc", "per", "pbr", "dy", "roe",
             "opm", "rg", "eg", "de", "r1m", "r3m", "r6m", "pos52", "to", "score", "sub", "items",
-            "stage", "dev25", "rsi", "vr", "vol", "vchg", "off20", "atr", "earn", "earn_bd"]
+            "stage", "dev25", "rsi", "vr", "vol", "vchg", "off20", "atr", "earn", "earn_bd", "swing", "swp"]
     out = {}
     for k in keys:
         v = s.get(k)

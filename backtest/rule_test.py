@@ -68,7 +68,9 @@ def history_score(D, T, funds):
         h = r.notna().astype(int)
         have = h if have is None else have + h
     filled = sum(r.fillna(0.5) for r in ranks) / len(ranks) * 100
-    return filled.where(have >= 8)
+    # 比較用: その日に分かる値だけ (3ヶ月騰落率・52週レンジ位置・売買代金) で作ったスコア
+    pit = sum(r.fillna(0.5) for r in ranks[-3:]) / 3 * 100
+    return filled.where(have >= 8), pit
 
 
 # ---------------------------------------------------------------- 戦略
@@ -248,6 +250,12 @@ def regime_stats(t, up_arr):
     return out
 
 
+def pit_portfolio(S, sig, mask, key, years):
+    """優先順位だけを「その日に分かる値のスコア」に替えた10枠運用"""
+    p = S.portfolio(S.rule_trades(sig, mask, key), years) or {}
+    return {k: p.get(k) for k in ("total", "annual", "max_dd")}
+
+
 def nikkei(start, end, demo):
     """比較用に日経平均の終値を取得 (配当なし)"""
     if demo:
@@ -281,7 +289,7 @@ def run(D, funds, demo):
     t0 = time.time()
     T = bt.indicators(D, funds)
     T, idx = op.extra_indicators(D, T)
-    score = history_score(D, T, funds)
+    score, score_pit = history_score(D, T, funds)
     S = RuleSim(D, T)
     M = S.M
     first_valid = M.idx[min(250, len(M.idx) - 1)]
@@ -310,6 +318,7 @@ def run(D, funds, demo):
             t = S.rule_trades(s["sig"], mask, score)
             trades[(sid, pid)] = t
             R[pid] = S.summarize(t, years[pid], curve=(pid != "is"))
+            R[pid]["pit"] = pit_portfolio(S, s["sig"], mask, score_pit, years[pid])
         R["regime_is"] = regime_stats(trades[(sid, "is")], up)
         R["regime_all"] = regime_stats(trades[(sid, "all")], up)
         res["strategies"][sid] = R
@@ -336,6 +345,7 @@ def run(D, funds, demo):
         C = {"name": label, "up": u, "down": d}
         for pid, mask in periods.items():
             C[pid] = S.summarize(S.rule_trades(sig, mask, score), years[pid], curve=(pid != "is"))
+            C[pid]["pit"] = pit_portfolio(S, sig, mask, score_pit, years[pid])
         res["composite"][name] = C
         print(f"composite {label}: IS net={C['is'].get('net')} OOS net={C['oos'].get('net')} "
               f"OOS ann={C['oos'].get('pf_annual')} dd={C['oos'].get('pf_dd')}")

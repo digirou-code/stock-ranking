@@ -408,13 +408,13 @@ def portfolio(rows, M):
     dd = (s / s.cummax() - 1).min() * 100
     total = s.iloc[-1] - 100
     yrs = max((s.index[-1] - s.index[0]).days / 365.25, 1 / 12)
-    monthly = s.resample("ME").last()
+    weekly = s.resample("W-FRI").last().dropna()
     return {
         "trades": taken,
         "total": float(total),
         "annual": float(total / yrs),
         "max_dd": float(dd),
-        "curve": [[d.strftime("%Y-%m-%d"), round(float(v) - 100, 2)] for d, v in monthly.items()],
+        "curve": [[d.strftime("%Y-%m-%d"), round(float(v) - 100, 2)] for d, v in weekly.items()],
     }
 
 

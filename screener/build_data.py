@@ -599,9 +599,10 @@ def fetch_fundamental(code):
             return {
                 "per": info.get("trailingPE"),
                 "pbr": info.get("priceToBook"),
-                # 配当は予想 (dividendRate) を優先する。trailingAnnualDividendRate は
-                # 株式分割前の配当を調整せずに足すため、分割直後の銘柄で数倍に膨らむ
+                # 日本株の配当は Yahoo の各項目がそれぞれ外れることがあるので、
+                # 複数を取っておき dividend_yield() で突き合わせる
                 "div_fwd": info.get("dividendRate"),
+                "last_div_val": info.get("lastDividendValue"),
                 "div_trail": info.get("trailingAnnualDividendRate"),
                 "div_yield": info.get("dividendYield"),  # % 表記 (3.96 = 3.96%)
                 "last_div_ts": info.get("lastDividendDate"),
@@ -624,28 +625,31 @@ def fetch_fundamental(code):
 
 
 def dividend_yield(f, price):
-    """配当利回り (%)。予想配当 → 実績配当の順に使い、当てにならない値は捨てる"""
-    if not price:
+    """配当利回り (%)。Yahoo の配当は項目ごとに外れ方が違うため、次の候補のうち
+    いちばん小さい年間配当を使う (高すぎる利回りで上位に出ないよう控えめに見積もる)。
+      - 予想配当 dividendRate (分割直後や特別配当で数倍になることがある)
+      - 直近1回の配当 × 2 (年2回配当とみなす)
+      - 実績配当 trailingAnnualDividendRate (直近1年に分割があると分割前の額のまま)
+    """
+    if not price or "last_div_val" not in f:  # 古い形式のキャッシュは次の取り直しまで出さない
         return None
-    if "div_fwd" not in f:  # 古い形式のキャッシュ
-        return f["div_rate"] / price * 100 if ok(f.get("div_rate")) else None
-    if ok(f.get("div_fwd")) and f["div_fwd"] > 0:
-        return f["div_fwd"] / price * 100
-    if f.get("div_yield") == 0:  # 予想なし・利回り0 = 無配
-        return 0.0
     now, year = time.time(), 400 * 86400
-    if not ok(f.get("div_trail")) or now - (f.get("last_div_ts") or 0) > year:
-        return 0.0 if f.get("last_div_ts") else None  # 1年以上配当がない
-    if now - (f.get("split_ts") or 0) < year:
-        return None  # 直近1年に分割があると実績配当が分割前の額のまま
-    return f["div_trail"] / price * 100
+    if not f.get("last_div_ts") or now - f["last_div_ts"] > year:
+        return 0.0 if f.get("last_div_ts") or f.get("div_yield") == 0 else None  # 1年以上配当がない
+    cands = [f.get("div_fwd")]
+    if ok(f.get("last_div_val")):
+        cands.append(f["last_div_val"] * 2)
+    if now - (f.get("split_ts") or 0) > year:
+        cands.append(f.get("div_trail"))
+    cands = [v for v in cands if ok(v) and v > 0]
+    return min(cands) / price * 100 if cands else None
 
 
 def refresh_fundamentals(codes):
     cache = json.loads(CACHE_FILE.read_text()) if CACHE_FILE.exists() else {}
     now = time.time()
     stale = [c for c in codes if now - cache.get(c, {}).get("ts", 0) > FUND_MAX_AGE_DAYS * 86400
-             or "div_fwd" not in cache.get(c, {})]  # 配当の取り方を変える前の古い形式も取り直す
+             or "last_div_val" not in cache.get(c, {})]  # 配当の取り方を変える前の古い形式も取り直す
     stale.sort(key=lambda c: cache.get(c, {}).get("ts", 0))  # 古い順
     todo = stale[:FUND_REFRESH_PER_RUN]
     print(f"fundamentals: {len(todo)} to refresh / {len(stale)} stale / {len(codes)} total")

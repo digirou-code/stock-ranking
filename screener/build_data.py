@@ -406,8 +406,8 @@ def write_output(stocks, asof: str, demo: bool, universe: int, earnings=None):
 
 def compact(s):
     keys = ["c", "n", "sec", "mkt", "p", "chg", "mc", "per", "pbr", "dy", "roe",
-            "opm", "rg", "eg", "de", "r3m", "r6m", "pos52", "to", "score", "sub", "items",
-            "stage", "dev25", "rsi", "vr", "off20", "atr", "earn", "earn_bd"]
+            "opm", "rg", "eg", "de", "r1m", "r3m", "r6m", "pos52", "to", "score", "sub", "items",
+            "stage", "dev25", "rsi", "vr", "vol", "vchg", "off20", "atr", "earn", "earn_bd"]
     out = {}
     for k in keys:
         v = s.get(k)
@@ -482,6 +482,7 @@ def fetch_prices(codes):
                 "stage": hd.stage_of(close, pos52),
                 "p": last,
                 "chg": ret(1),
+                "r1m": ret(21),
                 "r3m": ret(63),
                 "r6m": ret(126),
                 "pos52": pos52,
@@ -577,6 +578,9 @@ def technicals(h):
     avg_vol = float(vol.iloc[-21:-1].mean())
     t["vr"] = float(vol.iloc[-1]) / avg_vol if avg_vol > 0 else None
     t["to1"] = last * float(vol.iloc[-1]) / 1e8  # 当日売買代金 (億円)
+    t["vol"] = f(vol.iloc[-1])
+    if len(vol) >= 2 and float(vol.iloc[-2]) > 0:
+        t["vchg"] = (float(vol.iloc[-1]) / float(vol.iloc[-2]) - 1) * 100  # 出来高の前日比 (%)
     day_hi = float(h["High"].iloc[-1])
     t["near_hi"] = (last / day_hi - 1) * 100 if day_hi > 0 else None
     t["bull"] = bool(last > float(h["Open"].iloc[-1]))
@@ -709,6 +713,7 @@ def build_demo(seed=None, asof=None):
             "rg": rg,
             "eg": rg * 1.4 + rnd.gauss(0, 15),
             "de": abs(rnd.gauss(60, 50)),
+            "r1m": rnd.gauss(1, 7) + day.gauss(0, 2),
             "r3m": rnd.gauss(3, 14) + day.gauss(0, 2),
             "r6m": rnd.gauss(5, 20),
             "pos52": min(100, max(0, rnd.uniform(0, 100) + day.gauss(0, 4))),
@@ -723,6 +728,9 @@ def build_demo(seed=None, asof=None):
             "rsi": rsi,
             "rsi_min5": max(5.0, rsi - abs(day.gauss(0, 8))),
             "vr": math.exp(day.gauss(0, 0.5)),
+            "vol": float(round(math.exp(rnd.gauss(12, 1.5)), -2)),
+            "vchg": (math.exp(day.gauss(0, 0.5)) - 1) * 100,
+            "stage": {"stage": rnd.randint(1, 4), "ma150": s["p"], "slope": 0.0, "dev": round(dev, 1)},
             "off20": -abs(day.gauss(0, 7)),
             "near_hi": -abs(day.gauss(0, 1.5)),
             "bull": day.random() < 0.5,

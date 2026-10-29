@@ -164,15 +164,90 @@ SCREENS = [
         and ok(s.get("opm")) and s["opm"] > 0,
         "sort_multi": [("rg", True), ("opm", True)],
     },
+    # ---- スイング向け (短期〜数週間)。テクニカル指標は fetch_prices で日足から計算
     {
-        "id": "momentum",
-        "name": "モメンタム",
-        "tab": "勢い",
-        "desc": "直近の上昇が強く、52週高値圏にある銘柄",
-        "cond": ["52週レンジ位置 80%以上", "売買代金 1億円以上"],
-        "filter": lambda s: ok(s.get("pos52")) and s["pos52"] >= 80
-        and ok(s.get("r3m")) and ok(s.get("to")) and s["to"] >= 1,
-        "sort": lambda s: s["r3m"],
+        "id": "pullback",
+        "name": "25日線押し目",
+        "tab": "押し目",
+        "desc": "上昇トレンド中に25日移動平均線まで調整してきた優良株",
+        "cond": ["75日線が上向き・株価が75日線より上", "25日線が75日線より上", "25日線乖離 -3%〜+1%",
+                 "20日高値から5〜15%下落", "ROE 8%以上", "売買代金 1億円以上"],
+        "filter": lambda s: s.get("ma75_up") and s.get("above75") and s.get("ma25_over75")
+        and ok(s.get("dev25")) and -3 <= s["dev25"] <= 1
+        and ok(s.get("off20")) and -15 <= s["off20"] <= -5
+        and ok(s.get("roe")) and s["roe"] >= 8
+        and ok(s.get("to")) and s["to"] >= 1,
+        "sort": lambda s: s["r3m"] if ok(s.get("r3m")) else -999,
+    },
+    {
+        "id": "rsi_pullback",
+        "name": "RSI押し目",
+        "tab": "押し目",
+        "desc": "長期の上昇トレンド中にRSIが冷え、陽線で反発し始めた銘柄",
+        "cond": ["株価が200日線より上", "RSI(14) 35〜45", "前日比プラスかつ陽線",
+                 "営業利益率 5%以上", "売買代金 1億円以上"],
+        "filter": lambda s: s.get("above200")
+        and ok(s.get("rsi")) and 35 <= s["rsi"] <= 45
+        and ok(s.get("chg")) and s["chg"] > 0 and s.get("bull")
+        and ok(s.get("opm")) and s["opm"] >= 5
+        and ok(s.get("to")) and s["to"] >= 1,
+        "sort": lambda s: s["r6m"] if ok(s.get("r6m")) else -999,
+    },
+    {
+        "id": "rebound_dev",
+        "name": "乖離リバウンド",
+        "tab": "リバウンド",
+        "desc": "好業績なのに短期間で売られ、25日線から大きく下に離れた銘柄",
+        "cond": ["25日線乖離 -10%以下", "売上・利益成長率 0%超", "ROE 8%以上", "PER 0〜20倍",
+                 "時価総額 300億円以上", "売買代金 1億円以上"],
+        "filter": lambda s: ok(s.get("dev25")) and s["dev25"] <= -10
+        and ok(s.get("rg")) and s["rg"] > 0 and ok(s.get("eg")) and s["eg"] > 0
+        and ok(s.get("roe")) and s["roe"] >= 8
+        and ok(s.get("per")) and 0 < s["per"] <= 20
+        and ok(s.get("mc")) and s["mc"] >= 300
+        and ok(s.get("to")) and s["to"] >= 1,
+        "sort": lambda s: -s["dev25"],
+    },
+    {
+        "id": "rebound_rsi",
+        "name": "RSI売られすぎ反発",
+        "tab": "リバウンド",
+        "desc": "好業績なのにRSI30以下まで売られ、出来高を伴う陽線で反発した銘柄",
+        "cond": ["直近5日以内にRSI(14) 30以下", "陽線かつ前日比 +1%以上", "出来高 20日平均の1.2倍以上",
+                 "利益成長率 0%超", "ROE 8%以上"],
+        "filter": lambda s: ok(s.get("rsi_min5")) and s["rsi_min5"] <= 30
+        and s.get("bull") and ok(s.get("chg")) and s["chg"] >= 1
+        and ok(s.get("vr")) and s["vr"] >= 1.2
+        and ok(s.get("eg")) and s["eg"] > 0
+        and ok(s.get("roe")) and s["roe"] >= 8,
+        "sort": lambda s: s["chg"],
+    },
+    {
+        "id": "vol_break",
+        "name": "出来高急増",
+        "tab": "初動",
+        "desc": "出来高を伴って大きく上げ、高値引けに近い銘柄 (上昇初動の兆し)",
+        "cond": ["出来高 20日平均の2倍以上", "前日比 +3%以上", "終値が当日高値から1%以内",
+                 "株価が25日線より上", "当日売買代金 3億円以上"],
+        "filter": lambda s: ok(s.get("vr")) and s["vr"] >= 2
+        and ok(s.get("chg")) and s["chg"] >= 3
+        and ok(s.get("near_hi")) and s["near_hi"] >= -1
+        and ok(s.get("dev25")) and s["dev25"] > 0
+        and ok(s.get("to1")) and s["to1"] >= 3,
+        "sort": lambda s: s["vr"],
+    },
+    {
+        "id": "high_break",
+        "name": "高値ブレイク",
+        "tab": "初動",
+        "desc": "終値で直近60日の高値を更新し、出来高も増えた銘柄",
+        "cond": ["終値が直近60日の最高値を更新", "出来高 20日平均の1.5倍以上", "25日線が75日線より上",
+                 "売買代金 1億円以上"],
+        "filter": lambda s: s.get("hi60_break")
+        and ok(s.get("vr")) and s["vr"] >= 1.5
+        and s.get("ma25_over75")
+        and ok(s.get("to")) and s["to"] >= 1,
+        "sort": lambda s: s["vr"],
     },
 ]
 
@@ -285,7 +360,7 @@ def write_output(stocks, asof: str, demo: bool, universe: int):
 def compact(s):
     keys = ["c", "n", "sec", "mkt", "p", "chg", "mc", "per", "pbr", "dy", "roe",
             "opm", "rg", "eg", "de", "r3m", "r6m", "pos52", "to", "score", "sub", "items",
-            "stage"]
+            "stage", "dev25", "rsi", "vr", "off20"]
     out = {}
     for k in keys:
         v = s.get(k)
@@ -356,6 +431,7 @@ def fetch_prices(codes):
                 return (last / float(close.iloc[-n - 1]) - 1) * 100 if len(close) > n else None
             pos52 = (last - lo) / (hi - lo) * 100 if hi > lo else None
             out[t[:-2]] = {
+                **technicals(h),
                 "stage": hd.stage_of(close, pos52),
                 "p": last,
                 "chg": ret(1),
@@ -367,6 +443,47 @@ def fetch_prices(codes):
             }
         time.sleep(1)
     return out
+
+
+def rsi_series(close, n=14):
+    """RSI (Wilder の平滑化)"""
+    d = close.diff()
+    up = d.clip(lower=0).ewm(alpha=1 / n, adjust=False).mean()
+    dn = (-d.clip(upper=0)).ewm(alpha=1 / n, adjust=False).mean()
+    return 100 - 100 / (1 + up / dn.where(dn > 0))
+
+
+def technicals(h):
+    """スイング向けスクリーニングで使う指標を日足 (Open/High/Low/Close/Volume) から計算する"""
+    close, vol = h["Close"], h["Volume"]
+    last = float(close.iloc[-1])
+    f = lambda v: float(v) if ok(float(v)) else None
+    ma25 = close.rolling(25).mean()
+    ma75 = close.rolling(75).mean()
+    t = {}
+    if len(close) >= 25:
+        t["dev25"] = (last / float(ma25.iloc[-1]) - 1) * 100
+    if len(close) >= 95:
+        t["ma75_up"] = bool(ma75.iloc[-1] > ma75.iloc[-21])
+        t["above75"] = bool(last > ma75.iloc[-1])
+        t["ma25_over75"] = bool(ma25.iloc[-1] > ma75.iloc[-1])
+    if len(close) >= 200:
+        t["above200"] = bool(last > close.tail(200).mean())
+    rsi = rsi_series(close)
+    if len(close) >= 30:
+        t["rsi"] = f(rsi.iloc[-1])
+        t["rsi_min5"] = f(rsi.tail(5).min())
+    hi20 = float(h["High"].tail(20).max())
+    t["off20"] = (last / hi20 - 1) * 100 if hi20 > 0 else None
+    avg_vol = float(vol.iloc[-21:-1].mean())
+    t["vr"] = float(vol.iloc[-1]) / avg_vol if avg_vol > 0 else None
+    t["to1"] = last * float(vol.iloc[-1]) / 1e8  # 当日売買代金 (億円)
+    day_hi = float(h["High"].iloc[-1])
+    t["near_hi"] = (last / day_hi - 1) * 100 if day_hi > 0 else None
+    t["bull"] = bool(last > float(h["Open"].iloc[-1]))
+    if len(close) >= 61:
+        t["hi60_break"] = bool(last > float(close.iloc[-61:-1].max()))
+    return t
 
 
 def fetch_fundamental(code):
@@ -493,6 +610,25 @@ def build_demo(seed=None, asof=None):
             "pos52": min(100, max(0, rnd.uniform(0, 100) + day.gauss(0, 4))),
             "to": mc * rnd.uniform(0.001, 0.01),
         })
+        s = stocks[-1]
+        # テクニカル指標 (デモ用の乱数。スイング系スクリーニングにも数件ずつ該当するように)
+        dev = day.gauss(0, 6)
+        rsi = max(5.0, min(95.0, 50 + dev * 3 + day.gauss(0, 8)))
+        s.update({
+            "dev25": dev,
+            "rsi": rsi,
+            "rsi_min5": max(5.0, rsi - abs(day.gauss(0, 8))),
+            "vr": math.exp(day.gauss(0, 0.5)),
+            "off20": -abs(day.gauss(0, 7)),
+            "near_hi": -abs(day.gauss(0, 1.5)),
+            "bull": day.random() < 0.5,
+            "ma75_up": s["r3m"] > 0,
+            "above75": s["r3m"] > -3,
+            "ma25_over75": s["r3m"] > 2,
+            "above200": s["r6m"] > 0,
+            "hi60_break": s["pos52"] > 92 and day.random() < 0.5,
+        })
+        s["to1"] = s["to"] * s["vr"]
     asof = asof or dt.datetime.now(JST).strftime("%Y-%m-%d")
     write_output(stocks, asof, demo=True, universe=len(stocks))
 

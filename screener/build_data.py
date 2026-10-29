@@ -80,8 +80,7 @@ SCORES = {
         "items": [
             ("stage75", "ステージ(75)", "stage"),
             ("pullback", "押し目度", "pullback"),
-            ("r1m", "1ヶ月騰落率", "hi"),
-            ("vr", "出来高倍率", "hi"),
+            ("r3m", "3ヶ月騰落率", "hi"),
             ("to", "売買代金", "hi"),
             ("rsi", "RSI (低め加点)", "rsi"),
         ],
@@ -89,7 +88,7 @@ SCORES = {
                 "RSIは40以下で満点、60以上で0。それ以外は全銘柄内の順位。",
     },
 }
-MIN_COVERAGE = 4  # 6項目中この数以上そろった銘柄だけSCOREを出す (欠けた項目は中央の0.5で補う)
+MIN_COVERAGE = 4  # 項目のうちこの数以上そろった銘柄だけSCOREを出す (欠けた項目は中央の0.5で補う)
 STAGE_PTS = {2: 1.0, 1: 2 / 3, 3: 1 / 3, 4: 0.0}
 
 
@@ -121,8 +120,8 @@ SCREENS = [
         "id": "sm",
         "name": "SCORE勢い",
         "tab": "勢い",
-        "desc": "ステージ(75)・押し目度・1ヶ月騰落率・出来高倍率・売買代金・RSIの6項目の評価が高い順",
-        "cond": [f"6項目中{MIN_COVERAGE}項目以上のデータあり"],
+        "desc": "ステージ(75)・押し目度・3ヶ月騰落率・売買代金・RSIの5項目の評価が高い順",
+        "cond": [f"5項目中{MIN_COVERAGE}項目以上のデータあり"],
         "filter": lambda s: s.get("sm") is not None,
         "sort": lambda s: s["sm"],
     },

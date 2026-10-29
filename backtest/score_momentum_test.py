@@ -41,7 +41,10 @@ import run_backtest as bt  # noqa: E402
 
 TOP_N = 10
 HOLD = 10
-EXITS = {"atr": ("損切り1.5ATR・利確2ATR・最大10日", 1.5, 2.0), "hold10": ("10日保有 (損切り・利確なし)", None, None)}
+# 2026-10-30 ユーザー指定の新ルール: 損切り -6% / +20%で半分・+40%で残り / 最大25営業日 / 最大10銘柄
+NEW_RULE = {"stop_pct": -6.0, "take1_pct": 20.0, "take2_pct": 40.0, "max_days": 25}
+EXITS = {"rule": ("損切り-6%・+20%で半分・+40%で残り・最大25日", "rule", None),
+         "atr": ("損切り1.5ATR・利確2ATR・最大10日", 1.5, 2.0), "hold10": ("10日保有 (損切り・利確なし)", None, None)}
 RANDOM_SEEDS = 5
 
 
@@ -113,12 +116,16 @@ def run(D, funds, demo):
     P = momentum_parts(D, T)
     SW = momentum_scores(P)
     S = op.Sim(D, T)
+    rt.RULE = NEW_RULE  # RuleSim は rule_test.RULE を参照する
+    RS = rt.RuleSim(D, T)
     M = S.M
     first_valid = M.idx[min(250, len(M.idx) - 1)]
     split = M.idx[-1] - pd.DateOffset(years=1)
     periods = {"is": (M.idx >= first_valid) & (M.idx < split), "oos": M.idx >= split}
     last_is = np.nonzero(periods["is"])[0].max()
     periods["is"][max(0, last_is - HOLD):] = False
+    rule_periods = {k: v.copy() for k, v in periods.items()}
+    rule_periods["is"][max(0, last_is - NEW_RULE["max_days"]):] = False
     years = {k: max((M.idx[m].max() - M.idx[m].min()).days / 365.25, 0.1) for k, m in periods.items()}
 
     liquid = (T["to"] >= 1) & (D["Close"].rolling(75).count() >= 75)
@@ -148,13 +155,23 @@ def run(D, funds, demo):
         print(f"[decile] {kid}: IS top={d['is'][9]} bottom={d['is'][0]} | OOS top={d['oos'][9]} bottom={d['oos'][0]}")
 
     def evaluate(sig, key, pid, stop, take):
+        if stop == "rule":
+            t = RS.rule_trades(sig, rule_periods[pid], key)
+            if t is None or len(t["i"]) == 0:
+                return {"n": 0, "win": None, "net": None, "pf": None, "pf_total": None, "pf_annual": None, "pf_dd": None}
+            net = t["net"]
+            p = RS.portfolio(t, years[pid]) or {}
+            loss = -net[net <= 0].sum()
+            return {"n": int(len(net)), "win": float((net > 0).mean() * 100), "net": float(net.mean()),
+                    "pf": float(net[net > 0].sum() / loss) if loss > 0 else None,
+                    "pf_total": p.get("total"), "pf_annual": p.get("annual"), "pf_dd": p.get("max_dd")}
         r = S.evaluate(S.trades(sig, periods[pid], stop, take, HOLD, key), years=years[pid])
         return {m: r.get(m) for m in ("n", "win", "net", "pf", "pf_total", "pf_annual", "pf_dd")}
 
     def evaluate_random(make_sig, pid, stop, take):
         rs = [evaluate(make_sig(r), r, pid, stop, take) for r in rand]
-        return {m: float(np.nanmean([x[m] if x[m] is not None else np.nan for x in rs]))
-                for m in rs[0]}
+        ms = ("n", "win", "net", "pf", "pf_total", "pf_annual", "pf_dd")
+        return {m: float(np.nanmean([x.get(m) if x.get(m) is not None else np.nan for x in rs])) for m in ms}
 
     # 2) スコア上位10銘柄を毎日の候補にする
     res["top"] = {}

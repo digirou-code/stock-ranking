@@ -368,51 +368,55 @@ def stats(rows, M, N):
 
 
 def portfolio(rows, M):
-    """資金を SLOTS 等分し、空き枠があればその日のシグナルを並び順キーの高い順に買った場合の試算。
-    rows: (i, j, gross, net, _, _, key, exit_idx)。単利・毎日の終値で評価 (含み損益込み)。"""
+    """資金を SLOTS 枠に分け、空き枠があればその日のシグナルを並び順キーの高い順に買った場合の試算。
+    1枠の投資額 = 前日終値ベースの資産 ÷ SLOTS (複利)。毎日の終値で含み損益も評価し、コスト控除後。
+    rows: (i, j, gross, net, _, _, key, exit_idx)"""
     if not rows:
         return None
     by_day = {}
     for r in rows:
         by_day.setdefault(r[0], []).append(r)
-    held, realized, taken = [], 0.0, 0
-    eq = {}
-    first = min(by_day) + 1
+    cash, held, taken = 100.0, [], 0  # held: [row, 投資額]
+    eq, prev_eq = {}, 100.0
+    first, last_sig = min(by_day) + 1, max(by_day) + 1
     for k in range(first, len(M.idx)):
-        for h in [h for h in held if h[7] < k]:
-            realized += h[3] / SLOTS
+        for h in [h for h in held if h[0][7] < k]:
+            cash += h[1] * (1 + h[0][3] / 100)
             held.remove(h)
-        codes = {h[1] for h in held}
+        codes = {h[0][1] for h in held}
         for r in sorted(by_day.get(k - 1, []), key=lambda r: -(r[6] if np.isfinite(r[6]) else -1e9)):
             if len(held) >= SLOTS:
                 break
             if r[1] in codes:
                 continue
-            held.append(r)
+            amt = min(prev_eq / SLOTS, cash)
+            if amt <= 0:
+                break
+            cash -= amt
+            held.append([r, amt])
             codes.add(r[1])
             taken += 1
-        open_pnl = 0.0
-        for h in held:
-            if h[7] == k:
-                open_pnl += h[3] / SLOTS
+        value = cash
+        for r, amt in held:
+            if r[7] == k:
+                value += amt * (1 + r[3] / 100)
                 continue
-            c = M.C[k, h[1]]
-            ent = M.O[h[0] + 1, h[1]]
-            if np.isfinite(c):
-                open_pnl += ((c / ent - 1) * 100 - (h[2] - h[3])) / SLOTS
-        eq[k] = 100 + realized + open_pnl
-        if not held and k > max(by_day) + 1:
+            c, ent = M.C[k, r[1]], M.O[r[0] + 1, r[1]]
+            cost = r[2] - r[3]
+            value += amt * (1 + ((c / ent - 1) * 100 - cost) / 100) if np.isfinite(c) else amt
+        eq[k] = prev_eq = value
+        if not held and k > last_sig:
             break
     s = pd.Series(eq)
     s.index = M.idx[s.index]
-    dd = (s / s.cummax() - 1).min() * 100
+    dd = (s / s.cummax().clip(lower=100) - 1).min() * 100
     total = s.iloc[-1] - 100
     yrs = max((s.index[-1] - s.index[0]).days / 365.25, 1 / 12)
     weekly = s.resample("W-FRI").last().dropna()
     return {
         "trades": taken,
         "total": float(total),
-        "annual": float(total / yrs),
+        "annual": float(((s.iloc[-1] / 100) ** (1 / yrs) - 1) * 100) if s.iloc[-1] > 0 else -100.0,
         "max_dd": float(dd),
         "curve": [[d.strftime("%Y-%m-%d"), round(float(v) - 100, 2)] for d, v in weekly.items()],
     }

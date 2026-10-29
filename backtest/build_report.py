@@ -287,14 +287,14 @@ tr.sum > * {{ background: var(--bg); color: var(--mute); }}
     <span><b>損益比</b> 平均利益 ÷ 平均損失</span>
     <span><b>期待値</b> 1回あたり平均損益 (コスト後)</span>
     <span><b>PF</b> 総利益 ÷ 総損失</span>
-    <span><b>最大DD</b> 資金を{m["slots"]}等分して運用した場合の、資産のピークからの最大下落率</span>
+    <span><b>最大DD</b> 資金を{m["slots"]}枠に分けて運用した場合の、資産のピークからの最大下落率 (下段は期間の損益)</span>
   </div>
   <div class="conds">{details}</div>
 </section>
 
 <section>
   <h2>ATRルールで{m["slots"]}枠運用した場合の損益推移</h2>
-  <p class="lead">資金を{m["slots"]}等分し、空き枠があればその日のシグナルを各条件の並び順 (スクリーニング画面の順位) の上位から買った試算。単利、毎週末の終値で含み損益も評価、コスト控除後。</p>
+  <p class="lead">資金を{m["slots"]}等分し、空き枠があればその日のシグナルを各条件の並び順 (スクリーニング画面の順位) の上位から買った試算。1枠の投資額は前日時点の資産の1/{m["slots"]} (複利)、含み損益込み、コスト控除後。</p>
   {curve_svg(A)}
 </section>
 

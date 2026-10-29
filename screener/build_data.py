@@ -611,7 +611,8 @@ def fetch_fundamental(code):
                 "roe": pct(info.get("returnOnEquity")),
                 "opm": pct(info.get("operatingMargins")),
                 "rg": pct(info.get("revenueGrowth")),
-                "eg": pct(info.get("earningsGrowth")),
+                # earningsGrowth は四半期の前年同期比で、前年が小さいと数千%に跳ねるので使わない
+                **earnings_growth(t),
                 "er": equity_ratio(t),
                 "shares": info.get("sharesOutstanding"),
                 "mc_raw": info.get("marketCap"),
@@ -623,6 +624,21 @@ def fetch_fundamental(code):
             err = e
     print(f"  fundamentals failed {code}: {err}", file=sys.stderr)
     return None
+
+
+def earnings_growth(t):
+    """利益成長率 (%) = 直近年度の純利益の前年比。前年が赤字・ゼロなら出さない"""
+    try:
+        df = t.income_stmt
+        row = next(df.loc[k] for k in ("Net Income Common Stockholders", "Net Income") if k in df.index)
+        row = row.sort_index(ascending=False)
+        cur, prev = float(row.iloc[0]), float(row.iloc[1])
+        fy = row.index[0].strftime("%Y-%m")
+    except Exception:
+        return {"eg": None, "eg_fy": None}
+    if not ok(cur) or not ok(prev) or prev <= 0:
+        return {"eg": None, "eg_fy": fy}
+    return {"eg": (cur / prev - 1) * 100, "eg_fy": fy}
 
 
 def equity_ratio(t):
@@ -666,7 +682,8 @@ def refresh_fundamentals(codes):
     now = time.time()
     stale = [c for c in codes if now - cache.get(c, {}).get("ts", 0) > FUND_MAX_AGE_DAYS * 86400
              or "last_div_val" not in cache.get(c, {})  # 配当の取り方を変える前の古い形式も取り直す
-             or "er" not in cache.get(c, {})]  # 自己資本比率を追加する前の形式も取り直す
+             or "er" not in cache.get(c, {})  # 自己資本比率を追加する前の形式も取り直す
+             or "eg_fy" not in cache.get(c, {})]  # 利益成長率を年次決算から計算する前の形式も取り直す
     stale.sort(key=lambda c: cache.get(c, {}).get("ts", 0))  # 古い順
     todo = stale[:FUND_REFRESH_PER_RUN]
     print(f"fundamentals: {len(todo)} to refresh / {len(stale)} stale / {len(codes)} total")

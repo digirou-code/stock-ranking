@@ -65,7 +65,7 @@ SCORE_ITEMS = [
     ("opm", "営業利益率", "profit", True),
     ("rg", "売上成長率", "growth", True),
     ("eg", "利益成長率", "growth", True),
-    ("de", "負債資本倍率", "health", False),
+    ("er", "自己資本比率", "health", True),
     ("r3m", "3ヶ月騰落率", "momentum", True),
     ("pos52", "52週レンジ位置", "momentum", True),
     ("to", "売買代金", "momentum", True),
@@ -79,9 +79,6 @@ CATEGORIES = {
     "momentum": "勢い",
 }
 MIN_COVERAGE = 8  # 11項目中この数以上そろった銘柄だけ総合SCOREに載せる
-
-# スイングSCOREの4要素 (backtest/swing_score_test.py と同じ定義。その日の株価から分かる値だけで作る)
-SWING_PARTS = {"trend": "トレンド", "pullback": "押し目度", "rsi": "RSI", "liq": "売買代金"}
 
 
 def ok(v) -> bool:
@@ -154,9 +151,9 @@ SCREENS = [
         "name": "高ROE",
         "tab": "収益",
         "desc": "自己資本を効率よく利益に変えている銘柄",
-        "cond": ["ROE 15%以上", "負債資本倍率 100%未満"],
+        "cond": ["ROE 15%以上", "自己資本比率 30%以上"],
         "filter": lambda s: ok(s.get("roe")) and s["roe"] >= 15
-        and (not ok(s.get("de")) or s["de"] < 100),
+        and (not ok(s.get("er")) or s["er"] >= 30),
         "sort": lambda s: s["roe"],
     },
     {
@@ -182,16 +179,6 @@ SCREENS = [
         "sort_multi": [("rg", True), ("opm", True)],
     },
     # ---- スイング向け (短期〜数週間)。テクニカル指標は fetch_prices で日足から計算
-    {
-        "id": "swing",
-        "name": "スイングSCORE",
-        "tab": "スイング",
-        "desc": "トレンド・押し目度・RSI・売買代金の4要素で、10日前後のスイングに向く銘柄を並べたもの",
-        "cond": ["トレンド: 75日線上向き・株価>75日線・25日線>75日線", "押し目度: 25日線乖離 -2〜+2%・20日高値から -3〜-20%",
-                 "RSI: 40以下で満点、60以上で0", "売買代金: 1億円以上の中での順位", "保有想定期間中に決算がある銘柄は除外"],
-        "filter": lambda s: s.get("swing") is not None and not ok(s.get("earn_bd")),
-        "sort": lambda s: s["swing"],
-    },
     {
         "id": "pullback",
         "name": "25日線押し目",
@@ -320,34 +307,6 @@ def score_stocks(stocks):
             s["score"] = None
 
 
-def _band(x, lo, hi, w):
-    """lo〜hi なら1、範囲から w 離れると0になる台形"""
-    if not ok(x):
-        return None
-    return min(1.0, max(0.0, 1 - max(lo - x, x - hi, 0) / w))
-
-
-def swing_score_stocks(stocks):
-    """スイングSCORE = トレンド・押し目度・RSI・売買代金 (各0〜1) の平均 × 100。売買代金1億円未満は対象外"""
-    liquid = [s for s in stocks if ok(s.get("to")) and s["to"] >= 1]
-    liq = dict(zip(map(id, liquid), percentiles([s["to"] for s in liquid])))
-    for s in stocks:
-        s["swing"] = s["swp"] = None
-        if id(s) not in liq or s.get("ma75_up") is None:
-            continue
-        dev, off = _band(s.get("dev25"), -2, 2, 5), _band(s.get("off20"), -20, -3, 5)
-        if dev is None or off is None or not ok(s.get("rsi")):
-            continue
-        parts = {
-            "trend": (bool(s["ma75_up"]) + bool(s.get("above75")) + bool(s.get("ma25_over75"))) / 3,
-            "pullback": (dev + off) / 2,
-            "rsi": min(1.0, max(0.0, (60 - s["rsi"]) / 20)),
-            "liq": liq[id(s)],
-        }
-        s["swp"] = {k: round(v * 100) for k, v in parts.items()}
-        s["swing"] = round(sum(parts.values()) / len(parts) * 100, 1)
-
-
 def run_screens(stocks, prev_ranks):
     result = []
     for sc in SCREENS:
@@ -414,7 +373,6 @@ def load_prev_ranks(today: str):
 
 def write_output(stocks, asof: str, demo: bool, universe: int, earnings=None):
     score_stocks(stocks)
-    swing_score_stocks(stocks)
     plan = add_trade_plan(stocks, asof, earnings or {})
     prev_ranks, prev_asof = load_prev_ranks(asof)
     screens = run_screens(stocks, prev_ranks)
@@ -428,7 +386,6 @@ def write_output(stocks, asof: str, demo: bool, universe: int, earnings=None):
         "scored": sum(1 for s in stocks if s.get("score") is not None),
         "items": [{"k": k, "label": l, "cat": c, "hi": h} for k, l, c, h in SCORE_ITEMS],
         "categories": CATEGORIES,
-        "swing_parts": SWING_PARTS,
         "rules": {**RULES, **plan},
         "screens": screens,
         # ランキングに出た銘柄だけ詳細を持たせて軽くする
@@ -449,8 +406,8 @@ def write_output(stocks, asof: str, demo: bool, universe: int, earnings=None):
 
 def compact(s):
     keys = ["c", "n", "sec", "mkt", "p", "chg", "mc", "per", "pbr", "dy", "roe",
-            "opm", "rg", "eg", "de", "r1m", "r3m", "r6m", "pos52", "to", "score", "sub", "items",
-            "stage", "dev25", "rsi", "vr", "vol", "vchg", "off20", "atr", "earn", "earn_bd", "swing", "swp"]
+            "opm", "rg", "eg", "er", "r1m", "r3m", "r6m", "pos52", "to", "score", "sub", "items",
+            "stage", "stage75", "dev25", "rsi", "vr", "vol", "vchg", "off20", "atr", "earn", "earn_bd"]
     out = {}
     for k in keys:
         v = s.get(k)
@@ -523,6 +480,7 @@ def fetch_prices(codes):
             out[t[:-2]] = {
                 **technicals(h),
                 "stage": hd.stage_of(close, pos52),
+                "stage75": hd.stage_of(close, pos52, 75),
                 "p": last,
                 "chg": ret(1),
                 "r1m": ret(21),
@@ -636,17 +594,26 @@ def fetch_fundamental(code):
     import yfinance as yf
     for attempt in range(3):
         try:
-            info = yf.Ticker(f"{code}.T").info
+            t = yf.Ticker(f"{code}.T")
+            info = t.info
             pct = lambda v: v * 100 if ok(v) else None
             return {
                 "per": info.get("trailingPE"),
                 "pbr": info.get("priceToBook"),
-                "div_rate": info.get("trailingAnnualDividendRate") or info.get("dividendRate"),
+                # 日本株の配当は Yahoo の各項目がそれぞれ外れることがあるので、
+                # 複数を取っておき dividend_yield() で突き合わせる
+                "div_fwd": info.get("dividendRate"),
+                "last_div_val": info.get("lastDividendValue"),
+                "div_trail": info.get("trailingAnnualDividendRate"),
+                "div_yield": info.get("dividendYield"),  # % 表記 (3.96 = 3.96%)
+                "last_div_ts": info.get("lastDividendDate"),
+                "split_ts": info.get("lastSplitDate"),
                 "roe": pct(info.get("returnOnEquity")),
                 "opm": pct(info.get("operatingMargins")),
                 "rg": pct(info.get("revenueGrowth")),
-                "eg": pct(info.get("earningsGrowth")),
-                "de": info.get("debtToEquity"),
+                # earningsGrowth は四半期の前年同期比で、前年が小さいと数千%に跳ねるので使わない
+                **earnings_growth(t),
+                "er": equity_ratio(t),
                 "shares": info.get("sharesOutstanding"),
                 "mc_raw": info.get("marketCap"),
                 "earn_ts": info.get("earningsTimestamp") or info.get("earningsTimestampStart"),
@@ -659,10 +626,64 @@ def fetch_fundamental(code):
     return None
 
 
+def earnings_growth(t):
+    """利益成長率 (%) = 直近年度の純利益の前年比。前年が赤字・ゼロなら出さない"""
+    try:
+        df = t.income_stmt
+        row = next(df.loc[k] for k in ("Net Income Common Stockholders", "Net Income") if k in df.index)
+        row = row.sort_index(ascending=False)
+        cur, prev = float(row.iloc[0]), float(row.iloc[1])
+        fy = row.index[0].strftime("%Y-%m")
+    except Exception:
+        return {"eg": None, "eg_fy": None}
+    if not ok(cur) or not ok(prev) or prev <= 0:
+        return {"eg": None, "eg_fy": fy}
+    return {"eg": (cur / prev - 1) * 100, "eg_fy": fy}
+
+
+def equity_ratio(t):
+    """自己資本比率 (%) = 株主資本 / 総資産。直近四半期、なければ直近年度の貸借対照表から"""
+    for bs in ("quarterly_balance_sheet", "balance_sheet"):
+        try:
+            df = getattr(t, bs)
+            eq = next(df.loc[k] for k in ("Stockholders Equity", "Common Stock Equity") if k in df.index)
+            col = next(c for c in df.columns if ok(eq[c]) and ok(df.loc["Total Assets", c]))
+            ta = float(df.loc["Total Assets", col])
+            if ta > 0:
+                return float(eq[col]) / ta * 100
+        except Exception:
+            continue
+    return None
+
+
+def dividend_yield(f, price):
+    """配当利回り (%)。Yahoo の配当は項目ごとに外れ方が違うため、次の候補のうち
+    いちばん小さい年間配当を使う (高すぎる利回りで上位に出ないよう控えめに見積もる)。
+      - 予想配当 dividendRate (分割直後や特別配当で数倍になることがある)
+      - 直近1回の配当 × 2 (年2回配当とみなす)
+      - 実績配当 trailingAnnualDividendRate (直近1年に分割があると分割前の額のまま)
+    """
+    if not price or "last_div_val" not in f:  # 古い形式のキャッシュは次の取り直しまで出さない
+        return None
+    now, year = time.time(), 400 * 86400
+    if not f.get("last_div_ts") or now - f["last_div_ts"] > year:
+        return 0.0 if f.get("last_div_ts") or f.get("div_yield") == 0 else None  # 1年以上配当がない
+    cands = [f.get("div_fwd")]
+    if ok(f.get("last_div_val")):
+        cands.append(f["last_div_val"] * 2)
+    if now - (f.get("split_ts") or 0) > year:
+        cands.append(f.get("div_trail"))
+    cands = [v for v in cands if ok(v) and v > 0]
+    return min(cands) / price * 100 if cands else None
+
+
 def refresh_fundamentals(codes):
     cache = json.loads(CACHE_FILE.read_text()) if CACHE_FILE.exists() else {}
     now = time.time()
-    stale = [c for c in codes if now - cache.get(c, {}).get("ts", 0) > FUND_MAX_AGE_DAYS * 86400]
+    stale = [c for c in codes if now - cache.get(c, {}).get("ts", 0) > FUND_MAX_AGE_DAYS * 86400
+             or "last_div_val" not in cache.get(c, {})  # 配当の取り方を変える前の古い形式も取り直す
+             or "er" not in cache.get(c, {})  # 自己資本比率を追加する前の形式も取り直す
+             or "eg_fy" not in cache.get(c, {})]  # 利益成長率を年次決算から計算する前の形式も取り直す
     stale.sort(key=lambda c: cache.get(c, {}).get("ts", 0))  # 古い順
     todo = stale[:FUND_REFRESH_PER_RUN]
     print(f"fundamentals: {len(todo)} to refresh / {len(stale)} stale / {len(codes)} total")
@@ -691,10 +712,11 @@ def build_real():
             continue
         f = funds_cache.get(u["c"], {})
         s = {**u, **{k: v for k, v in pr.items() if k != "date"}}
-        for k in ("per", "pbr", "roe", "opm", "rg", "eg", "de", "earn_ts"):
+        for k in ("per", "pbr", "roe", "opm", "rg", "eg", "er", "earn_ts"):
             s[k] = f.get(k)
-        if ok(f.get("div_rate")) and s["p"]:
-            s["dy"] = f["div_rate"] / s["p"] * 100
+        dy = dividend_yield(f, s["p"])
+        if dy is not None:
+            s["dy"] = dy
         if ok(f.get("shares")):
             s["mc"] = f["shares"] * s["p"] / 1e8
         elif ok(f.get("mc_raw")):
@@ -755,7 +777,7 @@ def build_demo(seed=None, asof=None):
             "opm": rnd.gauss(9, 7),
             "rg": rg,
             "eg": rg * 1.4 + rnd.gauss(0, 15),
-            "de": abs(rnd.gauss(60, 50)),
+            "er": min(90.0, max(3.0, rnd.gauss(50, 18))),
             "r1m": rnd.gauss(1, 7) + day.gauss(0, 2),
             "r3m": rnd.gauss(3, 14) + day.gauss(0, 2),
             "r6m": rnd.gauss(5, 20),
@@ -773,7 +795,8 @@ def build_demo(seed=None, asof=None):
             "vr": math.exp(day.gauss(0, 0.5)),
             "vol": float(round(math.exp(rnd.gauss(12, 1.5)), -2)),
             "vchg": (math.exp(day.gauss(0, 0.5)) - 1) * 100,
-            "stage": {"stage": rnd.randint(1, 4), "ma150": s["p"], "slope": 0.0, "dev": round(dev, 1)},
+            "stage": {"stage": rnd.randint(1, 4), "n": 150, "ma150": s["p"], "slope": 0.0, "dev": round(dev, 1)},
+            "stage75": {"stage": rnd.randint(1, 4), "n": 75, "ma150": s["p"], "slope": 0.0, "dev": round(dev, 1)},
             "off20": -abs(day.gauss(0, 7)),
             "near_hi": -abs(day.gauss(0, 1.5)),
             "bull": day.random() < 0.5,

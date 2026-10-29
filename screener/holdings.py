@@ -157,21 +157,24 @@ def load_margin(codes):
 
 
 # ---------------------------------------------------------------- ステージ判定
-def stage_of(close, pos52):
-    """ワインスタインのステージ分析 (30週≒150日移動平均の傾きと株価の位置)"""
-    if len(close) < 170:
+def stage_of(close, pos52, n=150):
+    """ワインスタインのステージ分析 (n日移動平均の傾きと株価の位置)。
+    150日≒30週が本来の形。75日は同じ判定を半分の期間で行う短期版"""
+    lag = n * 2 // 15          # 傾きを測る間隔 (150日なら20日、75日なら10日)
+    th = n / 150               # 横ばいとみなす傾きの幅 (150日なら±1%、75日なら±0.5%)
+    if len(close) < n + lag:
         return None
-    ma = float(close.iloc[-150:].mean())
-    ma_prev = float(close.iloc[-170:-20].mean())
+    ma = float(close.iloc[-n:].mean())
+    ma_prev = float(close.iloc[-n - lag:-lag].mean())
     slope = (ma / ma_prev - 1) * 100
     price = float(close.iloc[-1])
-    if slope >= 1:
+    if slope >= th:
         st = 2 if price > ma else 3
-    elif slope <= -1:
+    elif slope <= -th:
         st = 4 if price < ma else 1
     else:
         st = 3 if (pos52 or 0) >= 50 else 1
-    return {"stage": st, "ma150": round(ma, 1), "slope": round(slope, 2),
+    return {"stage": st, "n": n, "ma150": round(ma, 1), "slope": round(slope, 2),
             "dev": round((price / ma - 1) * 100, 1)}
 
 
@@ -186,8 +189,8 @@ def write_holdings(holdings, funds, stocks_by_code, screens, asof, earnings, mar
                  for sc in screens for row in sc["rows"] if row["c"] == h["c"]]
         rows.append({
             **{k: s.get(k) for k in ("sec", "mkt", "p", "chg", "mc", "per", "pbr", "dy", "roe",
-                                     "opm", "rg", "eg", "de", "r1m", "r3m", "r6m", "pos52", "to",
-                                     "score", "sub", "items", "stage", "vol", "vchg")},
+                                     "opm", "rg", "eg", "er", "r1m", "r3m", "r6m", "pos52", "to",
+                                     "score", "sub", "items", "stage", "stage75", "vol", "vchg")},
             "c": h["c"],
             "n": s.get("n") or h["n"],
             "acct": h["acct"],

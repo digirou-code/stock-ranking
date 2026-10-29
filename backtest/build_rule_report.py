@@ -18,13 +18,15 @@ CSS = re.search(r"<style>(.*?)</style>", SRC, re.S).group(1).replace("{{", "{").
 LINE_COLORS = ["--c1", "--c3", "--c5", "--c6", "--mute"]
 
 HEAD = ('<thead><tr><th></th><th>取引回数</th><th>勝率</th><th>平均利益</th><th>平均損失</th><th>損益比</th>'
-        '<th>期待値</th><th>PF</th><th>最大DD</th><th>年率</th><th>期間損益</th></tr></thead>')
+        '<th>期待値</th><th>PF</th><th>最大DD</th><th>年率</th><th>期間損益</th><th>当時の値だけで優先</th></tr></thead>')
 
 
 def cells(r):
     if not r or not r.get("n"):
-        return '<td colspan="10" class="na">取引なし</td>'
-    return ob.metric_cells(r) + f'<td{tone(r.get("pf_total"), 40)}>{num(r.get("pf_total"), 1)}%</td>'
+        return '<td colspan="11" class="na">取引なし</td>'
+    p = r.get("pit") or {}
+    return (ob.metric_cells(r) + f'<td{tone(r.get("pf_total"), 40)}>{num(r.get("pf_total"), 1)}%</td>'
+            f'<td>{num(p.get("total"), 1)}%<small>DD {num(p.get("max_dd"), 1)}%</small></td>')
 
 
 def bench_row(label, b):
@@ -32,7 +34,7 @@ def bench_row(label, b):
         return ""
     return (f'<tr class="old"><th scope="row"><span class="tag">比較</span>{e(label)}</th>'
             f'<td colspan="7" class="na">買って持ち続けた場合</td><td>{num(b["max_dd"], 1)}%</td>'
-            f'<td>{num(b["annual"], 1)}%</td><td>{num(b["total"], 1)}%</td></tr>')
+            f'<td>{num(b["annual"], 1)}%</td><td>{num(b["total"], 1)}%</td><td></td></tr>')
 
 
 def main_table(res, pid):
@@ -154,6 +156,7 @@ def build(res, summary):
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Zen+Kaku+Gothic+New:wght@400;500;700&family=Shippori+Mincho+B1:wght@600;800&family=IBM+Plex+Mono:wght@400;500&display=swap">
 <style>{CSS}
+td small {{ display: block; font-size: 11px; color: var(--mute); }}
 .rules {{ display: flex; flex-wrap: wrap; gap: 8px; }}
 .rules span {{ font-family: var(--mono); font-size: 13px; border: 1px solid var(--line); border-radius: 4px; padding: 2px 10px; background: var(--panel); }}
 </style>
@@ -181,7 +184,7 @@ def build(res, summary):
 
 <section>
   <h2>直近1年の成績 (検証期間)</h2>
-  <p class="lead">期待値は1回あたりのコスト控除後の平均損益 (半分ずつ売った分を合わせた損益)。最大DD・年率・期間損益は{m["slots"]}枠で運用した場合 (1枠=資産の1/{m["slots"]}、複利、含み損益込み)。複合パターンの組み合わせは探索期間の成績だけで決め、この期間は答え合わせに使っています。</p>
+  <p class="lead">期待値は1回あたりのコスト控除後の平均損益 (半分ずつ売った分を合わせた損益)。最大DD・年率・期間損益は{m["slots"]}枠で運用した場合 (1枠=資産の1/{m["slots"]}、複利、含み損益込み)。複合パターンの組み合わせは探索期間の成績だけで決め、この期間は答え合わせに使っています。右端は、優先順位を総合SCOREではなく「その日に分かる値だけのスコア」(3ヶ月騰落率・52週レンジ位置・売買代金) に替えた場合の期間損益です。総合SCOREには財務の現在値が入っているので、右端との差が大きいほど先読みの影響を受けている可能性があります。</p>
   {main_table(res, "oos")}
   {curve(res, "oos", ids)}
 </section>

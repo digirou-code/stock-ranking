@@ -599,7 +599,13 @@ def fetch_fundamental(code):
             return {
                 "per": info.get("trailingPE"),
                 "pbr": info.get("priceToBook"),
-                "div_rate": info.get("trailingAnnualDividendRate") or info.get("dividendRate"),
+                # 配当は予想 (dividendRate) を優先する。trailingAnnualDividendRate は
+                # 株式分割前の配当を調整せずに足すため、分割直後の銘柄で数倍に膨らむ
+                "div_fwd": info.get("dividendRate"),
+                "div_trail": info.get("trailingAnnualDividendRate"),
+                "div_yield": info.get("dividendYield"),  # % 表記 (3.96 = 3.96%)
+                "last_div_ts": info.get("lastDividendDate"),
+                "split_ts": info.get("lastSplitDate"),
                 "roe": pct(info.get("returnOnEquity")),
                 "opm": pct(info.get("operatingMargins")),
                 "rg": pct(info.get("revenueGrowth")),
@@ -617,10 +623,29 @@ def fetch_fundamental(code):
     return None
 
 
+def dividend_yield(f, price):
+    """配当利回り (%)。予想配当 → 実績配当の順に使い、当てにならない値は捨てる"""
+    if not price:
+        return None
+    if "div_fwd" not in f:  # 古い形式のキャッシュ
+        return f["div_rate"] / price * 100 if ok(f.get("div_rate")) else None
+    if ok(f.get("div_fwd")) and f["div_fwd"] > 0:
+        return f["div_fwd"] / price * 100
+    if f.get("div_yield") == 0:  # 予想なし・利回り0 = 無配
+        return 0.0
+    now, year = time.time(), 400 * 86400
+    if not ok(f.get("div_trail")) or now - (f.get("last_div_ts") or 0) > year:
+        return 0.0 if f.get("last_div_ts") else None  # 1年以上配当がない
+    if now - (f.get("split_ts") or 0) < year:
+        return None  # 直近1年に分割があると実績配当が分割前の額のまま
+    return f["div_trail"] / price * 100
+
+
 def refresh_fundamentals(codes):
     cache = json.loads(CACHE_FILE.read_text()) if CACHE_FILE.exists() else {}
     now = time.time()
-    stale = [c for c in codes if now - cache.get(c, {}).get("ts", 0) > FUND_MAX_AGE_DAYS * 86400]
+    stale = [c for c in codes if now - cache.get(c, {}).get("ts", 0) > FUND_MAX_AGE_DAYS * 86400
+             or "div_fwd" not in cache.get(c, {})]  # 配当の取り方を変える前の古い形式も取り直す
     stale.sort(key=lambda c: cache.get(c, {}).get("ts", 0))  # 古い順
     todo = stale[:FUND_REFRESH_PER_RUN]
     print(f"fundamentals: {len(todo)} to refresh / {len(stale)} stale / {len(codes)} total")
@@ -651,8 +676,9 @@ def build_real():
         s = {**u, **{k: v for k, v in pr.items() if k != "date"}}
         for k in ("per", "pbr", "roe", "opm", "rg", "eg", "de", "earn_ts"):
             s[k] = f.get(k)
-        if ok(f.get("div_rate")) and s["p"]:
-            s["dy"] = f["div_rate"] / s["p"] * 100
+        dy = dividend_yield(f, s["p"])
+        if dy is not None:
+            s["dy"] = dy
         if ok(f.get("shares")):
             s["mc"] = f["shares"] * s["p"] / 1e8
         elif ok(f.get("mc_raw")):

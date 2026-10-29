@@ -34,6 +34,8 @@ import run_backtest as bt  # noqa: E402
 RULE = {"stop_pct": -5.0, "take1_pct": 25.0, "take2_pct": 50.0, "max_days": 30}
 SLOTS = bt.SLOTS
 MIN_REGIME_TRADES = 100  # 相場別の戦略選びで、その相場での取引がこれ未満なら候補にしない
+REGIME_MA = 50  # 市場全体の指数がこの日数の移動平均より上なら上げ相場
+MAX_ABS_RET = 200.0  # 1回の損益が ±200% を超える取引はデータの誤りとみなして除く
 
 
 # ---------------------------------------------------------------- 総合SCORE (過去の各時点で再現)
@@ -132,12 +134,17 @@ class RuleSim(op.Sim):
         if len(ii) == 0:
             return None
         ent = M.O[ii + 1, jj]
+        # 寄り付きが前日終値から大きく離れている足はデータの誤りが多いので買わない
+        with np.errstate(invalid="ignore", divide="ignore"):
+            sane = (ent / M.C[ii, jj] > 0.6) & (ent / M.C[ii, jj] < 1.6)
+        ii, jj, ent = ii[sane], jj[sane], ent[sane]
         pa, xa, wa = self.legs(ii, jj, RULE["take1_pct"])
         pb, xb, wb = self.legs(ii, jj, RULE["take2_pct"])
         cost = self.cost_tab[ii, jj]
         ra, rb = (pa / ent - 1) * 100, (pb / ent - 1) * 100
         g = (ra + rb) / 2
-        ok = np.isfinite(g)
+        ok = np.isfinite(g) & (np.abs(g) <= MAX_ABS_RET)
+        self.dropped = getattr(self, "dropped", 0) + int((np.isfinite(g) & ~ok).sum())
         # 手仕舞いの内訳: 損切り / 半分利確 / 全部利確 / 時間切れ
         why = np.where(wb == 2, 3, np.where(wa == 2, 2, np.where((wa == 1) | (wb == 1), 1, 0)))
         kv = key.to_numpy(float)[ii, jj]
@@ -288,7 +295,10 @@ def run(D, funds, demo):
     last_is = np.nonzero(periods["is"])[0].max()
     periods["is"][max(0, last_is - RULE["max_days"]):] = False
     years = {k: max((M.idx[m].max() - M.idx[m].min()).days / 365.25, 0.1) for k, m in periods.items()}
-    up = T["mkt_above200"].iloc[:, 0].to_numpy(bool)
+    up_s = idx > idx.rolling(REGIME_MA).mean()
+    up = up_s.to_numpy(bool)
+    UP = pd.DataFrame(np.repeat(up[:, None], len(M.cols), axis=1),
+                      index=M.idx, columns=M.cols)
     print(f"ready {time.time() - t0:.0f}s")
 
     strats = strategies(T)
@@ -319,10 +329,10 @@ def run(D, funds, demo):
     if up_c:
         combos.append(("up_only", up_c[0][0], None))  # 下げ相場では買わない
     for name, u, d in combos:
-        sig = strats[u]["sig"] & T["mkt_above200"]
+        sig = strats[u]["sig"] & UP
         label = f"上げ相場: {strats[u]['name']} / 下げ相場: " + (strats[d]["name"] if d else "買わない")
         if d:
-            sig = sig | (strats[d]["sig"] & ~T["mkt_above200"])
+            sig = sig | (strats[d]["sig"] & ~UP)
         C = {"name": label, "up": u, "down": d}
         for pid, mask in periods.items():
             C[pid] = S.summarize(S.rule_trades(sig, mask, score), years[pid], curve=(pid != "is"))
@@ -344,7 +354,8 @@ def run(D, funds, demo):
         "generated_at": dt.datetime.now(bt.JST).isoformat(timespec="minutes"),
         "periods": {k: [M.idx[m].min().strftime("%Y-%m-%d"), M.idx[m].max().strftime("%Y-%m-%d")]
                     for k, m in periods.items()},
-        "tickers": len(M.cols), "rule": RULE, "slots": SLOTS,
+        "tickers": len(M.cols), "rule": RULE, "slots": SLOTS, "regime_ma": REGIME_MA,
+        "dropped_trades": int(getattr(S, "dropped", 0)),
         "up_days_pct": {k: float(up[m].mean() * 100) for k, m in periods.items()},
         "cost_tiers": bt.COST_TIERS, "commission": bt.COMMISSION, "tax": bt.TAX,
         "elapsed_s": round(time.time() - t0),

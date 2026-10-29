@@ -24,6 +24,7 @@
   --ma25: #d08a00; --ma75: #6b5bd6;  /* 移動平均線 */
   --s1: #2f6fd6; --s2: #e07b00; --s3: #0f9488; --s4: #c2378a; --s5: #7c5cd6; --s6: #6d8f1d; --s7: #0b84b8; --s8: #9a5b2c;  /* セクター比較の線 */
   --vol-up: rgba(199, 50, 47, 0.35); --vol-down: rgba(31, 122, 77, 0.35);
+  --hl-bg: #dfe9fb; --hl-ring: #9db8e8;  /* 特筆すべき数値の強調 */
   --st1-bg: #eef0f3; --st1-fg: #4b5563;  /* 底固め */
   --st2-bg: #fde4e2; --st2-fg: #a32522;  /* 上昇 (赤) */
   --st3-bg: #fdf0d5; --st3-fg: #7a5200;  /* 天井圏 */
@@ -37,14 +38,14 @@
     --bg: #11151c; --surface: #181d26; --ink: #e7eaf0; --muted: #98a1b0;
     --line: #2b323e; --line-soft: #222833; --ai: #8fb0e3; --ai-soft: #1f2a3b;
     --up: #ff7b72; --down: #4fc98a; --warn-bg: #3a3014; --warn-fg: #f1d48a;
-    --bar: #8fb0e3; --bar-track: #2a313c; --ma25: #f0b54a; --ma75: #a99cff; --s1: #6ea0f5; --s2: #f5a54a; --s3: #3cc4b6; --s4: #ec74b8; --s5: #a993f5; --s6: #a6c75a; --s7: #4cb8e6; --s8: #d29a6c; --vol-up: rgba(255, 123, 114, 0.35); --vol-down: rgba(79, 201, 138, 0.35); --st1-bg: #262c36; --st1-fg: #b5bdc9; --st2-bg: #3b1f1f; --st2-fg: #ff9b93; --st3-bg: #3a3014; --st3-fg: #f1d48a; --st4-bg: #15301f; --st4-fg: #6fd6a0; color-scheme: dark;
+    --bar: #8fb0e3; --bar-track: #2a313c; --ma25: #f0b54a; --ma75: #a99cff; --s1: #6ea0f5; --s2: #f5a54a; --s3: #3cc4b6; --s4: #ec74b8; --s5: #a993f5; --s6: #a6c75a; --s7: #4cb8e6; --s8: #d29a6c; --vol-up: rgba(255, 123, 114, 0.35); --vol-down: rgba(79, 201, 138, 0.35); --st1-bg: #262c36; --st1-fg: #b5bdc9; --st2-bg: #3b1f1f; --st2-fg: #ff9b93; --st3-bg: #3a3014; --st3-fg: #f1d48a; --st4-bg: #15301f; --st4-fg: #6fd6a0; --hl-bg: #1e3355; --hl-ring: #3d5f96; color-scheme: dark;
   }
 }
 :root[data-theme="dark"] {
   --bg: #11151c; --surface: #181d26; --ink: #e7eaf0; --muted: #98a1b0;
   --line: #2b323e; --line-soft: #222833; --ai: #8fb0e3; --ai-soft: #1f2a3b;
   --up: #ff7b72; --down: #4fc98a; --warn-bg: #3a3014; --warn-fg: #f1d48a;
-  --bar: #8fb0e3; --bar-track: #2a313c; --ma25: #f0b54a; --ma75: #a99cff; --s1: #6ea0f5; --s2: #f5a54a; --s3: #3cc4b6; --s4: #ec74b8; --s5: #a993f5; --s6: #a6c75a; --s7: #4cb8e6; --s8: #d29a6c; --vol-up: rgba(255, 123, 114, 0.35); --vol-down: rgba(79, 201, 138, 0.35); --st1-bg: #262c36; --st1-fg: #b5bdc9; --st2-bg: #3b1f1f; --st2-fg: #ff9b93; --st3-bg: #3a3014; --st3-fg: #f1d48a; --st4-bg: #15301f; --st4-fg: #6fd6a0; color-scheme: dark;
+  --bar: #8fb0e3; --bar-track: #2a313c; --ma25: #f0b54a; --ma75: #a99cff; --s1: #6ea0f5; --s2: #f5a54a; --s3: #3cc4b6; --s4: #ec74b8; --s5: #a993f5; --s6: #a6c75a; --s7: #4cb8e6; --s8: #d29a6c; --vol-up: rgba(255, 123, 114, 0.35); --vol-down: rgba(79, 201, 138, 0.35); --st1-bg: #262c36; --st1-fg: #b5bdc9; --st2-bg: #3b1f1f; --st2-fg: #ff9b93; --st3-bg: #3a3014; --st3-fg: #f1d48a; --st4-bg: #15301f; --st4-fg: #6fd6a0; --hl-bg: #1e3355; --hl-ring: #3d5f96; color-scheme: dark;
 }
 * { box-sizing: border-box; }
 body {
@@ -133,6 +134,7 @@ tbody tr:focus-visible { outline: 2px solid var(--ai); outline-offset: -2px; }
 .rank { font-family: var(--font-data); font-weight: 500; font-size: 15px; }
 .mv { display: block; font-size: 11px; font-family: var(--font-data); }
 .mv.new { color: var(--ai); font-family: var(--font-body); font-weight: 700; }
+.hl { background: var(--hl-bg); box-shadow: inset 0 0 0 1px var(--hl-ring); border-radius: 4px; padding: 0 4px; margin: 0 -4px; font-weight: 700; }
 .name b { display: block; font-weight: 500; max-width: 20em; overflow: hidden; text-overflow: ellipsis; }
 .name small { color: var(--muted); font-size: 11.5px; }
 .score { display: grid; grid-template-columns: 3.2em auto; align-items: center; gap: 8px; }
@@ -429,15 +431,15 @@ const TIPS = {
   score: "定量11項目を全銘柄内の順位で0〜100に換算した平均。棒は左から割安・配当・収益・成長・健全・勢いのカテゴリ別スコア",
   p: "基準日の終値と前日比 (上昇は赤、下落は緑)",
   mc: "時価総額 = 株価 × 発行済株式数。会社全体の値段",
-  per: "株価収益率 = 株価 ÷ 1株あたり利益。低いほど利益に対して割安 (目安15倍前後)",
-  pbr: "株価純資産倍率 = 株価 ÷ 1株あたり純資産。1倍割れは解散価値より安い",
-  dy: "配当利回り = 年間配当 ÷ 株価",
-  roe: "自己資本利益率 = 純利益 ÷ 自己資本。株主のお金で効率よく稼げているか (目安8%以上)",
-  rg: "売上高成長率 (直近四半期の前年同期比)",
-  pos52: "52週レンジ位置。過去1年の安値を0%、高値を100%としたときの現在の位置",
-  r1m: "1ヶ月騰落率。約21営業日前の終値からの値上がり率",
-  r3m: "3ヶ月騰落率。約63営業日前の終値からの値上がり率",
-  vol: "基準日の出来高 (株数)。下は前営業日の出来高と比べた増減率",
+  per: "株価収益率 = 株価 ÷ 1株あたり利益。低いほど利益に対して割安 (目安15倍前後)。10倍以下は青枠で強調",
+  pbr: "株価純資産倍率 = 株価 ÷ 1株あたり純資産。1倍割れは解散価値より安い。0.8倍以下は青枠で強調",
+  dy: "配当利回り = 年間配当 ÷ 株価。4%以上は青枠で強調",
+  roe: "自己資本利益率 = 純利益 ÷ 自己資本。株主のお金で効率よく稼げているか (目安8%以上)。15%以上は青枠で強調",
+  rg: "売上高成長率 (直近四半期の前年同期比)。20%以上は青枠で強調",
+  pos52: "52週レンジ位置。過去1年の安値を0%、高値を100%としたときの現在の位置。95%以上 (高値圏)は青枠で強調",
+  r1m: "1ヶ月騰落率。約21営業日前の終値からの値上がり率。+15%以上は青枠で強調",
+  r3m: "3ヶ月騰落率。約63営業日前の終値からの値上がり率。+30%以上は青枠で強調",
+  vol: "基準日の出来高 (株数)。下は前営業日の出来高と比べた増減率。前日比+100%以上 (2倍以上)は青枠で強調",
   dev25: "25日移動平均線からの乖離率。マイナスは平均より下 (押し目・売られ過ぎの目安)",
   rsi: "RSI(14)。直近14日の値上がりの強さ。30以下は売られ過ぎ、70以上は買われ過ぎの目安",
   vr: "出来高倍率。当日の出来高 ÷ 過去20日の平均出来高",
@@ -913,19 +915,36 @@ function renderTable() {
     </tr>`).join("") : `<tr><td colspan="${cols.length}" class="empty">条件に合う銘柄がありません。絞り込みを外してください。</td></tr>`;
 }
 
+// 特筆すべき数値の基準 (当てはまると強調表示し、理由をツールチップに出す)
+const HL = {
+  per: (v) => v > 0 && v <= 10 && "PER 10倍以下 (割安)",
+  pbr: (v) => v <= 0.8 && "PBR 0.8倍以下 (純資産より割安)",
+  dy: (v) => v >= 4 && "配当利回り 4%以上",
+  roe: (v) => v >= 15 && "ROE 15%以上 (高収益)",
+  rg: (v) => v >= 20 && "売上成長 20%以上",
+  vchg: (v) => v >= 100 && "出来高が前日の2倍以上",
+  pos52: (v) => v >= 95 && "52週高値圏 (レンジの95%以上)",
+  r1m: (v) => v >= 15 && "1ヶ月で15%以上の上昇",
+  r3m: (v) => v >= 30 && "3ヶ月で30%以上の上昇",
+};
+function hl(k, v, html) {
+  const why = has(v) && HL[k] && HL[k](v);
+  return why ? `<span class="hl" title="${why}">${html}</span>` : html;
+}
+
 // ランキングと保有銘柄で共通の後半の列 (COLS.slice(4) と同じ順)
 function restCells(s, withStage) {
   return `${withStage ? `<td class="l">${stagePill(s.stage)}</td>` : ""}
-      <td class="n">${fmt("vol", s.vol)}<span class="mv">${has(s.vchg) ? signed(s.vchg) : ""}</span></td>
+      <td class="n">${fmt("vol", s.vol)}<span class="mv">${has(s.vchg) ? hl("vchg", s.vchg, signed(s.vchg)) : ""}</span></td>
       <td class="n">${fmt("mc", s.mc)}</td>
-      <td class="n">${fmt("per", s.per)}</td>
-      <td class="n">${fmt("pbr", s.pbr)}</td>
-      <td class="n">${fmt("dy", s.dy)}</td>
-      <td class="n">${fmt("roe", s.roe)}</td>
-      <td class="n">${fmt("rg", s.rg)}</td>
-      <td class="n">${has(s.pos52) ? `<span class="r52"><span class="track"><span class="dot" style="left:${s.pos52}%"></span></span><span>${Math.round(s.pos52)}%</span></span>` : fmt("pos52", null)}</td>
-      <td class="n">${fmt("r1m", s.r1m)}</td>
-      <td class="n">${fmt("r3m", s.r3m)}</td>`;
+      <td class="n">${hl("per", s.per, fmt("per", s.per))}</td>
+      <td class="n">${hl("pbr", s.pbr, fmt("pbr", s.pbr))}</td>
+      <td class="n">${hl("dy", s.dy, fmt("dy", s.dy))}</td>
+      <td class="n">${hl("roe", s.roe, fmt("roe", s.roe))}</td>
+      <td class="n">${hl("rg", s.rg, fmt("rg", s.rg))}</td>
+      <td class="n">${has(s.pos52) ? `<span class="r52"><span class="track"><span class="dot" style="left:${s.pos52}%"></span></span>${hl("pos52", s.pos52, `<span>${Math.round(s.pos52)}%</span>`)}</span>` : fmt("pos52", null)}</td>
+      <td class="n">${hl("r1m", s.r1m, fmt("r1m", s.r1m))}</td>
+      <td class="n">${hl("r3m", s.r3m, fmt("r3m", s.r3m))}</td>`;
 }
 
 const H_COLS = [
@@ -951,8 +970,8 @@ function stagePill(st) {
 }
 function earnCell(e) {
   if (!e) return '<span class="na-txt">未定</span>';
-  const md = e.date.slice(5).replace("-", "/");
-  return `<span class="mono">${md}</span><span class="mv flat">${esc(e.kind || "")}${e.src === "Yahoo" ? " (Yahoo予定)" : ""}</span>`;
+  const md = e.date.slice(5).replace("-", "/"), d = daysUntil(e.date);
+  return `${d >= 0 && d <= 7 ? `<span class="warn" title="1週間以内に決算発表">${md}</span>` : `<span class="mono">${md}</span>`}<span class="mv flat">${esc(e.kind || "")}${e.src === "Yahoo" ? " (Yahoo予定)" : ""}</span>`;
 }
 function signedInt(v) {
   if (!has(v)) return "";

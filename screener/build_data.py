@@ -41,6 +41,7 @@ MARKETS = os.environ.get("MARKETS", "プライム,スタンダード,グロー�
 # 1回の実行で財務指標を取り直す銘柄数の上限 (Yahooのレート制限対策)
 FUND_REFRESH_PER_RUN = int(os.environ.get("FUND_REFRESH_PER_RUN", "4000"))
 FUND_MAX_AGE_DAYS = int(os.environ.get("FUND_MAX_AGE_DAYS", "7"))
+STMT_MAX_AGE_DAYS = 30  # 自己資本比率・利益成長率 (決算書から計算) を取り直す間隔
 TOP_N = 50
 
 # ---------------------------------------------------------------- 取引ルール (スイング)
@@ -559,12 +560,21 @@ def technicals(h):
     return t
 
 
-def fetch_fundamental(code):
+def fetch_fundamental(code, prev=None):
     import yfinance as yf
+    prev = prev or {}
     for attempt in range(3):
         try:
             t = yf.Ticker(f"{code}.T")
             info = t.info
+            # レート制限中は例外にならず中身の乏しい info が返るので、取り直す
+            if not any(info.get(k) for k in ("sharesOutstanding", "marketCap", "priceToBook")):
+                raise ValueError("empty info")
+            # 決算書 (自己資本比率・利益成長率) は四半期ごとにしか変わらないので、30日は前回の値を使う
+            if time.time() - prev.get("stmt_ts", 0) < STMT_MAX_AGE_DAYS * 86400:
+                stmt = {k: prev.get(k) for k in ("eg", "eg_fy", "er", "stmt_ts")}
+            else:
+                stmt = {**earnings_growth(t), "er": equity_ratio(t), "stmt_ts": time.time()}
             pct = lambda v: v * 100 if ok(v) else None
             return {
                 "per": info.get("trailingPE"),
@@ -581,15 +591,14 @@ def fetch_fundamental(code):
                 "opm": pct(info.get("operatingMargins")),
                 "rg": pct(info.get("revenueGrowth")),
                 # earningsGrowth は四半期の前年同期比で、前年が小さいと数千%に跳ねるので使わない
-                **earnings_growth(t),
-                "er": equity_ratio(t),
+                **stmt,
                 "shares": info.get("sharesOutstanding"),
                 "mc_raw": info.get("marketCap"),
                 "earn_ts": info.get("earningsTimestamp") or info.get("earningsTimestampStart"),
                 "ts": time.time(),
             }
         except Exception as e:  # レート制限など
-            time.sleep(5 * (attempt + 1))
+            time.sleep(10 * (attempt + 1))
             err = e
     print(f"  fundamentals failed {code}: {err}", file=sys.stderr)
     return None
@@ -652,12 +661,13 @@ def refresh_fundamentals(codes):
     stale = [c for c in codes if now - cache.get(c, {}).get("ts", 0) > FUND_MAX_AGE_DAYS * 86400
              or "last_div_val" not in cache.get(c, {})  # 配当の取り方を変える前の古い形式も取り直す
              or "er" not in cache.get(c, {})  # 自己資本比率を追加する前の形式も取り直す
-             or "eg_fy" not in cache.get(c, {})]  # 利益成長率を年次決算から計算する前の形式も取り直す
+             or "eg_fy" not in cache.get(c, {})  # 利益成長率を年次決算から計算する前の形式も取り直す
+             or not (cache.get(c, {}).get("shares") or cache.get(c, {}).get("mc_raw"))]  # レート制限で空だったもの
     stale.sort(key=lambda c: cache.get(c, {}).get("ts", 0))  # 古い順
     todo = stale[:FUND_REFRESH_PER_RUN]
     print(f"fundamentals: {len(todo)} to refresh / {len(stale)} stale / {len(codes)} total")
-    with ThreadPoolExecutor(max_workers=4) as ex:
-        futs = {ex.submit(fetch_fundamental, c): c for c in todo}
+    with ThreadPoolExecutor(max_workers=2) as ex:  # 4並列だと Yahoo のレート制限にかかる
+        futs = {ex.submit(fetch_fundamental, c, cache.get(c)): c for c in todo}
         for f in as_completed(futs):
             r = f.result()
             if r:

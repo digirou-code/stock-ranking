@@ -117,16 +117,6 @@ SCREENS = [
         "sort": lambda s: s["dy"],
     },
     {
-        "id": "div_pbr",
-        "name": "高配当×低PBR",
-        "tab": "配当×割安",
-        "desc": "配当利回りとPBRの割安さを合わせて評価",
-        "cond": ["配当利回り 3%以上", "PBR 1.0倍以下"],
-        "filter": lambda s: ok(s.get("dy")) and s["dy"] >= 3
-        and ok(s.get("pbr")) and 0 < s["pbr"] <= 1.0,
-        "sort_multi": [("dy", True), ("pbr", False)],
-    },
-    {
         "id": "low_per",
         "name": "低PER",
         "tab": "割安",
@@ -135,16 +125,6 @@ SCREENS = [
         "filter": lambda s: ok(s.get("per")) and 0 < s["per"] <= 12
         and ok(s.get("roe")) and s["roe"] >= 8,
         "sort": lambda s: -s["per"],
-    },
-    {
-        "id": "low_pbr",
-        "name": "低PBR",
-        "tab": "資産割安",
-        "desc": "純資産に対して株価が安い銘柄 (黒字のみ)",
-        "cond": ["PBR 0.8倍以下", "ROE 0%超"],
-        "filter": lambda s: ok(s.get("pbr")) and 0 < s["pbr"] <= 0.8
-        and ok(s.get("roe")) and s["roe"] > 0,
-        "sort": lambda s: -s["pbr"],
     },
     {
         "id": "high_roe",
@@ -166,17 +146,6 @@ SCREENS = [
         and ok(s.get("eg")) and s["eg"] >= 10
         and ok(s.get("mc")) and s["mc"] >= 300,
         "sort_multi": [("rg", True), ("eg", True)],
-    },
-    {
-        "id": "small_growth",
-        "name": "小型成長",
-        "tab": "発掘",
-        "desc": "まだ小さいが売上の伸びが大きい銘柄",
-        "cond": ["時価総額 300億円未満", "売上成長率 15%以上", "営業利益率 0%超"],
-        "filter": lambda s: ok(s.get("mc")) and s["mc"] < 300
-        and ok(s.get("rg")) and s["rg"] >= 15
-        and ok(s.get("opm")) and s["opm"] > 0,
-        "sort_multi": [("rg", True), ("opm", True)],
     },
     # ---- スイング向け (短期〜数週間)。テクニカル指標は fetch_prices で日足から計算
     {

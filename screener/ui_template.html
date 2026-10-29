@@ -325,7 +325,14 @@ const COLS = [
   { k: "r3m", label: "3ヶ月", sort: -1 },
 ];
 // トップ3カードで各スクリーニングの決め手として見せる値
-const KEY_METRIC = { score: "score", dividend: "dy", div_pbr: "dy", low_per: "per", low_pbr: "pbr", high_roe: "roe", growth: "rg", small_growth: "rg", momentum: "r3m" };
+const KEY_METRIC = { score: "score", dividend: "dy", div_pbr: "dy", low_per: "per", low_pbr: "pbr", high_roe: "roe", growth: "rg", small_growth: "rg",
+  pullback: "dev25", rsi_pullback: "rsi", rebound_dev: "dev25", rebound_rsi: "rsi", vol_break: "vr", high_break: "vr" };
+// スイング系スクリーニングでは決め手の指標を表に1列追加する
+const EXTRA_COL = { dev25: "25日線乖離", rsi: "RSI", vr: "出来高倍率" };
+const colsFor = (sc) => {
+  const k = KEY_METRIC[sc.id];
+  return EXTRA_COL[k] ? [...COLS.slice(0, 4), { k, label: EXTRA_COL[k], sort: k === "dev25" ? 1 : -1 }, ...COLS.slice(4)] : COLS;
+};
 
 let D, cur, sortKey = "r", sortDir = 1;
 const $ = (id) => document.getElementById(id);
@@ -343,7 +350,9 @@ function fmt(k, v) {
     case "de": case "pos52": return Math.round(v) + "%";
     case "to": return v.toFixed(1) + "億";
     case "dy": case "roe": case "opm": return v.toFixed(1) + "%";
-    case "rg": case "eg": case "r3m": case "r6m": case "chg": return signed(v);
+    case "rg": case "eg": case "r3m": case "r6m": case "chg": case "dev25": case "off20": return signed(v);
+    case "rsi": return v.toFixed(0);
+    case "vr": return v.toFixed(1) + "倍";
     default: return String(v);
   }
 }
@@ -509,12 +518,13 @@ function renderTable() {
   });
   $("shown").textContent = `${rows.length}件を表示中`;
 
-  $("tbl").tHead.innerHTML = "<tr>" + COLS.map((c) => {
+  const cols = colsFor(cur), extra = cols.length > COLS.length ? cols[4].k : null;
+  $("tbl").tHead.innerHTML = "<tr>" + cols.map((c) => {
     const s = sortKey === c.k ? (sortDir > 0 ? "ascending" : "descending") : "none";
     return `<th class="${c.cls || ""}" aria-sort="${s}"><button data-k="${c.k}">${c.label}</button></th>`;
   }).join("") + "</tr>";
   $("tbl").tHead.querySelectorAll("button").forEach((b) => b.addEventListener("click", () => {
-    const c = COLS.find((x) => x.k === b.dataset.k);
+    const c = cols.find((x) => x.k === b.dataset.k);
     if (sortKey === c.k) sortDir = -sortDir; else { sortKey = c.k; sortDir = c.sort; }
     renderTable();
   }));
@@ -527,6 +537,7 @@ function renderTable() {
       <td class="n"><div class="score"><span class="big">${fmt("score", s.score)}</span>
         <span class="cats" title="${catKeys.map((k) => D.categories[k] + " " + (s.sub[k] ?? "—")).join(" / ")}">${catKeys.map((k) => has(s.sub[k]) ? `<i style="height:${Math.max(2, s.sub[k] * 0.22)}px"></i>` : '<i class="na"></i>').join("")}</span></div></td>
       <td class="n">${fmt("p", s.p)}<span class="mv">${has(s.chg) ? signed(s.chg) : ""}</span></td>
+      ${extra ? `<td class="n">${fmt(extra, s[extra])}</td>` : ""}
       <td class="n">${fmt("mc", s.mc)}</td>
       <td class="n">${fmt("per", s.per)}</td>
       <td class="n">${fmt("pbr", s.pbr)}</td>
@@ -535,7 +546,7 @@ function renderTable() {
       <td class="n">${fmt("rg", s.rg)}</td>
       <td class="n">${has(s.pos52) ? `<span class="r52"><span class="track"><span class="dot" style="left:${s.pos52}%"></span></span><span>${Math.round(s.pos52)}%</span></span>` : fmt("pos52", null)}</td>
       <td class="n">${fmt("r3m", s.r3m)}</td>
-    </tr>`).join("") : `<tr><td colspan="${COLS.length}" class="empty">条件に合う銘柄がありません。絞り込みを外してください。</td></tr>`;
+    </tr>`).join("") : `<tr><td colspan="${cols.length}" class="empty">条件に合う銘柄がありません。絞り込みを外してください。</td></tr>`;
 }
 
 const H_COLS = [
@@ -638,7 +649,8 @@ function openDetail(code) {
   const kv = [["株価", fmt("p", s.p) + "円"], ["前日比", fmt("chg", s.chg)], ["時価総額", fmt("mc", s.mc) + "円"], ["売買代金(20日平均)", fmt("to", s.to) + "円"],
     ["PER", fmt("per", s.per)], ["PBR", fmt("pbr", s.pbr)], ["配当利回り", fmt("dy", s.dy)], ["ROE", fmt("roe", s.roe)],
     ["営業利益率", fmt("opm", s.opm)], ["売上成長率", fmt("rg", s.rg)], ["利益成長率", fmt("eg", s.eg)], ["負債資本倍率", fmt("de", s.de)],
-    ["3ヶ月騰落", fmt("r3m", s.r3m)], ["6ヶ月騰落", fmt("r6m", s.r6m)], ["52週レンジ位置", fmt("pos52", s.pos52)]];
+    ["3ヶ月騰落", fmt("r3m", s.r3m)], ["6ヶ月騰落", fmt("r6m", s.r6m)], ["52週レンジ位置", fmt("pos52", s.pos52)],
+    ["25日線乖離", fmt("dev25", s.dev25)], ["RSI(14)", fmt("rsi", s.rsi)], ["出来高倍率(対20日)", fmt("vr", s.vr)], ["20日高値から", fmt("off20", s.off20)]];
   if (H && s.stage) kv.push(["ステージ", stagePill(s.stage)]);
   const real = /^\d{3}[0-9A-Z]$/.test(s.c);
   $("dlg-body").innerHTML = `

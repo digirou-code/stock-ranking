@@ -68,7 +68,7 @@ def overview(V, key="net"):
                 continue
             sig = '<sup title="シグナル日ごとの平均で t値の絶対値が2以上">*</sup>' if abs(s.get("t") or 0) >= 2 else ""
             cells.append(f'<td{tone(s.get(key), 1.5)}><b>{num(s.get(key))}%{sig}</b>'
-                         f'<small>PF {num(s.get("pf"), 2, False)} · {s["n"]:,}回</small></td>')
+                         f'<small>PF {num(s.get("pf"), 2, False)} · {s["n"]:,}件</small></td>')
         rows.append(f'<tr><th scope="row">{e(c["name"])}</th>{"".join(cells)}</tr>')
     return (f'<div class="tw"><table class="grid"><thead><tr><th></th>{head}</tr></thead>'
             f'<tbody>{"".join(rows)}</tbody></table></div>')

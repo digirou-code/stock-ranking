@@ -189,7 +189,7 @@ def write_holdings(holdings, funds, stocks_by_code, screens, asof, earnings, mar
                  for sc in screens for row in sc["rows"] if row["c"] == h["c"]]
         rows.append({
             **{k: s.get(k) for k in ("sec", "mkt", "p", "chg", "mc", "per", "pbr", "dy", "roe",
-                                     "opm", "rg", "eg", "de", "r1m", "r3m", "r6m", "pos52", "to",
+                                     "opm", "rg", "eg", "er", "r1m", "r3m", "r6m", "pos52", "to",
                                      "score", "sub", "items", "stage", "stage75", "vol", "vchg")},
             "c": h["c"],
             "n": s.get("n") or h["n"],

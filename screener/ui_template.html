@@ -416,6 +416,7 @@ const COLS = [
   { k: "r1m", label: "1ヶ月", sort: -1 },
   { k: "r3m", label: "3ヶ月", sort: -1 },
   { k: "sec1m", label: "業種平均", sort: -1 },
+  { k: "st25", label: "ステージ(25)", cls: "l", sort: 1 },
   { k: "st75", label: "ステージ(75)", cls: "l", sort: 1 },
   { k: "st", label: "ステージ(150)", cls: "l", sort: 1 },
   { k: "vol", label: "出来高 / 前日比", sort: -1 },
@@ -455,6 +456,8 @@ const TIPS = {
   st: "ワインスタインのステージ。150日移動平均の傾きと株価の位置から 1底固め / 2上昇 / 3天井圏 / 4下降 を判定",
   st75: "短期版のステージ。75日移動平均の傾き (10日間の変化) と株価の位置から、150日版と同じ4段階で判定",
   stage75: "短期版のステージ。75日移動平均の傾き (10日間の変化) と株価の位置から、150日版と同じ4段階で判定",
+  st25: "超短期版のステージ。25日移動平均の傾き (3日間の変化) と株価の位置から、150日版と同じ4段階で判定",
+  stage25: "超短期版のステージ。25日移動平均の傾き (3日間の変化) と株価の位置から、150日版と同じ4段階で判定",
   stage: "ワインスタインのステージ。150日移動平均の傾きと株価の位置から 1底固め / 2上昇 / 3天井圏 / 4下降 を判定",
   earn: "次回の決算発表予定日 (JPXの決算発表予定日一覧)",
   sell: "信用売残 (株数)。下は前日比",
@@ -871,6 +874,7 @@ function renderTable() {
     const s = { ...D.stocks[row.c], r: row.r, pr: row.pr }, pl = tradePlan(s);
     s.st = s.stage ? s.stage.stage : null;
     s.st75 = s.stage75 ? s.stage75.stage : null;
+    s.st25 = s.stage25 ? s.stage25.stage : null;
     return pl ? { ...s, atrp: pl.atrp, stop: s.p } : s;
   });
   rows = rows.filter((s) => (!q || s.n.toLowerCase().includes(q) || s.c.toLowerCase().includes(q)) && (!sec || s.sec === sec) && (!mkt || s.mkt === mkt));
@@ -935,6 +939,7 @@ const CELLS = {
   r3m: (s) => `<td class="n">${hl("r3m", s.r3m, fmt("r3m", s.r3m))}</td>`,
   sec1m: (s) => `<td class="n">${fmt("r1m", s.sec1m)}<span class="mv">${has(s.sec3m) ? signed(s.sec3m) : ""}</span></td>`,
   st: (s) => `<td class="l">${stagePill(s.stage)}</td>`,
+  st25: (s) => `<td class="l">${stagePill(s.stage25)}</td>`,
   st75: (s) => `<td class="l">${stagePill(s.stage75)}</td>`,
   vol: (s) => `<td class="n">${fmt("vol", s.vol)}<span class="mv">${has(s.vchg) ? hl("vchg", s.vchg, signed(s.vchg)) : ""}</span></td>`,
   pos52: (s) => `<td class="n">${has(s.pos52) ? `<span class="r52"><span class="track"><span class="dot" style="left:${s.pos52}%"></span></span>${hl("pos52", s.pos52, `<span>${Math.round(s.pos52)}%</span>`)}</span>` : fmt("pos52", null)}</td>`,
@@ -956,12 +961,13 @@ function sectorAverages() {
 }
 const withSector = (s) => Object.assign(s, { sec1m: SEC_AVG[s.sec]?.r1m ?? null, sec3m: SEC_AVG[s.sec]?.r3m ?? null });
 
-const REST_H = COLS.slice(HEAD_N).filter((c) => c.k !== "st" && c.k !== "st75");
+const REST_H = COLS.slice(HEAD_N).filter((c) => !["st", "st75", "st25"].includes(c.k));
 const H_COLS = [
   { k: "n", label: "銘柄", cls: "l", sort: 1 },
   { k: "sf", label: "業績", sort: -1 },
   { k: "sm", label: "勢い", sort: -1 },
   { k: "p", label: "株価 / 前日比", sort: -1 },
+  { k: "stage25", label: "ステージ(25)", cls: "l", sort: 1 },
   { k: "stage75", label: "ステージ(75)", cls: "l", sort: 1 },
   { k: "stage", label: "ステージ(150)", cls: "l", sort: 1 },
   { k: "earn", label: "決算日", cls: "l", sort: 1 },
@@ -992,7 +998,7 @@ function signedInt(v) {
 }
 function hValue(r, k) {
   switch (k) {
-    case "stage": case "stage75": return r[k] ? r[k].stage : null;
+    case "stage": case "stage75": case "stage25": return r[k] ? r[k].stage : null;
     case "earn": return r.earn ? daysUntil(r.earn.date) + (daysUntil(r.earn.date) < 0 ? 1000 : 0) : null;
     case "sell": case "buy": case "ratio": return r.margin ? r.margin[k] : null;
     case "ranks": return r.ranks.length;
@@ -1038,6 +1044,7 @@ function renderHoldings() {
       ${scoreTd(r, "sf")}
       ${scoreTd(r, "sm")}
       <td class="n">${fmt("p", r.p)}<span class="mv">${has(r.chg) ? signed(r.chg) : ""}</span></td>
+      <td class="l">${stagePill(r.stage25)}${r.stage25 ? `<span class="mv flat">25日線乖離 ${r.stage25.dev > 0 ? "+" : ""}${r.stage25.dev}%</span>` : ""}</td>
       <td class="l">${stagePill(r.stage75)}${r.stage75 ? `<span class="mv flat">75日線乖離 ${r.stage75.dev > 0 ? "+" : ""}${r.stage75.dev}%</span>` : ""}</td>
       <td class="l">${stagePill(r.stage)}${r.stage ? `<span class="mv flat">150日線乖離 ${r.stage.dev > 0 ? "+" : ""}${r.stage.dev}%</span>` : ""}</td>
       <td class="l">${earnCell(r.earn)}</td>
@@ -1062,6 +1069,7 @@ function openDetail(code) {
     ["25日線乖離", fmt("dev25", s.dev25)], ["RSI(14)", fmt("rsi", s.rsi)], ["出来高倍率(対20日)", fmt("vr", s.vr)], ["20日高値から", fmt("off20", s.off20)]];
   if (s.stage) kv.push(["ステージ(150)", stagePill(s.stage)]);
   if (s.stage75) kv.push(["ステージ(75)", stagePill(s.stage75)]);
+  if (s.stage25) kv.push(["ステージ(25)", stagePill(s.stage25)]);
   const real = /^\d{3}[0-9A-Z]$/.test(s.c);
   const pl = tradePlan(s), R = D.rules;
   const planHtml = pl ? `<div class="plan"><h2>取引プランの目安</h2>
@@ -1161,7 +1169,7 @@ Promise.all([load(), loadHoldings(), loadJSON("markets"), loadJSON("calendar"), 
   }
   if (H) {
     $("nav-hold").hidden = false;
-    H.rows.forEach((r) => { withSector(r); if (!D.stocks[r.c]) D.stocks[r.c] = r; else Object.assign(D.stocks[r.c], { stage: r.stage, stage75: r.stage75 }); });
+    H.rows.forEach((r) => { withSector(r); if (!D.stocks[r.c]) D.stocks[r.c] = r; else Object.assign(D.stocks[r.c], { stage: r.stage, stage75: r.stage75, stage25: r.stage25 }); });
     ["click", "keydown"].forEach((ev) => $("htbl").tBodies[0].addEventListener(ev, (e) => {
       const tr = e.target.closest("tr[data-c]");
       if (!tr || (ev === "keydown" && e.key !== "Enter" && e.key !== " ")) return;

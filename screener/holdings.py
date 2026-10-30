@@ -159,9 +159,9 @@ def load_margin(codes):
 # ---------------------------------------------------------------- ステージ判定
 def stage_of(close, pos52, n=150):
     """ワインスタインのステージ分析 (n日移動平均の傾きと株価の位置)。
-    150日≒30週が本来の形。75日は同じ判定を半分の期間で行う短期版"""
-    lag = n * 2 // 15          # 傾きを測る間隔 (150日なら20日、75日なら10日)
-    th = n / 150               # 横ばいとみなす傾きの幅 (150日なら±1%、75日なら±0.5%)
+    150日≒30週が本来の形。75日・25日は同じ判定を短い期間で行う短期版"""
+    lag = n * 2 // 15          # 傾きを測る間隔 (150日なら20日、75日なら10日、25日なら3日)
+    th = n / 150               # 横ばいとみなす傾きの幅 (150日なら±1%、75日なら±0.5%、25日なら±0.17%)
     if len(close) < n + lag:
         return None
     ma = float(close.iloc[-n:].mean())
@@ -190,7 +190,7 @@ def write_holdings(holdings, funds, stocks_by_code, screens, asof, earnings, mar
         rows.append({
             **{k: s.get(k) for k in ("sec", "mkt", "p", "chg", "mc", "per", "pbr", "dy", "roe",
                                      "opm", "rg", "eg", "er", "r1m", "r3m", "r6m", "pos52", "to",
-                                     "sf", "sm", "items", "stage", "stage75", "vol", "vchg")},
+                                     "sf", "sm", "items", "stage", "stage75", "stage25", "vol", "vchg")},
             "c": h["c"],
             "n": s.get("n") or h["n"],
             "acct": h["acct"],

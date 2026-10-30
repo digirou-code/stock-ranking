@@ -429,7 +429,7 @@ def write_output(stocks, asof: str, demo: bool, universe: int, earnings=None):
 def compact(s):
     keys = ["c", "n", "sec", "mkt", "p", "chg", "mc", "per", "pbr", "dy", "roe",
             "opm", "rg", "eg", "er", "r1m", "r3m", "r6m", "pos52", "to", "sf", "sm", "items", "egf",
-            "stage", "stage75", "dev25", "rsi", "vr", "vol", "vchg", "off20", "atr", "earn", "earn_bd"]
+            "stage", "stage75", "stage25", "dev25", "rsi", "vr", "vol", "vchg", "off20", "atr", "earn", "earn_bd"]
     out = {}
     for k in keys:
         v = s.get(k)
@@ -503,6 +503,7 @@ def fetch_prices(codes):
                 **technicals(h),
                 "stage": hd.stage_of(close, pos52),
                 "stage75": hd.stage_of(close, pos52, 75),
+                "stage25": hd.stage_of(close, pos52, 25),
                 "p": last,
                 "chg": ret(1),
                 "r1m": ret(21),
@@ -838,6 +839,7 @@ def build_demo(seed=None, asof=None):
             "vchg": (math.exp(day.gauss(0, 0.5)) - 1) * 100,
             "stage": {"stage": rnd.randint(1, 4), "n": 150, "ma150": s["p"], "slope": 0.0, "dev": round(dev, 1)},
             "stage75": {"stage": rnd.randint(1, 4), "n": 75, "ma150": s["p"], "slope": 0.0, "dev": round(dev, 1)},
+            "stage25": {"stage": rnd.randint(1, 4), "n": 25, "ma150": s["p"], "slope": 0.0, "dev": round(dev, 1)},
             "off20": -abs(day.gauss(0, 7)),
             "near_hi": -abs(day.gauss(0, 1.5)),
             "bull": day.random() < 0.5,

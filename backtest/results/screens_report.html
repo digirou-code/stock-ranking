@@ -1,0 +1,161 @@
+<title>全スクリーニング検証</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Zen+Kaku+Gothic+New:wght@400;500;700&family=Shippori+Mincho+B1:wght@600;800&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* 売買帳の続き: 紙の帳面に細い罫、数値は等幅。利益=朱、損失=藍 */
+:root {
+  --bg: #f5f5f1; --panel: #ffffff; --fg: #1d2129; --mute: #5d6470; --line: #dadbd3;
+  --up: 190, 52, 38; --dn: 36, 86, 160; --accent: #87580f;
+  --c1: #c43728; --c3: #2a6db5; --c5: #3d8748; --c6: #7a5bb0;
+  --display: "Shippori Mincho B1", "Hiragino Mincho ProN", "Yu Mincho", serif;
+  --body: "Zen Kaku Gothic New", "Hiragino Sans", "Yu Gothic", system-ui, sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #15181d; --panel: #1c2027; --fg: #e6e7e3; --mute: #9aa1ab; --line: #303641;
+  --up: 238, 105, 88; --dn: 104, 158, 230; --accent: #e0b064;
+  --c1: #ee6958; --c3: #6aa2ea; --c5: #74c083; --c6: #b49ae6; color-scheme: dark; } }
+:root[data-theme="dark"] {
+  --bg: #15181d; --panel: #1c2027; --fg: #e6e7e3; --mute: #9aa1ab; --line: #303641;
+  --up: 238, 105, 88; --dn: 104, 158, 230; --accent: #e0b064;
+  --c1: #ee6958; --c3: #6aa2ea; --c5: #74c083; --c6: #b49ae6; color-scheme: dark; }
+body { background: var(--bg); color: var(--fg); font-family: var(--body); font-size: 15px; line-height: 1.75; }
+.wrap { max-width: 1040px; margin: 0 auto; padding-block: 36px 64px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
+  display: grid; gap: 48px; }
+header { display: grid; gap: 10px; border-bottom: 2px solid var(--fg); padding-bottom: 18px; }
+.eyebrow { font-family: var(--mono); font-size: 12px; letter-spacing: .08em; color: var(--accent); text-transform: uppercase; }
+h1 { font-family: var(--display); font-weight: 800; font-size: clamp(28px, 5vw, 40px); line-height: 1.25; margin: 0; text-wrap: balance; }
+h2 { font-family: var(--display); font-weight: 800; font-size: 22px; margin: 0; text-wrap: balance; }
+h3 { font-size: 16px; margin: 0; }
+h4 { font-size: 12px; margin: 0 0 4px; color: var(--mute); font-weight: 500; letter-spacing: .04em; }
+section { display: grid; gap: 14px; min-width: 0; }
+p { margin: 0; max-width: 70ch; }
+.meta { display: flex; flex-wrap: wrap; gap: 6px 22px; color: var(--mute); font-size: 13px; }
+.meta b { color: var(--fg); font-family: var(--mono); font-weight: 500; }
+.lead { color: var(--mute); font-size: 14px; }
+.summary { background: var(--panel); border: 1px solid var(--line); border-radius: 6px; padding: 20px 22px; display: grid; gap: 10px; }
+.summary ul { margin: 0; padding-left: 1.2em; display: grid; gap: 6px; max-width: 74ch; }
+.warn { color: rgb(var(--up)); font-weight: 700; }
+.steps { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; }
+.steps div { border-top: 2px solid var(--fg); padding-top: 8px; display: grid; gap: 4px; min-width: 0; }
+.steps b { font-family: var(--mono); font-weight: 500; color: var(--accent); font-size: 12px; }
+.steps p { font-size: 14px; color: var(--mute); }
+.fams { display: grid; gap: 32px; }
+.fam { display: grid; gap: 10px; min-width: 0; }
+.famhead { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.dot { width: 10px; height: 10px; border-radius: 50%; }
+.chip { font-size: 12px; color: var(--mute); border: 1px solid var(--line); border-radius: 999px; padding: 0 10px; font-weight: 400; }
+.spec { display: grid; grid-template-columns: minmax(0, 3fr) minmax(0, 2fr); gap: 16px 28px; }
+@media (max-width: 640px) { .spec { grid-template-columns: 1fr; } }
+.spec ul { margin: 0; padding-left: 1.2em; font-size: 14px; }
+.exit { font-family: var(--mono); font-size: 14px; }
+.mix { font-size: 12px; color: var(--mute); }
+.tw { overflow-x: auto; border: 1px solid var(--line); border-radius: 6px; background: var(--panel); }
+table { border-collapse: collapse; width: 100%; font-variant-numeric: tabular-nums; }
+th, td { padding: 9px 12px; text-align: right; border-bottom: 1px solid var(--line); white-space: nowrap; vertical-align: top; }
+thead th { font-size: 12px; color: var(--mute); font-weight: 500; letter-spacing: .04em; background: var(--bg); }
+tbody th { text-align: left; font-weight: 500; }
+th small { display: block; font-size: 11px; color: var(--mute); font-weight: 400; font-family: var(--mono); }
+tbody tr:last-child > * { border-bottom: 0; }
+td { font-family: var(--mono); font-size: 14px; }
+td b { font-weight: 500; }
+td.pos { background: rgba(var(--up), var(--a)); }
+td.neg { background: rgba(var(--dn), var(--a)); }
+.txt { text-align: left; white-space: normal; font-family: var(--body); font-size: 13px; min-width: 260px; }
+tr.oos th { color: var(--accent); }
+tr.sub > * { color: var(--mute); }
+tr.old > * { background: var(--bg); }
+.tag { display: inline-block; font-size: 11px; border: 1px solid var(--line); border-radius: 3px; padding: 0 5px; margin-right: 8px; color: var(--mute); }
+.tag.new { border-color: var(--accent); color: var(--accent); }
+.na { color: var(--mute); }
+.chart { overflow-x: auto; background: var(--panel); border: 1px solid var(--line); border-radius: 6px; padding: 8px; }
+.chart svg { display: block; width: 100%; min-width: 560px; height: auto; }
+.chart .gl { stroke: var(--line); stroke-width: 1; }
+.chart .zero { stroke: var(--mute); stroke-width: 1; }
+.chart .ax { fill: var(--mute); font: 11px var(--mono); }
+.chart .ln { stroke-width: 2; stroke-linejoin: round; }
+.legend { display: flex; flex-wrap: wrap; gap: 6px 18px; font-size: 13px; }
+.legend i { display: inline-block; width: 12px; height: 3px; vertical-align: middle; margin-right: 6px; }
+.legend b { font-family: var(--mono); font-weight: 500; }
+.robust { display: grid; gap: 12px; }
+.notes { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px 28px; }
+.notes div { display: grid; gap: 4px; min-width: 0; }
+.notes p { font-size: 14px; color: var(--mute); }
+
+td small { display: block; font-size: 11px; color: var(--mute); }
+.rules { display: flex; flex-wrap: wrap; gap: 8px; }
+.rules span { font-family: var(--mono); font-size: 13px; border: 1px solid var(--line); border-radius: 4px; padding: 2px 10px; background: var(--panel); }
+.tw table { font-size: 13px; }
+.tw td, .tw th { padding-left: 7px; padding-right: 7px; }
+.legendrow { display: flex; flex-wrap: wrap; gap: 6px 18px; font-size: 13px; color: var(--mute); }
+</style>
+<div class="wrap">
+<header>
+  <div class="eyebrow">Backtest · 全タブ</div>
+  <h1>全スクリーニング検証</h1>
+  <div class="rules">
+    <span>翌営業日の寄り付きで買い</span><span>損切り -6%</span>
+    <span>+20%で半分</span><span>+40%で残り</span>
+    <span>25営業日で手仕舞い</span><span>最大10銘柄</span><span>決算回避</span>
+  </div>
+  <div class="meta">
+    <span>直近1年 <b>2025-10-29 〜 2026-10-29</b></span>
+    <span>通し <b>2023-01-13 〜 2026-10-29</b></span>
+    <span>銘柄 <b>3,680</b></span>
+  </div>
+  
+</header>
+
+<section class="summary">
+  <h2>結論</h2>
+  <p>株価と出来高だけで判定でき、先読みの心配がないタブのうち、日経平均に勝ったものは<b>ありませんでした</b>。直近1年の日経平均は +26.0% (最大DD -15.1%) でした。これに対し、一番良かった <b>SCORE勢い</b> は +18.4%、<b>高値ブレイク</b>は +6.8%、<b>出来高急増</b>は -35.1% です。日経平均を上回ったのは、成長株 +106.8%、SCORE業績 +55.1%、乖離リバウンド +40.0%、高配当 +31.6%、25日線押し目 +27.2% でした。ただし、どれも財務の現在値を過去に当てはめたタブで、実際より良く出ています。</p>
+<ul>
+<li><b>財務条件を外すと成績が消える</b>: 乖離リバウンドは、財務条件付きなら +40.0% ですが、株価条件だけにすると +1.1% まで下がります。25日線押し目も、+27.2% から -0.9% になりました。財務フィルタが効いているように見える分は、ほとんどが「今の決算が良い銘柄を過去に選んだ」先読みによるものと考えられます。</li>
+<li><b>約4年の通し期間でも同じ傾向</b>: 日経平均は +147.6% (年率 +27.0%) でした。これを上回ったのは、SCORE業績 +278%、高配当 +202%、成長株 +164% の財務タブだけです。株価だけで判定できるタブは、SCORE勢いの +82% が最高でした。株価条件だけにしたMACD・RSI (+99%) と25日線押し目 (+37%) も届いていません。</li>
+<li><b>ランダムには勝つものと負けるものがある</b>: 売買代金1億円以上の銘柄から無作為に買った場合、直近1年 +10.0%、通し +29.8% でした。SCORE勢いは両方の期間でこれを上回っています。一方、<b>高値ブレイク (通し -37%) と出来高急増 (通し -63%、最大DD -67%)</b> はランダムより明確に悪く、このルールでは使わない方が良い結果でした。</li>
+<li><b>新しいタブ</b>: MACD・RSIは、直近1年が -1.0% (株価条件だけなら +6.3%) で、ランダム並みでした。好業績押し目は -13.3%、信用過多押し目 (信用倍率の条件なし) は -11.6% で、直近1年はどちらもマイナスです。好業績押し目は財務の先読みがあるのにマイナスなので、条件の組み方に問題がある可能性があります。</li>
+<li><b>決算回避ははっきりした効果なし</b>: 回避すると成績が良くなったのは、25日線押し目・乖離リバウンド・好業績押し目でした。逆に悪くなったのは、割安PER・高配当・MACD・RSIです。決算日は推定日なので、この結果は参考程度です。</li>
+</ul>
+<p>まとめると、このルール (損切り -6% / +20%で半分 / +40%で残り / 25営業日) でサイトのタブをそのまま使っても、日経平均を買って持つ方が成績が良かった、というのが正直な結果です。今後も使うなら、ランダムに勝ち先読みもない<b>SCORE勢い</b>が第一候補です。<b>高値ブレイクと出来高急増</b>は、タブから外すか条件の見直しが必要です。財務タブの良い成績は、過去の決算データが手に入るまでは確かめられません。</p>
+
+</section>
+
+<section>
+  <h2>直近1年の成績</h2>
+  <p class="lead">期待値は1回あたりのコスト控除後の平均損益 (半分ずつ売った分を合わせた損益)。最大DD・年率・期間損益は資金を10枠に分けて運用した場合 (1枠=資産の1/10、複利、含み損益込み)。10枠が埋まっているときは、サイトの各タブの並び順で上位から買います。期間損益の高い順に並べています。</p>
+  <div class="legendrow"><span><span class="tag new">○</span>株価だけで判定できる</span><span><span class="tag">△</span>財務は現在値 (右端に株価だけの条件で検証した版)</span><span><span class="tag">×</span>財務だけのタブ (先読みを外せない)</span></div>
+  <div class="tw"><table><thead><tr><th></th><th>取引回数</th><th>勝率</th><th>平均利益</th><th>平均損失</th><th>損益比</th><th>期待値</th><th>PF</th><th>最大DD</th><th>年率</th><th>期間損益</th><th>株価だけの条件</th></tr></thead><tbody><tr><th scope="row"><span class="tag">×</span>成長株<small>成長</small></th><td>5,888</td><td>42.4%</td><td>+11.62%</td><td>-6.05%</td><td>1.92</td><td class="pos" style="--a:0.53"><b>+1.45%</b></td><td class="pos" style="--a:0.46">1.42</td><td>-17.0%</td><td class="pos" style="--a:0.55">+106.9%</td><td class="pos" style="--a:0.55">+106.8%</td><td class="na">—</td></tr><tr><th scope="row"><span class="tag">×</span>SCORE業績<small>業績</small></th><td>133</td><td>52.6%</td><td>+12.17%</td><td>-5.75%</td><td>2.12</td><td class="pos" style="--a:0.55"><b>+3.68%</b></td><td class="pos" style="--a:0.55">2.35</td><td>-16.0%</td><td class="pos" style="--a:0.55">+55.2%</td><td class="pos" style="--a:0.55">+55.1%</td><td class="na">—</td></tr><tr><th scope="row"><span class="tag">△</span>乖離リバウンド<small>リバウンド</small></th><td>814</td><td>42.6%</td><td>+12.82%</td><td>-6.18%</td><td>2.07</td><td class="pos" style="--a:0.55"><b>+1.92%</b></td><td class="pos" style="--a:0.55">1.54</td><td>-13.4%</td><td class="pos" style="--a:0.55">+40.1%</td><td class="pos" style="--a:0.55">+40.0%</td><td>+1.1%<small>PF 1.30 · DD -20.7%</small></td></tr><tr><th scope="row"><span class="tag">×</span>高配当<small>配当</small></th><td>6,168</td><td>53.2%</td><td>+7.33%</td><td>-4.99%</td><td>1.47</td><td class="pos" style="--a:0.55"><b>+1.56%</b></td><td class="pos" style="--a:0.55">1.67</td><td>-11.4%</td><td class="pos" style="--a:0.55">+31.7%</td><td class="pos" style="--a:0.43">+31.6%</td><td class="na">—</td></tr><tr><th scope="row"><span class="tag">△</span>25日線押し目<small>押し目</small></th><td>3,109</td><td>41.6%</td><td>+10.11%</td><td>-6.05%</td><td>1.67</td><td class="pos" style="--a:0.25"><b>+0.67%</b></td><td class="pos" style="--a:0.21">1.19</td><td>-19.7%</td><td class="pos" style="--a:0.50">+27.2%</td><td class="pos" style="--a:0.37">+27.2%</td><td>-0.9%<small>PF 1.15 · DD -18.0%</small></td></tr><tr><th scope="row"><span class="tag new">○</span>SCORE勢い<small>勢い</small></th><td>582</td><td>38.0%</td><td>+10.75%</td><td>-6.14%</td><td>1.75</td><td class="pos" style="--a:0.10"><b>+0.28%</b></td><td class="pos" style="--a:0.08">1.07</td><td>-17.8%</td><td class="pos" style="--a:0.34">+18.4%</td><td class="pos" style="--a:0.25">+18.4%</td><td class="na">—</td></tr><tr><th scope="row"><span class="tag">×</span>低PER<small>割安</small></th><td>11,354</td><td>46.9%</td><td>+8.97%</td><td>-5.54%</td><td>1.62</td><td class="pos" style="--a:0.46"><b>+1.26%</b></td><td class="pos" style="--a:0.47">1.43</td><td>-26.4%</td><td class="pos" style="--a:0.18">+9.7%</td><td class="pos" style="--a:0.13">+9.7%</td><td class="na">—</td></tr><tr><th scope="row"><span class="tag new">○</span>高値ブレイク<small>初動</small></th><td>3,568</td><td>34.4%</td><td>+11.70%</td><td>-6.07%</td><td>1.93</td><td class="pos" style="--a:0.02"><b>+0.05%</b></td><td class="pos" style="--a:0.01">1.01</td><td>-18.1%</td><td class="pos" style="--a:0.13">+6.8%</td><td class="pos" style="--a:0.09">+6.8%</td><td class="na">—</td></tr><tr><th scope="row"><span class="tag">△</span>RSI押し目<small>押し目</small></th><td>2,561</td><td>37.9%</td><td>+10.11%</td><td>-5.87%</td><td>1.72</td><td class="pos" style="--a:0.07"><b>+0.19%</b></td><td class="pos" style="--a:0.06">1.05</td><td>-19.0%</td><td class="pos" style="--a:0.07">+3.7%</td><td class="pos" style="--a:0.05">+3.7%</td><td>-3.3%<small>PF 1.00 · DD -21.6%</small></td></tr><tr><th scope="row"><span class="tag">×</span>高ROE<small>収益</small></th><td>8,599</td><td>38.7%</td><td>+10.84%</td><td>-6.05%</td><td>1.79</td><td class="pos" style="--a:0.18"><b>+0.48%</b></td><td class="pos" style="--a:0.14">1.13</td><td>-15.8%</td><td class="pos" style="--a:0.00">+0.1%</td><td class="pos" style="--a:0.00">+0.1%</td><td class="na">—</td></tr><tr><th scope="row"><span class="tag">△</span>MACD・RSI<small>初動</small></th><td>3,418</td><td>41.0%</td><td>+9.65%</td><td>-5.80%</td><td>1.66</td><td class="pos" style="--a:0.20"><b>+0.54%</b></td><td class="pos" style="--a:0.17">1.16</td><td>-21.5%</td><td class="neg" style="--a:0.02">-1.0%</td><td class="neg" style="--a:0.01">-1.0%</td><td>+6.3%<small>PF 1.06 · DD -15.1%</small></td></tr><tr><th scope="row"><span class="tag">△</span>RSI売られすぎ反発<small>リバウンド</small></th><td>677</td><td>35.5%</td><td>+7.81%</td><td>-5.85%</td><td>1.33</td><td class="neg" style="--a:0.37"><b>-1.01%</b></td><td class="neg" style="--a:0.29">0.73</td><td>-16.2%</td><td class="neg" style="--a:0.07">-3.6%</td><td class="neg" style="--a:0.05">-3.6%</td><td>+0.3%<small>PF 0.87 · DD -12.0%</small></td></tr><tr><th scope="row"><span class="tag">△</span>信用過多押し目<small>押し目</small></th><td>529</td><td>31.4%</td><td>+11.27%</td><td>-6.13%</td><td>1.84</td><td class="neg" style="--a:0.25"><b>-0.67%</b></td><td class="neg" style="--a:0.18">0.84</td><td>-23.2%</td><td class="neg" style="--a:0.21">-11.6%</td><td class="neg" style="--a:0.16">-11.6%</td><td>+15.4%<small>PF 0.91 · DD -10.8%</small></td></tr><tr><th scope="row"><span class="tag">△</span>好業績押し目<small>押し目</small></th><td>269</td><td>26.8%</td><td>+11.01%</td><td>-6.34%</td><td>1.74</td><td class="neg" style="--a:0.55"><b>-1.70%</b></td><td class="neg" style="--a:0.40">0.63</td><td>-25.0%</td><td class="neg" style="--a:0.24">-13.3%</td><td class="neg" style="--a:0.18">-13.3%</td><td>+2.2%<small>PF 0.69 · DD -17.4%</small></td></tr><tr><th scope="row"><span class="tag new">○</span>出来高急増<small>初動</small></th><td>1,984</td><td>31.4%</td><td>+11.76%</td><td>-6.23%</td><td>1.89</td><td class="neg" style="--a:0.21"><b>-0.58%</b></td><td class="neg" style="--a:0.15">0.86</td><td>-35.8%</td><td class="neg" style="--a:0.55">-35.1%</td><td class="neg" style="--a:0.48">-35.1%</td><td class="na">—</td></tr><tr class="old"><th scope="row"><span class="tag">比較</span>ランダム<small>売買代金1億円以上から無作為・同じルール・5回の平均</small></th><td class="na">—</td><td>38.7%</td><td class="na">—</td><td class="na">—</td><td class="na">—</td><td>+0.56%</td><td>1.15</td><td>-13.8%</td><td>+10.0%</td><td>+10.0%</td><td></td></tr><tr class="old"><th scope="row"><span class="tag">比較</span>日経平均<small>買って持つだけ (配当なし)</small></th><td colspan="7" class="na"></td><td>-15.1%</td><td>+26.0%</td><td>+26.0%</td><td></td></tr></tbody></table></div>
+  <div class="chart"><svg viewBox="0 0 760 300" role="img" aria-label="損益推移"><line x1="52" x2="744" y1="270.0" y2="270.0" class="gl"/><text x="46" y="274.0" class="ax" text-anchor="end">-20%</text><line x1="52" x2="744" y1="233.4" y2="233.4" class="zero"/><text x="46" y="237.4" class="ax" text-anchor="end">+0%</text><line x1="52" x2="744" y1="196.9" y2="196.9" class="gl"/><text x="46" y="200.9" class="ax" text-anchor="end">+20%</text><line x1="52" x2="744" y1="160.3" y2="160.3" class="gl"/><text x="46" y="164.3" class="ax" text-anchor="end">+40%</text><line x1="52" x2="744" y1="123.7" y2="123.7" class="gl"/><text x="46" y="127.7" class="ax" text-anchor="end">+60%</text><line x1="52" x2="744" y1="87.1" y2="87.1" class="gl"/><text x="46" y="91.1" class="ax" text-anchor="end">+80%</text><line x1="52" x2="744" y1="50.6" y2="50.6" class="gl"/><text x="46" y="54.6" class="ax" text-anchor="end">+100%</text><line x1="52" x2="744" y1="14.0" y2="14.0" class="gl"/><text x="46" y="18.0" class="ax" text-anchor="end">+120%</text><text x="52.0" y="290" class="ax" text-anchor="middle">2025/10</text><text x="118.5" y="290" class="ax" text-anchor="middle">2025/12</text><text x="238.3" y="290" class="ax" text-anchor="middle">2026/02</text><text x="344.8" y="290" class="ax" text-anchor="middle">2026/04</text><text x="464.5" y="290" class="ax" text-anchor="middle">2026/06</text><text x="584.3" y="290" class="ax" text-anchor="middle">2026/08</text><text x="690.8" y="290" class="ax" text-anchor="middle">2026/10</text><polyline points="52.0,229.2 65.3,230.6 78.6,220.0 91.9,223.1 105.2,215.7 118.5,215.9 131.8,214.6 145.2,213.8 158.5,210.6 171.8,210.5 185.1,200.6 198.4,191.2 211.7,188.5 225.0,184.2 238.3,179.9 251.6,168.7 264.9,158.1 278.2,143.7 291.5,141.1 304.8,148.5 318.2,158.7 331.5,174.7 344.8,176.1 358.1,164.9 371.4,155.3 384.7,156.3 398.0,150.3 411.3,131.1 424.6,116.7 437.9,93.1 451.2,91.9 464.5,99.3 477.8,109.3 491.2,89.5 504.5,89.5 517.8,84.3 531.1,93.7 544.4,114.4 557.7,111.6 571.0,105.6 584.3,86.1 597.6,78.3 610.9,73.4 624.2,59.5 637.5,68.5 650.8,75.2 664.2,54.7 677.5,44.4 690.8,33.9 704.1,29.3 717.4,31.6 730.7,38.1 744.0,38.1" fill="none" style="stroke:var(--c1)" class="ln"/><circle cx="744.0" cy="38.1" r="3.5" style="fill:var(--c1)"/><polyline points="52.0,233.1 65.3,227.9 78.6,220.5 91.9,219.4 105.2,214.0 118.5,214.2 131.8,210.1 145.2,210.9 158.5,205.0 171.8,205.0 185.1,198.7 198.4,191.1 211.7,191.1 225.0,191.6 238.3,179.9 251.6,157.5 264.9,148.8 278.2,138.7 291.5,146.2 304.8,158.1 318.2,163.2 331.5,165.0 344.8,162.8 358.1,163.3 371.4,162.0 384.7,170.7 398.0,174.4 411.3,175.0 424.6,177.0 437.9,175.6 451.2,173.0 464.5,178.8 477.8,182.2 491.2,179.2 504.5,179.5 517.8,170.3 531.1,166.6 544.4,171.0 557.7,167.9 571.0,166.4 584.3,156.9 597.6,144.3 610.9,138.9 624.2,134.2 637.5,134.7 650.8,141.1 664.2,130.9 677.5,129.1 690.8,133.1 704.1,131.8 717.4,129.6 730.7,132.0 744.0,132.6" fill="none" style="stroke:var(--c3)" class="ln"/><circle cx="744.0" cy="132.6" r="3.5" style="fill:var(--c3)"/><polyline points="52.0,233.6 65.3,229.8 78.6,221.7 91.9,227.4 105.2,227.2 118.5,227.8 131.8,224.6 145.2,225.1 158.5,221.3 171.8,221.0 185.1,207.7 198.4,204.7 211.7,206.7 225.0,207.2 238.3,210.8 251.6,204.1 264.9,200.7 278.2,195.0 291.5,205.5 304.8,213.2 318.2,220.6 331.5,222.6 344.8,213.6 358.1,203.4 371.4,196.2 384.7,200.8 398.0,198.2 411.3,192.5 424.6,190.2 437.9,192.9 451.2,197.1 464.5,192.4 477.8,197.9 491.2,188.4 504.5,191.5 517.8,187.9 531.1,182.9 544.4,196.7 557.7,191.8 571.0,186.0 584.3,179.9 597.6,169.0 610.9,168.9 624.2,171.3 637.5,173.8 650.8,178.1 664.2,172.5 677.5,165.9 690.8,157.5 704.1,153.2 717.4,154.0 730.7,160.2 744.0,160.2" fill="none" style="stroke:var(--c5)" class="ln"/><circle cx="744.0" cy="160.2" r="3.5" style="fill:var(--c5)"/><polyline points="52.0,229.6 65.3,233.1 78.6,231.9 91.9,228.0 105.2,225.3 118.5,231.1 131.8,232.4 145.2,234.9 158.5,230.9 171.8,230.2 185.1,224.4 198.4,220.4 211.7,225.7 225.0,233.4 238.3,230.7 251.6,220.7 264.9,218.5 278.2,213.5 291.5,218.2 304.8,226.8 318.2,229.5 331.5,227.6 344.8,226.3 358.1,222.4 371.4,220.1 384.7,225.0 398.0,225.4 411.3,223.5 424.6,221.1 437.9,220.9 451.2,225.7 464.5,224.2 477.8,233.3 491.2,229.8 504.5,229.1 517.8,221.5 531.1,217.3 544.4,227.9 557.7,230.6 571.0,233.6 584.3,230.8 597.6,224.7 610.9,222.8 624.2,219.5 637.5,221.3 650.8,227.8 664.2,223.2 677.5,223.1 690.8,222.4 704.1,222.0 717.4,224.4 730.7,225.5 744.0,226.2" fill="none" style="stroke:var(--c6)" class="ln"/><circle cx="744.0" cy="226.2" r="3.5" style="fill:var(--c6)"/><polyline points="52.0,229.5 65.3,237.1 78.6,236.7 91.9,243.0 105.2,237.2 118.5,236.3 131.8,235.1 145.2,239.8 158.5,235.4 171.8,236.9 185.1,231.2 198.4,224.1 211.7,224.4 225.0,226.2 238.3,222.9 251.6,213.4 264.9,213.8 278.2,206.5 291.5,218.1 304.8,224.5 318.2,226.1 331.5,226.1 344.8,227.0 358.1,213.4 371.4,207.9 384.7,203.5 398.0,204.2 411.3,192.8 424.6,197.4 437.9,190.5 451.2,179.9 464.5,179.0 477.8,181.0 491.2,162.4 504.5,169.1 517.8,167.7 531.1,172.0 544.4,187.7 557.7,186.0 571.0,186.9 584.3,182.5 597.6,171.4 610.9,181.0 624.2,179.6 637.5,184.6 650.8,188.2 664.2,184.6 677.5,179.8 690.8,172.8 704.1,170.3 717.4,183.5 730.7,192.9 744.0,185.8" fill="none" style="stroke:var(--mute)" class="ln" stroke-dasharray="5 4"/><circle cx="744.0" cy="185.8" r="3.5" style="fill:var(--mute)"/></svg></div><div class="legend"><span><i style="background:var(--c1)"></i>成長株 <b>+106.8%</b></span><span><i style="background:var(--c3)"></i>SCORE業績 <b>+55.1%</b></span><span><i style="background:var(--c5)"></i>乖離リバウンド <b>+40.0%</b></span><span><i style="background:var(--c6)"></i>ランダム (5回のうち1回) <b>+4.0%</b></span><span><i style="background:var(--mute)"></i>日経平均 <b>+26.0%</b></span></div>
+</section>
+
+<section>
+  <h2>通しの成績</h2>
+  <p class="lead">2023-01-13 〜 2026-10-29。1年だけの相場の偏りを除いて見るためのものです。</p>
+  <div class="tw"><table><thead><tr><th></th><th>取引回数</th><th>勝率</th><th>平均利益</th><th>平均損失</th><th>損益比</th><th>期待値</th><th>PF</th><th>最大DD</th><th>年率</th><th>期間損益</th><th>株価だけの条件</th></tr></thead><tbody><tr><th scope="row"><span class="tag">×</span>SCORE業績<small>業績</small></th><td>459</td><td>52.3%</td><td>+11.84%</td><td>-5.67%</td><td>2.09</td><td class="pos" style="--a:0.55"><b>+3.48%</b></td><td class="pos" style="--a:0.55">2.29</td><td>-16.0%</td><td class="pos" style="--a:0.55">+42.0%</td><td class="pos" style="--a:0.55">+278.3%</td><td class="na">—</td></tr><tr><th scope="row"><span class="tag">×</span>高配当<small>配当</small></th><td>30,316</td><td>53.4%</td><td>+7.54%</td><td>-5.18%</td><td>1.46</td><td class="pos" style="--a:0.55"><b>+1.62%</b></td><td class="pos" style="--a:0.55">1.67</td><td>-15.1%</td><td class="pos" style="--a:0.55">+33.9%</td><td class="pos" style="--a:0.55">+202.4%</td><td class="na">—</td></tr><tr><th scope="row"><span class="tag">×</span>成長株<small>成長</small></th><td>16,881</td><td>45.8%</td><td>+9.66%</td><td>-5.83%</td><td>1.66</td><td class="pos" style="--a:0.46"><b>+1.26%</b></td><td class="pos" style="--a:0.44">1.40</td><td>-24.1%</td><td class="pos" style="--a:0.53">+29.1%</td><td class="pos" style="--a:0.55">+163.6%</td><td class="na">—</td></tr><tr><th scope="row"><span class="tag">×</span>低PER<small>割安</small></th><td>46,569</td><td>48.8%</td><td>+8.68%</td><td>-5.52%</td><td>1.57</td><td class="pos" style="--a:0.52"><b>+1.42%</b></td><td class="pos" style="--a:0.55">1.50</td><td>-17.3%</td><td class="pos" style="--a:0.43">+23.5%</td><td class="pos" style="--a:0.55">+122.6%</td><td class="na">—</td></tr><tr><th scope="row"><span class="tag">△</span>25日線押し目<small>押し目</small></th><td>8,893</td><td>45.4%</td><td>+9.27%</td><td>-5.87%</td><td>1.58</td><td class="pos" style="--a:0.37"><b>+1.00%</b></td><td class="pos" style="--a:0.34">1.31</td><td>-22.0%</td><td class="pos" style="--a:0.40">+21.8%</td><td class="pos" style="--a:0.55">+111.0%</td><td>+36.7%<small>PF 1.25 · DD -25.4%</small></td></tr><tr><th scope="row"><span class="tag">△</span>乖離リバウンド<small>リバウンド</small></th><td>1,898</td><td>45.8%</td><td>+12.12%</td><td>-6.17%</td><td>1.97</td><td class="pos" style="--a:0.55"><b>+2.22%</b></td><td class="pos" style="--a:0.55">1.66</td><td>-23.8%</td><td class="pos" style="--a:0.36">+19.7%</td><td class="pos" style="--a:0.55">+97.7%</td><td>-22.3%<small>PF 1.35 · DD -46.8%</small></td></tr><tr><th scope="row"><span class="tag new">○</span>SCORE勢い<small>勢い</small></th><td>1,953</td><td>41.9%</td><td>+9.77%</td><td>-5.86%</td><td>1.67</td><td class="pos" style="--a:0.25"><b>+0.69%</b></td><td class="pos" style="--a:0.22">1.20</td><td>-16.4%</td><td class="pos" style="--a:0.31">+17.2%</td><td class="pos" style="--a:0.55">+82.3%</td><td class="na">—</td></tr><tr><th scope="row"><span class="tag">△</span>RSI押し目<small>押し目</small></th><td>6,305</td><td>42.7%</td><td>+9.15%</td><td>-5.70%</td><td>1.61</td><td class="pos" style="--a:0.23"><b>+0.64%</b></td><td class="pos" style="--a:0.22">1.20</td><td>-20.8%</td><td class="pos" style="--a:0.17">+9.4%</td><td class="pos" style="--a:0.55">+40.7%</td><td>+29.2%<small>PF 1.15 · DD -20.7%</small></td></tr><tr><th scope="row"><span class="tag">×</span>高ROE<small>収益</small></th><td>27,659</td><td>40.8%</td><td>+10.67%</td><td>-6.06%</td><td>1.76</td><td class="pos" style="--a:0.28"><b>+0.77%</b></td><td class="pos" style="--a:0.24">1.21</td><td>-21.3%</td><td class="pos" style="--a:0.14">+7.5%</td><td class="pos" style="--a:0.43">+31.4%</td><td class="na">—</td></tr><tr><th scope="row"><span class="tag">△</span>MACD・RSI<small>初動</small></th><td>9,875</td><td>44.1%</td><td>+8.18%</td><td>-5.58%</td><td>1.47</td><td class="pos" style="--a:0.18"><b>+0.49%</b></td><td class="pos" style="--a:0.17">1.16</td><td>-18.2%</td><td class="pos" style="--a:0.11">+6.1%</td><td class="pos" style="--a:0.35">+25.2%</td><td>+98.9%<small>PF 1.09 · DD -23.4%</small></td></tr><tr><th scope="row"><span class="tag">△</span>信用過多押し目<small>押し目</small></th><td>1,462</td><td>42.3%</td><td>+9.97%</td><td>-5.88%</td><td>1.70</td><td class="pos" style="--a:0.30"><b>+0.83%</b></td><td class="pos" style="--a:0.27">1.24</td><td>-25.2%</td><td class="neg" style="--a:0.01">-0.5%</td><td class="neg" style="--a:0.03">-2.0%</td><td>+8.6%<small>PF 1.22 · DD -27.5%</small></td></tr><tr><th scope="row"><span class="tag">△</span>好業績押し目<small>押し目</small></th><td>776</td><td>38.5%</td><td>+10.35%</td><td>-5.98%</td><td>1.73</td><td class="pos" style="--a:0.11"><b>+0.31%</b></td><td class="pos" style="--a:0.09">1.08</td><td>-24.9%</td><td class="neg" style="--a:0.03">-1.8%</td><td class="neg" style="--a:0.09">-6.6%</td><td>-17.3%<small>PF 1.11 · DD -28.8%</small></td></tr><tr><th scope="row"><span class="tag">△</span>RSI売られすぎ反発<small>リバウンド</small></th><td>2,498</td><td>46.7%</td><td>+8.90%</td><td>-5.57%</td><td>1.60</td><td class="pos" style="--a:0.43"><b>+1.18%</b></td><td class="pos" style="--a:0.44">1.40</td><td>-29.3%</td><td class="neg" style="--a:0.09">-5.1%</td><td class="neg" style="--a:0.25">-17.9%</td><td>-7.4%<small>PF 1.34 · DD -22.7%</small></td></tr><tr><th scope="row"><span class="tag new">○</span>高値ブレイク<small>初動</small></th><td>12,070</td><td>38.2%</td><td>+10.07%</td><td>-5.90%</td><td>1.71</td><td class="pos" style="--a:0.07"><b>+0.19%</b></td><td class="pos" style="--a:0.06">1.05</td><td>-46.6%</td><td class="neg" style="--a:0.21">-11.6%</td><td class="neg" style="--a:0.51">-37.3%</td><td class="na">—</td></tr><tr><th scope="row"><span class="tag new">○</span>出来高急増<small>初動</small></th><td>7,021</td><td>34.7%</td><td>+11.02%</td><td>-6.12%</td><td>1.80</td><td class="neg" style="--a:0.06"><b>-0.17%</b></td><td class="neg" style="--a:0.05">0.96</td><td>-67.2%</td><td class="neg" style="--a:0.42">-22.9%</td><td class="neg" style="--a:0.55">-62.7%</td><td class="na">—</td></tr><tr class="old"><th scope="row"><span class="tag">比較</span>ランダム<small>売買代金1億円以上から無作為・同じルール・5回の平均</small></th><td class="na">—</td><td>40.6%</td><td class="na">—</td><td class="na">—</td><td class="na">—</td><td>+0.57%</td><td>1.16</td><td>-24.3%</td><td>+6.8%</td><td>+29.8%</td><td></td></tr><tr class="old"><th scope="row"><span class="tag">比較</span>日経平均<small>買って持つだけ (配当なし)</small></th><td colspan="7" class="na"></td><td>-26.3%</td><td>+27.0%</td><td>+147.6%</td><td></td></tr></tbody></table></div>
+</section>
+
+<section>
+  <h2>検証できた範囲</h2>
+  <div class="tw"><table><tbody><tr><th scope="row"><span class="tag">×</span>SCORE業績</th><td class="txt">スコアの全項目が財務 (現在値)</td></tr><tr><th scope="row"><span class="tag new">○</span>SCORE勢い</th><td class="txt">株価と出来高だけで判定できるので、そのまま検証</td></tr><tr><th scope="row"><span class="tag">×</span>高配当</th><td class="txt">配当・ROEは現在値</td></tr><tr><th scope="row"><span class="tag">×</span>低PER</th><td class="txt">利益・ROEは現在値</td></tr><tr><th scope="row"><span class="tag">×</span>高ROE</th><td class="txt">ROE・自己資本比率は現在値</td></tr><tr><th scope="row"><span class="tag">×</span>成長株</th><td class="txt">成長率は現在値</td></tr><tr><th scope="row"><span class="tag">△</span>25日線押し目</th><td class="txt">財務は現在値 (先読み)</td></tr><tr><th scope="row"><span class="tag">△</span>RSI押し目</th><td class="txt">財務は現在値 (先読み)</td></tr><tr><th scope="row"><span class="tag">△</span>好業績押し目</th><td class="txt">財務は現在値 (先読み)</td></tr><tr><th scope="row"><span class="tag">△</span>信用過多押し目</th><td class="txt">信用倍率10倍以上の条件は過去データが無く外した。財務は現在値</td></tr><tr><th scope="row"><span class="tag">△</span>乖離リバウンド</th><td class="txt">財務は現在値 (先読み)</td></tr><tr><th scope="row"><span class="tag">△</span>RSI売られすぎ反発</th><td class="txt">財務は現在値 (先読み)</td></tr><tr><th scope="row"><span class="tag new">○</span>出来高急増</th><td class="txt">株価と出来高だけで判定できるので、そのまま検証</td></tr><tr><th scope="row"><span class="tag new">○</span>高値ブレイク</th><td class="txt">株価と出来高だけで判定できるので、そのまま検証</td></tr><tr><th scope="row"><span class="tag">△</span>MACD・RSI</th><td class="txt">財務は現在値 (先読み)</td></tr></tbody></table></div>
+</section>
+
+<section>
+  <h2>決算回避の効果 (直近1年)</h2>
+  <p class="lead">過去の決算日は一括で取れないため、次回の決算予定日から3ヶ月ごとにさかのぼった日を推定日として使いました (決算予定日がわかる銘柄 3,591 社)。実際の発表日とは数日ずれることがあります。</p>
+  <div class="tw"><table><thead><tr><th></th><th>決算回避あり 損益</th><th>最大DD</th><th>回避なし 損益</th><th>最大DD</th></tr></thead><tbody><tr><th scope="row">SCORE業績</th><td>+55.1%</td><td>-16.0%</td><td>+55.5%</td><td>-15.4%</td></tr><tr><th scope="row">SCORE勢い</th><td>+18.4%</td><td>-17.8%</td><td>+15.3%</td><td>-14.1%</td></tr><tr><th scope="row">高配当</th><td>+31.6%</td><td>-11.4%</td><td>+47.0%</td><td>-15.7%</td></tr><tr><th scope="row">低PER</th><td>+9.7%</td><td>-26.4%</td><td>+30.1%</td><td>-15.3%</td></tr><tr><th scope="row">高ROE</th><td>+0.1%</td><td>-15.8%</td><td>+7.1%</td><td>-12.0%</td></tr><tr><th scope="row">成長株</th><td>+106.8%</td><td>-17.0%</td><td>+110.7%</td><td>-16.3%</td></tr><tr><th scope="row">25日線押し目</th><td>+27.2%</td><td>-19.7%</td><td>+16.6%</td><td>-26.1%</td></tr><tr><th scope="row">RSI押し目</th><td>+3.7%</td><td>-19.0%</td><td>-7.9%</td><td>-25.1%</td></tr><tr><th scope="row">好業績押し目</th><td>-13.3%</td><td>-25.0%</td><td>-13.3%</td><td>-23.9%</td></tr><tr><th scope="row">信用過多押し目</th><td>-11.6%</td><td>-23.2%</td><td>+2.9%</td><td>-14.6%</td></tr><tr><th scope="row">乖離リバウンド</th><td>+40.0%</td><td>-13.4%</td><td>+32.1%</td><td>-13.2%</td></tr><tr><th scope="row">RSI売られすぎ反発</th><td>-3.6%</td><td>-16.2%</td><td>-4.3%</td><td>-20.8%</td></tr><tr><th scope="row">出来高急増</th><td>-35.1%</td><td>-35.8%</td><td>-31.2%</td><td>-33.9%</td></tr><tr><th scope="row">高値ブレイク</th><td>+6.8%</td><td>-18.1%</td><td>+5.4%</td><td>-14.5%</td></tr><tr><th scope="row">MACD・RSI</th><td>-1.0%</td><td>-21.5%</td><td>+19.1%</td><td>-13.2%</td></tr></tbody></table></div>
+</section>
+
+<section>
+  <h2>前提と注意点</h2>
+  <div class="notes">
+    <div><h3>財務の先読み</h3><p>ROE・利益率・成長率・自己資本比率・配当は過去の値が無料で取れず、現在の値をさかのぼって当てています。PER・配当利回り・時価総額だけは、その日の株価で計算し直しました。今の決算が良い銘柄を過去に選んでいることになるので、△と×のタブは実際より良く出やすいです。</p></div>
+    <div><h3>信用倍率</h3><p>銘柄別の信用残の過去データが無料で集められないため、信用過多押し目は信用倍率10倍以上の条件を外して検証しました。実際のタブより候補が多い状態の成績です。</p></div>
+    <div><h3>SCOREのタブ</h3><p>SCORE業績・SCORE勢いは、その日のスコア上位10銘柄を買い候補としました。SCORE勢いは株価だけで作れるので先読みはありません。SCORE業績は全項目が財務です。</p></div>
+    <div><h3>データ</h3><p>Yahoo Finance の日足 (調整済み)。現在上場している3,680銘柄のみで、上場廃止銘柄は含みません (生存者バイアス)。株価データの誤りと思われる取引 152 件は除外しました。</p></div>
+    <div><h3>売買コスト・税</h3><p>手数料0円、スプレッドとスリッページは片道 10億円以上 0.10% / 3億円以上 0.15% / 1億円以上 0.25% / 1億円未満 0.40%。数値は税引き前で、利益には年間の損益通算後に20.315%の税がかかります。為替コストはありません。</p></div>
+    <div><h3>約定</h3><p>寄り付きで買えなかった日 (ストップ高・安張り付きなど) は除外。損切り・利確の価格に場中で届いたらその価格、寄り付きで越えていたら始値で約定。同じ日に両方に届いた場合は損切りを先とみなします。</p></div>
+  </div>
+</section>
+</div>

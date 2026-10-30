@@ -180,6 +180,19 @@ SCREENS = [
         and ok(s.get("mc")) and s["mc"] >= 300,
         "sort_multi": [("rg", True), ("eg", True)],
     },
+    {
+        "id": "growth_div",
+        "name": "成長＋高配当",
+        "tab": "配当",
+        "desc": "売上と利益が伸びていて、配当利回りも高い銘柄",
+        "cond": ["配当利回り 3.5%以上", "売上成長率 10%以上", "利益成長率 10%以上", "ROE 5%以上", "時価総額 300億円以上"],
+        "filter": lambda s: ok(s.get("dy")) and s["dy"] >= 3.5
+        and ok(s.get("rg")) and s["rg"] >= 10
+        and ok(s.get("eg")) and s["eg"] >= 10
+        and ok(s.get("roe")) and s["roe"] >= 5
+        and ok(s.get("mc")) and s["mc"] >= 300,
+        "sort": lambda s: s["dy"],
+    },
     # ---- スイング向け (短期〜数週間)。テクニカル指標は fetch_prices で日足から計算
     {
         "id": "pullback",

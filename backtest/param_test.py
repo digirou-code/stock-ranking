@@ -36,6 +36,8 @@ import score_momentum_test as smt  # noqa: E402
 import screens_test as sc  # noqa: E402
 
 CURRENT = {"stop_pct": -6.0, "take1_pct": 20.0, "take2_pct": 40.0, "max_days": 25, "slots": 10}
+# 実用案: 探索期間で一貫して良かった「40日保有・損切りを広めに」を、1回の損失が大きくなりすぎない -8% で取り入れた形
+PICK = {"stop_pct": -8.0, "take1_pct": 20.0, "take2_pct": 40.0, "max_days": 40, "slots": 10}
 NONE = 1000.0  # 利確なし
 STOPS = [-4.0, -6.0, -8.0, -10.0, -15.0]
 TAKES = [(10, 10), (10, 20), (10, 30), (15, 15), (15, 30), (15, 45), (20, 20), (20, 40), (20, 60),
@@ -166,7 +168,7 @@ def run(D, funds, demo):
 
     # 2) 同時保有数 (現行ルールと推奨ルールで)
     slots = {}
-    for name, base in (("current", CURRENT), ("best", best)):
+    for name, base in (("current", CURRENT), ("best", best), ("pick", PICK)):
         slots[name] = {}
         for n in SLOTS:
             rule = {**base, "slots": n}
@@ -185,10 +187,10 @@ def run(D, funds, demo):
     compare = {}
     for tid, name, sig, key, clean in TG:
         compare[tid] = {"name": name, "clean": clean}
-        for lab, rule in (("current", CURRENT), ("best", best)):
+        for lab, rule in (("current", CURRENT), ("best", best), ("pick", PICK)):
             compare[tid][lab] = {pid: evaluate(rule, sig, key, pid, curve=(pid == "oos")) for pid in ("is", "oos", "all")}
     compare["random"] = {"name": "ランダム", "clean": True}
-    for lab, rule in (("current", CURRENT), ("best", best)):
+    for lab, rule in (("current", CURRENT), ("best", best), ("pick", PICK)):
         compare["random"][lab] = {pid: random_eval(rule, pid, curve=(pid == "oos")) for pid in ("is", "oos", "all")}
 
     # 4) 推奨値のまわり (1つだけ動かしたときの探索期間・検証期間の平均年率)
@@ -213,6 +215,7 @@ def run(D, funds, demo):
     return {
         "grid": grid, "show": show, "current_index": cur_n, "is_order": [int(n) for n in order],
         "best": best, "best_label": rule_id(best), "current": CURRENT, "current_label": rule_id(CURRENT),
+        "pick": PICK, "pick_label": rule_id(PICK),
         "slots": slots, "compare": compare, "around": around,
         "targets": {tid: name for tid, name, *_ in sel} | {"random": "ランダム"},
         "bench": {pid: rt.bench(nk, M.idx[m].min(), M.idx[m].max()) for pid, m in periods.items()},

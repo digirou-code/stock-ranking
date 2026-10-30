@@ -85,10 +85,21 @@ def earnings_near(D, funds, days):
     return near, have
 
 
-def screens(D, T, F, sm, sf):
-    """(id, 名前, タブ, サイト条件, 株価だけの条件 or None, 並び順キー, 検証できない点)"""
-    C, H = D["Close"], D["High"]
-    btw = bt.btw
+def alive(D):
+    return D["Close"].notna() & (D["Close"].rolling(75).count() >= 75)
+
+
+def sf_score(F, live):
+    """SCORE業績 (PER・ROE・自己資本比率・配当利回り・売上成長・利益成長の順位の平均)"""
+    pct = lambda x, hi=True: (x.where(live).rank(axis=1, pct=True) if hi else 1 - x.where(live).rank(axis=1, pct=True))
+    per_r = pct(F["per"].where(F["per"] > 0, 9999).where(F["per"].notna()), False)
+    items = [per_r, pct(F["roe"]), pct(F["er"]), pct(F["dy"]), pct(F["rg"]), pct(F["eg"])]
+    have = sum(x.notna().astype(int) for x in items)
+    return (sum(x.fillna(0.5) for x in items) / len(items) * 100).where(have >= 4)
+
+
+def macd_gc_age(C):
+    """MACD(12,26,9) が何日前にシグナルを上抜けたか (MACD_GC_DAYS 日以内でなければ NaN)"""
     macd = C.ewm(span=12, adjust=False).mean() - C.ewm(span=26, adjust=False).mean()
     above = macd > macd.ewm(span=9, adjust=False).mean()
     gc_age = pd.DataFrame(np.nan, index=C.index, columns=C.columns)
@@ -97,6 +108,14 @@ def screens(D, T, F, sm, sf):
         for m in range(k):
             crossed &= above.shift(m + 1, fill_value=False)
         gc_age = gc_age.where(~crossed, k)
+    return gc_age
+
+
+def screens(D, T, F, sm, sf):
+    """(id, 名前, タブ, サイト条件, 株価だけの条件 or None, 並び順キー, 検証できない点)"""
+    C, H = D["Close"], D["High"]
+    btw = bt.btw
+    gc_age = macd_gc_age(C)
     rsi = T["rsi"]
     rsi_min10 = rsi.rolling(10).min()
     off10 = (C / H.rolling(10).max() - 1) * 100
@@ -154,12 +173,8 @@ def run(D, funds, demo):
     T, idx = op.extra_indicators(D, T)
     F = fund_frames(D, funds)
     sm = smt.momentum_scores(smt.momentum_parts(D, T))["sm"][1]
-    live = D["Close"].notna() & (D["Close"].rolling(75).count() >= 75)
-    pct = lambda x, hi=True: (x.where(live).rank(axis=1, pct=True) if hi else 1 - x.where(live).rank(axis=1, pct=True))
-    per_r = pct(F["per"].where(F["per"] > 0, 9999).where(F["per"].notna()), False)
-    sf_items = [per_r, pct(F["roe"]), pct(F["er"]), pct(F["dy"]), pct(F["rg"]), pct(F["eg"])]
-    have = sum(x.notna().astype(int) for x in sf_items)
-    sf = (sum(x.fillna(0.5) for x in sf_items) / len(sf_items) * 100).where(have >= 4)
+    live = alive(D)
+    sf = sf_score(F, live)
     near, have_earn = earnings_near(D, funds, RULE["max_days"])
     S = rt.RuleSim(D, T)
     M = S.M

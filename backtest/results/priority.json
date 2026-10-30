@@ -5,240 +5,240 @@
    "keys": {
     "score": {
      "is": {
-      "total": 114.2828,
-      "annual": 33.1998,
-      "max_dd": -14.801
+      "total": 133.1027,
+      "annual": 37.4852,
+      "max_dd": -13.2367
      },
      "oos": {
-      "total": 36.2025,
-      "annual": 36.2313,
-      "max_dd": -13.97
+      "total": 45.7447,
+      "annual": 45.7823,
+      "max_dd": -13.2202
      },
      "all": {
-      "total": 198.9364,
-      "annual": 33.4808,
-      "max_dd": -14.801
+      "total": 257.0789,
+      "annual": 39.8859,
+      "max_dd": -13.2367
      }
     },
     "score_pit": {
      "is": {
-      "total": 81.5214,
-      "annual": 25.1405,
-      "max_dd": -18.7682
+      "total": 62.167,
+      "annual": 19.9442,
+      "max_dd": -21.1221
      },
      "oos": {
-      "total": 24.1282,
-      "annual": 24.1466,
-      "max_dd": -20.2196
+      "total": 37.2507,
+      "annual": 37.2805,
+      "max_dd": -19.1583
      },
      "all": {
-      "total": 102.6782,
-      "annual": 20.4788,
-      "max_dd": -22.8595
+      "total": 124.1948,
+      "annual": 23.7276,
+      "max_dd": -21.1221
      }
     },
     "r3m": {
      "is": {
-      "total": 45.381,
-      "annual": 15.1141,
-      "max_dd": -24.4963
+      "total": 43.5422,
+      "annual": 14.5643,
+      "max_dd": -26.281
      },
      "oos": {
-      "total": 12.4858,
-      "annual": 12.4949,
-      "max_dd": -20.203
+      "total": 18.8713,
+      "annual": 18.8853,
+      "max_dd": -17.8282
      },
      "all": {
-      "total": 57.4124,
-      "annual": 12.7101,
-      "max_dd": -24.4963
+      "total": 69.3288,
+      "annual": 14.9001,
+      "max_dd": -26.281
      }
     },
     "r6m": {
      "is": {
-      "total": 7.2095,
-      "annual": 2.6532,
-      "max_dd": -25.4255
+      "total": 37.8412,
+      "annual": 12.831,
+      "max_dd": -22.9605
      },
      "oos": {
-      "total": 27.9729,
-      "annual": 27.9945,
-      "max_dd": -15.4238
+      "total": 47.2447,
+      "annual": 47.2837,
+      "max_dd": -14.3855
      },
      "all": {
-      "total": 45.0276,
-      "annual": 10.3005,
-      "max_dd": -25.4255
+      "total": 104.3862,
+      "annual": 20.7457,
+      "max_dd": -22.9605
      }
     },
     "mom12_1": {
      "is": {
-      "total": 68.844,
-      "annual": 21.7785,
-      "max_dd": -20.1995
+      "total": 70.617,
+      "annual": 22.258,
+      "max_dd": -19.3685
      },
      "oos": {
-      "total": 33.991,
-      "annual": 34.0178,
-      "max_dd": -17.4497
+      "total": 33.7998,
+      "annual": 33.8265,
+      "max_dd": -15.7914
      },
      "all": {
-      "total": 127.4587,
-      "annual": 24.2001,
-      "max_dd": -20.1995
+      "total": 119.3285,
+      "annual": 23.0136,
+      "max_dd": -19.3685
      }
     },
     "pos52": {
      "is": {
-      "total": 66.2318,
-      "annual": 21.0664,
-      "max_dd": -17.8564
+      "total": 52.8346,
+      "annual": 17.2996,
+      "max_dd": -17.6969
      },
      "oos": {
-      "total": 55.2948,
-      "annual": 55.3416,
+      "total": 46.2961,
+      "annual": 46.3342,
       "max_dd": -12.2186
      },
      "all": {
-      "total": 144.7982,
-      "annual": 26.6298,
-      "max_dd": -17.8564
+      "total": 107.4084,
+      "annual": 21.214,
+      "max_dd": -17.6969
      }
     },
     "near_hi52": {
      "is": {
-      "total": 41.4862,
-      "annual": 13.9442,
-      "max_dd": -20.1461
+      "total": 33.6186,
+      "annual": 11.5182,
+      "max_dd": -17.2646
      },
      "oos": {
-      "total": 24.3675,
-      "annual": 24.3861,
-      "max_dd": -12.5889
+      "total": 24.1436,
+      "annual": 24.162,
+      "max_dd": -12.7418
      },
      "all": {
-      "total": 60.3359,
-      "annual": 13.2584,
-      "max_dd": -20.1461
+      "total": 48.2289,
+      "annual": 10.9374,
+      "max_dd": -17.2646
      }
     },
     "to": {
      "is": {
-      "total": 90.2338,
-      "annual": 27.3669,
-      "max_dd": -17.9373
+      "total": 100.2108,
+      "annual": 29.8396,
+      "max_dd": -13.9891
      },
      "oos": {
-      "total": 20.6886,
-      "annual": 20.7042,
-      "max_dd": -17.1804
+      "total": 29.4869,
+      "annual": 29.5098,
+      "max_dd": -15.8555
      },
      "all": {
-      "total": 125.8213,
-      "annual": 23.9636,
-      "max_dd": -17.9373
+      "total": 146.2891,
+      "annual": 26.8327,
+      "max_dd": -13.9891
      }
     },
     "vr": {
      "is": {
-      "total": 74.663,
-      "annual": 23.3406,
-      "max_dd": -21.2454
+      "total": 49.6656,
+      "annual": 16.3787,
+      "max_dd": -20.6685
      },
      "oos": {
-      "total": -4.8346,
-      "annual": -4.8378,
-      "max_dd": -17.9583
+      "total": 2.5584,
+      "annual": 2.5602,
+      "max_dd": -12.9062
      },
      "all": {
-      "total": 65.1876,
-      "annual": 14.1523,
-      "max_dd": -21.4311
+      "total": 59.2197,
+      "annual": 13.0499,
+      "max_dd": -20.6685
      }
     },
     "low_vol": {
      "is": {
-      "total": 38.6465,
-      "annual": 13.0785,
-      "max_dd": -15.9398
+      "total": 36.4942,
+      "annual": 12.415,
+      "max_dd": -15.4902
      },
      "oos": {
-      "total": 12.0182,
-      "annual": 12.0269,
-      "max_dd": -12.7582
+      "total": 6.1557,
+      "annual": 6.16,
+      "max_dd": -15.7038
      },
      "all": {
-      "total": 76.42,
-      "annual": 16.15,
-      "max_dd": -15.9398
+      "total": 58.8786,
+      "annual": 12.986,
+      "max_dd": -15.4902
      }
     },
     "high_vol": {
      "is": {
-      "total": 164.0642,
-      "annual": 44.0886,
-      "max_dd": -19.2926
+      "total": 139.9162,
+      "annual": 38.9833,
+      "max_dd": -18.1227
      },
      "oos": {
-      "total": 7.2676,
-      "annual": 7.2728,
-      "max_dd": -19.0587
+      "total": 11.0773,
+      "annual": 11.0853,
+      "max_dd": -18.3991
      },
      "all": {
-      "total": 191.7099,
-      "annual": 32.6222,
-      "max_dd": -19.2926
+      "total": 180.4989,
+      "annual": 31.2586,
+      "max_dd": -18.3809
      }
     },
     "low_rsi": {
      "is": {
-      "total": 53.5391,
-      "annual": 17.5027,
-      "max_dd": -15.1348
+      "total": 65.2267,
+      "annual": 20.7905,
+      "max_dd": -16.6394
      },
      "oos": {
-      "total": 26.8029,
-      "annual": 26.8236,
-      "max_dd": -11.2792
+      "total": 23.6083,
+      "annual": 23.6263,
+      "max_dd": -10.1864
      },
      "all": {
-      "total": 74.4087,
-      "annual": 15.7993,
-      "max_dd": -15.1348
+      "total": 99.9365,
+      "annual": 20.0469,
+      "max_dd": -16.6394
      }
     },
     "deep_dev": {
      "is": {
-      "total": 32.0071,
-      "annual": 11.0104,
-      "max_dd": -27.3773
+      "total": 47.6497,
+      "annual": 15.7866,
+      "max_dd": -24.0099
      },
      "oos": {
-      "total": 15.5571,
-      "annual": 15.5686,
-      "max_dd": -10.289
+      "total": 11.1186,
+      "annual": 11.1266,
+      "max_dd": -10.5031
      },
      "all": {
-      "total": 78.0893,
-      "annual": 16.4388,
-      "max_dd": -27.3773
+      "total": 97.9767,
+      "annual": 19.7354,
+      "max_dd": -24.0099
      }
     },
     "random": {
      "is": {
-      "total": 58.9165,
-      "annual": 18.8746,
-      "max_dd": -16.762
+      "total": 54.1936,
+      "annual": 17.5879,
+      "max_dd": -15.5278
      },
      "oos": {
-      "total": 14.7823,
-      "annual": 14.7932,
-      "max_dd": -13.1565
+      "total": 15.3764,
+      "annual": 15.3878,
+      "max_dd": -13.495
      },
      "all": {
-      "total": 86.5141,
-      "annual": 17.6406,
-      "max_dd": -17.4231
+      "total": 83.1693,
+      "annual": 17.0217,
+      "max_dd": -15.5808
      }
     }
    }
@@ -248,25 +248,25 @@
    "keys": {
     "score": {
      "is": {
-      "total": 86.7069,
-      "annual": 26.4734,
-      "max_dd": -18.7991
+      "total": 121.1856,
+      "annual": 34.7979,
+      "max_dd": -22.1932
      },
      "oos": {
-      "total": 46.6329,
-      "annual": 46.6713,
-      "max_dd": -16.809
+      "total": 39.5151,
+      "annual": 39.5469,
+      "max_dd": -14.529
      },
      "all": {
-      "total": 204.7594,
-      "annual": 34.1617,
-      "max_dd": -18.7991
+      "total": 201.906,
+      "annual": 33.8292,
+      "max_dd": -22.1932
      }
     },
     "score_pit": {
      "is": {
       "total": 27.044,
-      "annual": 9.4216,
+      "annual": 9.4217,
       "max_dd": -29.4991
      },
      "oos": {
@@ -292,7 +292,7 @@
       "max_dd": -23.1787
      },
      "all": {
-      "total": 62.9859,
+      "total": 62.986,
       "annual": 13.7491,
       "max_dd": -23.0177
      }
@@ -309,8 +309,8 @@
       "max_dd": -13.2912
      },
      "all": {
-      "total": 42.5764,
-      "annual": 9.8058,
+      "total": 42.5779,
+      "annual": 9.8061,
       "max_dd": -37.4807
      }
     },
@@ -326,16 +326,16 @@
       "max_dd": -20.1868
      },
      "all": {
-      "total": 108.2552,
-      "annual": 21.3444,
+      "total": 108.2572,
+      "annual": 21.3447,
       "max_dd": -21.5064
      }
     },
     "pos52": {
      "is": {
-      "total": 22.0232,
-      "annual": 7.7745,
-      "max_dd": -29.5432
+      "total": 15.1982,
+      "annual": 5.4662,
+      "max_dd": -29.369
      },
      "oos": {
       "total": 26.3313,
@@ -343,16 +343,16 @@
       "max_dd": -16.2321
      },
      "all": {
-      "total": 59.1322,
-      "annual": 13.0335,
-      "max_dd": -29.5432
+      "total": 50.2317,
+      "annual": 11.3308,
+      "max_dd": -29.369
      }
     },
     "near_hi52": {
      "is": {
-      "total": 44.6213,
-      "annual": 14.8875,
-      "max_dd": -15.9488
+      "total": 46.3072,
+      "annual": 15.3894,
+      "max_dd": -14.969
      },
      "oos": {
       "total": 24.0363,
@@ -360,9 +360,9 @@
       "max_dd": -12.1115
      },
      "all": {
-      "total": 74.6115,
-      "annual": 15.8348,
-      "max_dd": -15.9488
+      "total": 76.647,
+      "annual": 16.1894,
+      "max_dd": -14.969
      }
     },
     "to": {
@@ -372,13 +372,13 @@
       "max_dd": -17.1662
      },
      "oos": {
-      "total": 31.6381,
-      "annual": 31.6629,
+      "total": 31.4667,
+      "annual": 31.4913,
       "max_dd": -13.0268
      },
      "all": {
-      "total": 151.0824,
-      "annual": 27.4791,
+      "total": 150.7541,
+      "annual": 27.4351,
       "max_dd": -17.1662
      }
     },
@@ -457,21 +457,21 @@
       "max_dd": -23.0672
      },
      "oos": {
-      "total": 36.1326,
-      "annual": 36.1614,
+      "total": 35.9202,
+      "annual": 35.9487,
       "max_dd": -7.3283
      },
      "all": {
-      "total": 72.5065,
-      "annual": 15.4649,
+      "total": 72.2223,
+      "annual": 15.4147,
       "max_dd": -23.0672
      }
     },
     "random": {
      "is": {
-      "total": 41.8794,
-      "annual": 13.7937,
-      "max_dd": -21.7772
+      "total": 40.9942,
+      "annual": 13.5604,
+      "max_dd": -21.7631
      },
      "oos": {
       "total": 19.0074,
@@ -479,9 +479,9 @@
       "max_dd": -12.3153
      },
      "all": {
-      "total": 71.568,
-      "annual": 14.8452,
-      "max_dd": -21.7772
+      "total": 70.7248,
+      "annual": 14.7429,
+      "max_dd": -21.7631
      }
     }
    }
@@ -491,25 +491,25 @@
    "keys": {
     "score": {
      "is": {
-      "total": 133.6235,
-      "annual": 37.6007,
-      "max_dd": -17.1045
+      "total": 155.32,
+      "annual": 42.275,
+      "max_dd": -17.147
      },
      "oos": {
-      "total": 66.6665,
-      "annual": 66.7248,
-      "max_dd": -16.6988
+      "total": 52.4977,
+      "annual": 52.5418,
+      "max_dd": -13.9061
      },
      "all": {
-      "total": 294.2696,
-      "annual": 43.5892,
-      "max_dd": -17.1045
+      "total": 349.2791,
+      "annual": 48.6211,
+      "max_dd": -17.147
      }
     },
     "score_pit": {
      "is": {
-      "total": 71.1771,
-      "annual": 22.4088,
+      "total": 69.3146,
+      "annual": 21.9061,
       "max_dd": -15.5484
      },
      "oos": {
@@ -518,9 +518,9 @@
       "max_dd": -18.803
      },
      "all": {
-      "total": 97.7089,
-      "annual": 19.6927,
-      "max_dd": -20.5167
+      "total": 104.0934,
+      "annual": 20.7001,
+      "max_dd": -20.7054
      }
     },
     "r3m": {
@@ -530,37 +530,37 @@
       "max_dd": -28.0925
      },
      "oos": {
-      "total": 11.5397,
-      "annual": 11.5481,
+      "total": 11.5513,
+      "annual": 11.5597,
       "max_dd": -26.2606
      },
      "all": {
-      "total": 69.6047,
-      "annual": 14.9495,
+      "total": 69.6224,
+      "annual": 14.9526,
       "max_dd": -28.0925
      }
     },
     "r6m": {
      "is": {
-      "total": 0.8677,
-      "annual": 0.3255,
-      "max_dd": -47.4408
+      "total": -6.9333,
+      "annual": -2.6666,
+      "max_dd": -49.6848
      },
      "oos": {
-      "total": 32.621,
-      "annual": 32.6466,
+      "total": 32.5739,
+      "annual": 32.5995,
       "max_dd": -16.2542
      },
      "all": {
-      "total": 4.0537,
-      "annual": 1.0534,
-      "max_dd": -47.4408
+      "total": -4.0286,
+      "annual": -1.0786,
+      "max_dd": -49.6848
      }
     },
     "mom12_1": {
      "is": {
-      "total": 55.6969,
-      "annual": 18.1212,
+      "total": 58.5846,
+      "annual": 18.9405,
       "max_dd": -20.2029
      },
      "oos": {
@@ -569,8 +569,8 @@
       "max_dd": -21.0021
      },
      "all": {
-      "total": 109.1269,
-      "annual": 21.4781,
+      "total": 113.0104,
+      "annual": 22.069,
       "max_dd": -20.2029
      }
     },
@@ -586,16 +586,16 @@
       "max_dd": -18.2539
      },
      "all": {
-      "total": 50.1792,
+      "total": 50.1793,
       "annual": 11.3205,
       "max_dd": -34.421
      }
     },
     "near_hi52": {
      "is": {
-      "total": 42.8866,
-      "annual": 14.3672,
-      "max_dd": -17.3288
+      "total": 44.0365,
+      "annual": 14.7125,
+      "max_dd": -17.3406
      },
      "oos": {
       "total": 22.6096,
@@ -603,26 +603,26 @@
       "max_dd": -10.1986
      },
      "all": {
-      "total": 85.3195,
-      "annual": 17.6673,
-      "max_dd": -17.3288
+      "total": 86.8109,
+      "annual": 17.9163,
+      "max_dd": -17.3406
      }
     },
     "to": {
      "is": {
-      "total": 24.1017,
-      "annual": 8.4614,
-      "max_dd": -30.5394
+      "total": 23.9504,
+      "annual": 8.4117,
+      "max_dd": -30.5385
      },
      "oos": {
-      "total": -2.0146,
-      "annual": -2.0159,
+      "total": -2.1419,
+      "annual": -2.1434,
       "max_dd": -22.4802
      },
      "all": {
-      "total": 25.9659,
-      "annual": 6.2768,
-      "max_dd": -30.5394
+      "total": 25.6483,
+      "annual": 6.2061,
+      "max_dd": -30.5385
      }
     },
     "vr": {
@@ -644,26 +644,26 @@
     },
     "low_vol": {
      "is": {
-      "total": 25.8893,
-      "annual": 9.0465,
-      "max_dd": -24.0554
+      "total": 25.6158,
+      "annual": 8.9573,
+      "max_dd": -24.1072
      },
      "oos": {
-      "total": 8.7222,
-      "annual": 8.7284,
+      "total": 8.7791,
+      "annual": 8.7853,
       "max_dd": -10.6094
      },
      "all": {
-      "total": 20.2294,
-      "annual": 4.9785,
-      "max_dd": -24.0554
+      "total": 28.0239,
+      "annual": 6.732,
+      "max_dd": -24.1072
      }
     },
     "high_vol": {
      "is": {
-      "total": 13.4563,
-      "annual": 4.8635,
-      "max_dd": -38.9408
+      "total": 17.2966,
+      "annual": 6.1848,
+      "max_dd": -38.8248
      },
      "oos": {
       "total": 6.4537,
@@ -671,26 +671,26 @@
       "max_dd": -19.8573
      },
      "all": {
-      "total": 14.559,
-      "annual": 3.6495,
-      "max_dd": -38.9408
+      "total": 18.4366,
+      "annual": 4.5634,
+      "max_dd": -38.8248
      }
     },
     "low_rsi": {
      "is": {
-      "total": 53.7835,
-      "annual": 17.573,
-      "max_dd": -10.2155
+      "total": 55.5603,
+      "annual": 18.0822,
+      "max_dd": -11.2045
      },
      "oos": {
-      "total": 22.7446,
+      "total": 22.7447,
       "annual": 22.7619,
       "max_dd": -11.91
      },
      "all": {
-      "total": 78.8939,
-      "annual": 16.5773,
-      "max_dd": -13.8956
+      "total": 81.9607,
+      "annual": 17.1011,
+      "max_dd": -13.6138
      }
     },
     "deep_dev": {
@@ -700,31 +700,31 @@
       "max_dd": -13.3367
      },
      "oos": {
-      "total": 13.4635,
-      "annual": 13.4734,
+      "total": 13.2671,
+      "annual": 13.2767,
       "max_dd": -14.381
      },
      "all": {
-      "total": 92.7338,
-      "annual": 18.8909,
-      "max_dd": -24.3505
+      "total": 92.7697,
+      "annual": 18.8967,
+      "max_dd": -24.2023
      }
     },
     "random": {
      "is": {
-      "total": 25.9846,
-      "annual": 8.7493,
-      "max_dd": -22.6118
+      "total": 26.4036,
+      "annual": 8.9024,
+      "max_dd": -22.1609
      },
      "oos": {
-      "total": 15.3568,
-      "annual": 15.3687,
+      "total": 15.2818,
+      "annual": 15.2936,
       "max_dd": -15.5882
      },
      "all": {
-      "total": 53.4228,
-      "annual": 11.2544,
-      "max_dd": -22.7376
+      "total": 53.5008,
+      "annual": 11.3144,
+      "max_dd": -22.4769
      }
     }
    }
@@ -734,24 +734,24 @@
    "keys": {
     "score": {
      "is": {
-      "total": 50.7735,
-      "annual": 16.7021,
-      "max_dd": -21.3353
+      "total": 63.0356,
+      "annual": 20.1854,
+      "max_dd": -23.4459
      },
      "oos": {
-      "total": 76.2366,
-      "annual": 76.305,
-      "max_dd": -8.6505
+      "total": 70.2918,
+      "annual": 70.3539,
+      "max_dd": -9.2282
      },
      "all": {
-      "total": 165.92,
-      "annual": 29.424,
-      "max_dd": -21.3353
+      "total": 167.731,
+      "annual": 29.6558,
+      "max_dd": -23.4459
      }
     },
     "score_pit": {
      "is": {
-      "total": 59.2565,
+      "total": 59.2566,
       "annual": 19.1299,
       "max_dd": -21.9825
      },
@@ -761,14 +761,14 @@
       "max_dd": -19.1433
      },
      "all": {
-      "total": 71.0248,
-      "annual": 15.2025,
+      "total": 73.9397,
+      "annual": 15.7171,
       "max_dd": -21.9825
      }
     },
     "r3m": {
      "is": {
-      "total": 3.4066,
+      "total": 3.4067,
       "annual": 1.2681,
       "max_dd": -34.6759
      },
@@ -790,13 +790,13 @@
       "max_dd": -26.2607
      },
      "oos": {
-      "total": 45.6869,
-      "annual": 45.7245,
+      "total": 45.6209,
+      "annual": 45.6584,
       "max_dd": -25.0522
      },
      "all": {
-      "total": 77.8885,
-      "annual": 16.4042,
+      "total": 77.8079,
+      "annual": 16.3903,
       "max_dd": -26.2607
      }
     },
@@ -819,7 +819,7 @@
     },
     "pos52": {
      "is": {
-      "total": 19.4596,
+      "total": 19.4597,
       "annual": 6.9172,
       "max_dd": -22.5293
      },
@@ -829,8 +829,8 @@
       "max_dd": -15.7497
      },
      "all": {
-      "total": 27.1181,
-      "annual": 6.5323,
+      "total": 27.1698,
+      "annual": 6.5437,
       "max_dd": -22.5293
      }
     },
@@ -859,7 +859,7 @@
      },
      "oos": {
       "total": -4.6667,
-      "annual": -4.6698,
+      "annual": -4.6699,
       "max_dd": -19.0873
      },
      "all": {
@@ -877,7 +877,7 @@
      "oos": {
       "total": -14.2018,
       "annual": -14.2108,
-      "max_dd": -25.2798
+      "max_dd": -25.2797
      },
      "all": {
       "total": -42.9408,
@@ -887,26 +887,26 @@
     },
     "low_vol": {
      "is": {
-      "total": 56.0434,
-      "annual": 18.22,
-      "max_dd": -10.2785
+      "total": 58.8542,
+      "annual": 19.0166,
+      "max_dd": -10.9069
      },
      "oos": {
-      "total": 25.7138,
-      "annual": 25.7335,
+      "total": 25.6197,
+      "annual": 25.6394,
       "max_dd": -15.2907
      },
      "all": {
-      "total": 80.9438,
-      "annual": 16.9281,
-      "max_dd": -10.2785
+      "total": 84.0638,
+      "annual": 17.4565,
+      "max_dd": -10.9069
      }
     },
     "high_vol": {
      "is": {
-      "total": 46.1267,
-      "annual": 15.3359,
-      "max_dd": -29.6635
+      "total": 48.0403,
+      "annual": 15.9017,
+      "max_dd": -29.6636
      },
      "oos": {
       "total": 15.1637,
@@ -914,60 +914,60 @@
       "max_dd": -31.2833
      },
      "all": {
-      "total": 37.4964,
-      "annual": 8.7602,
+      "total": 39.297,
+      "annual": 9.134,
       "max_dd": -34.4274
      }
     },
     "low_rsi": {
      "is": {
-      "total": 31.2501,
-      "annual": 10.7705,
-      "max_dd": -19.5923
+      "total": 25.847,
+      "annual": 9.0327,
+      "max_dd": -22.9027
      },
      "oos": {
-      "total": -2.4158,
-      "annual": -2.4174,
+      "total": -2.432,
+      "annual": -2.4336,
       "max_dd": -24.8709
      },
      "all": {
-      "total": 29.4952,
-      "annual": 7.0541,
+      "total": 24.1437,
+      "annual": 5.8692,
       "max_dd": -24.247
      }
     },
     "deep_dev": {
      "is": {
-      "total": 77.7587,
-      "annual": 24.1584,
-      "max_dd": -10.5513
+      "total": 78.736,
+      "annual": 24.4147,
+      "max_dd": -10.4619
      },
      "oos": {
-      "total": 0.1432,
-      "annual": 0.1433,
+      "total": 0.0668,
+      "annual": 0.0668,
       "max_dd": -19.1471
      },
      "all": {
-      "total": 90.0198,
-      "annual": 18.4471,
+      "total": 91.0644,
+      "annual": 18.6185,
       "max_dd": -14.4151
      }
     },
     "random": {
      "is": {
-      "total": 19.0969,
-      "annual": 6.6825,
-      "max_dd": -23.6422
+      "total": 19.816,
+      "annual": 6.9229,
+      "max_dd": -22.4469
      },
      "oos": {
-      "total": 11.4448,
-      "annual": 11.4538,
-      "max_dd": -17.0069
+      "total": 11.4013,
+      "annual": 11.4103,
+      "max_dd": -17.0268
      },
      "all": {
-      "total": 41.4255,
-      "annual": 9.1349,
-      "max_dd": -25.4055
+      "total": 41.7797,
+      "annual": 9.1922,
+      "max_dd": -24.231
      }
     }
    }
@@ -991,7 +991,7 @@
  },
  "meta": {
   "demo": false,
-  "generated_at": "2026-10-30T02:47+09:00",
+  "generated_at": "2026-10-30T13:50+09:00",
   "periods": {
    "is": [
     "2023-01-13",
@@ -1013,6 +1013,6 @@
    "max_days": 30
   },
   "slots": 10,
-  "elapsed_s": 59
+  "elapsed_s": 62
  }
 }

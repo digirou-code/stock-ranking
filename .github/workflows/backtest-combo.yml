@@ -1,0 +1,45 @@
+name: backtest-combo
+
+on:
+  workflow_dispatch:
+  push:
+    branches-ignore: [main]
+    paths: ["backtest/combo_test.py", ".github/workflows/backtest-combo.yml"]
+
+concurrency:
+  group: backtest-combo-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: write
+
+env:
+  PYTHONUNBUFFERED: "1"
+
+jobs:
+  backtest:
+    runs-on: ubuntu-latest
+    timeout-minutes: 300
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+          cache: pip
+      - run: pip install -r requirements.txt
+      - name: price cache (same day reruns skip the download)
+        id: day
+        run: echo "d=$(TZ=Asia/Tokyo date +%F)" >> "$GITHUB_OUTPUT"
+      - uses: actions/cache@v4
+        with:
+          path: bt_cache
+          key: bt-prices-${{ steps.day.outputs.d }}
+      - run: python backtest/combo_test.py --cache bt_cache/prices.pkl
+      - name: commit results
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add backtest/results/combo.json
+          git diff --cached --quiet || git commit -m "combo backtest results $(TZ=Asia/Tokyo date +%F)"
+          git pull --rebase origin "${GITHUB_REF_NAME}"
+          git push origin "HEAD:${GITHUB_REF_NAME}"

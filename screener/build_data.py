@@ -43,6 +43,7 @@ FUND_REFRESH_PER_RUN = int(os.environ.get("FUND_REFRESH_PER_RUN", "4000"))
 FUND_MAX_AGE_DAYS = int(os.environ.get("FUND_MAX_AGE_DAYS", "7"))
 STMT_MAX_AGE_DAYS = 30  # 自己資本比率・利益成長率 (決算書から計算) を取り直す間隔
 TOP_N = 50
+MACD_GC_DAYS = 3  # MACDのゴールデンクロスをこの営業日数以内に見る (1 = 当日のみ)
 
 # ---------------------------------------------------------------- 取引ルール (スイング)
 # 損切り・利確はエントリー価格からの%、時間切れは営業日数。WebUIの目安価格と決算警告もこれを使う
@@ -252,6 +253,19 @@ SCREENS = [
         and s.get("ma25_over75")
         and ok(s.get("to")) and s["to"] >= 1,
         "sort": lambda s: s["vr"],
+    },
+    {
+        "id": "macd_rsi",
+        "name": "MACD・RSI",
+        "tab": "初動",
+        "desc": "MACDがシグナルを上抜け、RSIも50以上で上向きの勢いが出てきた好業績株",
+        "cond": [f"MACD(12,26,9)が当日を含む直近{MACD_GC_DAYS}営業日以内にゴールデンクロス (今もシグナルより上)", "RSI(14) 50以上",
+                 "利益成長率 15%超", "時価総額 300億円以上"],
+        "filter": lambda s: s.get("macd_gc") is not None
+        and ok(s.get("rsi")) and s["rsi"] >= 50
+        and ok(s.get("eg")) and s["eg"] > 15
+        and ok(s.get("mc")) and s["mc"] >= 300,
+        "sort": lambda s: (-s["macd_gc"], s["eg"]),  # クロスが新しい順、同じ日なら利益成長率の高い順
     },
 ]
 
@@ -578,6 +592,13 @@ def technicals(h):
     tr = pd.concat([h["High"] - h["Low"], (h["High"] - prev).abs(), (h["Low"] - prev).abs()], axis=1).max(axis=1)
     if len(close) > RULES["atr_n"]:
         t["atr"] = f(tr.ewm(alpha=1 / RULES["atr_n"], adjust=False).mean().iloc[-1])
+    # MACD(12,26,9)。macd_gc = シグナルを上抜けてから何営業日前か (0 = 当日)。上抜け中でなければ None
+    if len(close) >= 60:
+        macd = close.ewm(span=12, adjust=False).mean() - close.ewm(span=26, adjust=False).mean()
+        above = (macd > macd.ewm(span=9, adjust=False).mean()).tolist()
+        if above[-1]:
+            k = next((i for i in range(MACD_GC_DAYS) if not above[-2 - i]), None)  # 遡って最初に下だった日
+            t["macd_gc"] = k
     rsi = rsi_series(close)
     if len(close) >= 30:
         t["rsi"] = f(rsi.iloc[-1])
@@ -811,6 +832,7 @@ def build_demo(seed=None, asof=None):
             "dev25": dev,
             "rsi": rsi,
             "rsi_min5": max(5.0, rsi - abs(day.gauss(0, 8))),
+            "macd_gc": day.choice([None] * 6 + [0, 1, 2]),
             "vr": math.exp(day.gauss(0, 0.5)),
             "vol": float(round(math.exp(rnd.gauss(12, 1.5)), -2)),
             "vchg": (math.exp(day.gauss(0, 0.5)) - 1) * 100,

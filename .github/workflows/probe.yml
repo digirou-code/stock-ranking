@@ -6,15 +6,18 @@ jobs:
   probe:
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/checkout@v5
+        with: { ref: claude/pullback-screens }
       - uses: actions/setup-python@v6
         with: { python-version: "3.12" }
-      - run: pip install -q yfinance
+      - run: pip install -q -r requirements.txt
       - shell: python
         run: |
-          import yfinance as yf, datetime as dt
-          print(yf.__version__)
-          for kw in [dict(period="1y"), dict(period="5d"), dict(start="2026-10-20", end="2026-10-31"), dict(period="1mo", interval="1d")]:
-              df = yf.download(["7203.T","6758.T"], group_by="ticker", auto_adjust=True, progress=False, **kw)
-              print(kw, df["7203.T"].tail(3)[["Close","Volume"]].to_string())
-          h = yf.Ticker("7203.T").history(period="5d")
-          print("history", h.tail(3)[["Close","Volume"]].to_string())
+          import sys, time; sys.path.insert(0, "screener")
+          import build_data as b, holdings as hd
+          u, every = b.load_universe()
+          codes = [x["c"] for x in u]
+          t = time.time(); m, d = hd.load_margin(codes); print("secs", round(time.time() - t), "date", d)
+          r = [v["ratio"] for v in m.values()]
+          print("with ratio", sum(x is not None for x in r), "ratio>=10", sum(1 for x in r if x is not None and x >= 10), "sell=0", sum(1 for v in m.values() if v["sell"] == 0))
+          print({c: m.get(c) for c in ["7203", "6418", "4116"]})

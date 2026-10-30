@@ -43,6 +43,7 @@ FUND_REFRESH_PER_RUN = int(os.environ.get("FUND_REFRESH_PER_RUN", "4000"))
 FUND_MAX_AGE_DAYS = int(os.environ.get("FUND_MAX_AGE_DAYS", "7"))
 STMT_MAX_AGE_DAYS = 30  # 自己資本比率・利益成長率 (決算書から計算) を取り直す間隔
 TOP_N = 50
+NO_SELL = 9999  # 信用倍率: 売残0・買残ありの印
 MACD_GC_DAYS = 3  # MACDのゴールデンクロスをこの営業日数以内に見る (1 = 当日のみ)
 
 # ---------------------------------------------------------------- 取引ルール (スイング)
@@ -92,6 +93,16 @@ SCORES = {
 }
 MIN_COVERAGE = 4  # 項目のうちこの数以上そろった銘柄だけSCOREを出す (欠けた項目は中央の0.5で補う)
 STAGE_PTS = {2: 1.0, 1: 2 / 3, 3: 1 / 3, 4: 0.0}
+
+
+def _pullback_base(s, max_off):
+    """好業績押し目・信用過多押し目で共通の条件 (10日高値からの下落は -10%〜max_off%)"""
+    return (ok(s.get("rsi")) and 35 <= s["rsi"] <= 50
+            and ok(s.get("rsi_min10")) and s["rsi_min10"] <= 35
+            and ok(s.get("off10")) and max_off <= s["off10"] <= -10
+            and ok(s.get("eg")) and s["eg"] > 15
+            and ok(s.get("mc")) and s["mc"] >= 300
+            and ok(s.get("to")) and s["to"] >= 1)
 
 
 def ok(v) -> bool:
@@ -267,6 +278,28 @@ SCREENS = [
         and ok(s.get("mc")) and s["mc"] >= 300,
         "sort": lambda s: (-s["macd_gc"], s["eg"]),  # クロスが新しい順、同じ日なら利益成長率の高い順
     },
+    {
+        "id": "eg_pullback",
+        "name": "好業績押し目",
+        "tab": "押し目",
+        "desc": "好業績株が直近で売られすぎ、陽線で反発し始めたところ",
+        "cond": ["陽線かつ前日比 +2%以上", "RSI(14) 35〜50", "直近10日以内にRSI(14) 35以下", "10日高値から10〜20%下落",
+                 "利益成長率 15%超", "時価総額 300億円以上", "売買代金 1億円以上"],
+        "filter": lambda s: s.get("bull") and ok(s.get("chg")) and s["chg"] >= 2
+        and _pullback_base(s, -20),
+        "sort": lambda s: s["eg"],
+    },
+    {
+        "id": "margin_pullback",
+        "name": "信用過多押し目",
+        "tab": "押し目",
+        "desc": "信用買いが積み上がった好業績株が大きく調整し、売られすぎ圏から戻りかけたところ",
+        "cond": ["信用倍率 10倍以上 (売残0で買残ありも含む。JPX公表の銘柄別信用残)", "RSI(14) 35〜50", "直近10日以内にRSI(14) 35以下",
+                 "10日高値から10〜30%下落", "利益成長率 15%超", "時価総額 300億円以上", "売買代金 1億円以上"],
+        "filter": lambda s: ok(s.get("mratio")) and s["mratio"] >= 10
+        and _pullback_base(s, -30),
+        "sort": lambda s: s["eg"],
+    },
 ]
 
 
@@ -429,7 +462,7 @@ def write_output(stocks, asof: str, demo: bool, universe: int, earnings=None):
 def compact(s):
     keys = ["c", "n", "sec", "mkt", "p", "chg", "mc", "per", "pbr", "dy", "roe",
             "opm", "rg", "eg", "er", "r1m", "r3m", "r6m", "pos52", "to", "sf", "sm", "items", "egf",
-            "stage", "stage75", "dev25", "rsi", "vr", "vol", "vchg", "off20", "atr", "earn", "earn_bd"]
+            "stage", "stage75", "dev25", "rsi", "vr", "vol", "vchg", "off10", "off20", "mratio", "atr", "earn", "earn_bd"]
     out = {}
     for k in keys:
         v = s.get(k)
@@ -603,6 +636,9 @@ def technicals(h):
     if len(close) >= 30:
         t["rsi"] = f(rsi.iloc[-1])
         t["rsi_min5"] = f(rsi.tail(5).min())
+        t["rsi_min10"] = f(rsi.tail(10).min())
+    hi10 = float(h["High"].tail(10).max())
+    t["off10"] = (last / hi10 - 1) * 100 if hi10 > 0 else None
     hi20 = float(h["High"].tail(20).max())
     t["off20"] = (last / hi20 - 1) * 100 if hi20 > 0 else None
     avg_vol = float(vol.iloc[-21:-1].mean())
@@ -767,6 +803,15 @@ def build_real():
         stocks.append(s)
         dates.append(pr["date"])
     asof = max(set(dates), key=dates.count)  # 最も多い株価基準日
+    # 信用残 (JPXの週次PDF) は保有銘柄の表示と「信用過多押し目」の両方で使う
+    try:
+        margin, margin_date = hd.load_margin(list(by_code))
+    except Exception as e:
+        print(f"margin failed: {e}")
+        margin, margin_date = {}, None
+    for c, m in margin.items():
+        # 売残0で買残がある銘柄は倍率が出せないので、上限なし (NO_SELL) として扱う
+        by_code[c]["mratio"] = m["ratio"] if m["ratio"] is not None else (NO_SELL if m["buy"] > 0 else None)
     try:
         earnings = hd.load_earnings_schedule()
     except Exception as e:
@@ -774,12 +819,6 @@ def build_real():
         earnings = {}
     screens = write_output(stocks, asof, demo=False, universe=len(universe), earnings=earnings)
     if holdings:
-        hcodes = [h["c"] for h in holdings]
-        try:
-            margin, margin_date = hd.load_margin(hcodes)
-        except Exception as e:
-            print(f"margin failed: {e}")
-            margin, margin_date = {}, None
         hd.write_holdings(holdings, funds, by_code, screens, asof, earnings, margin, margin_date)
     try:
         write_sectors(prices, universe)
@@ -832,6 +871,9 @@ def build_demo(seed=None, asof=None):
             "dev25": dev,
             "rsi": rsi,
             "rsi_min5": max(5.0, rsi - abs(day.gauss(0, 8))),
+            "rsi_min10": max(5.0, rsi - abs(day.gauss(0, 12))),
+            "off10": -abs(day.gauss(0, 9)),
+            "mratio": math.exp(rnd.gauss(1.5, 1.2)),
             "macd_gc": day.choice([None] * 6 + [0, 1, 2]),
             "vr": math.exp(day.gauss(0, 0.5)),
             "vol": float(round(math.exp(rnd.gauss(12, 1.5)), -2)),

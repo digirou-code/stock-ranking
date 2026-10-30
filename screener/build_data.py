@@ -43,6 +43,7 @@ FUND_REFRESH_PER_RUN = int(os.environ.get("FUND_REFRESH_PER_RUN", "4000"))
 FUND_MAX_AGE_DAYS = int(os.environ.get("FUND_MAX_AGE_DAYS", "7"))
 STMT_MAX_AGE_DAYS = 30  # 自己資本比率・利益成長率 (決算書から計算) を取り直す間隔
 TOP_N = 50
+NO_SELL = 9999  # 信用倍率: 売残0・買残ありの印
 MACD_GC_DAYS = 3  # MACDのゴールデンクロスをこの営業日数以内に見る (1 = 当日のみ)
 
 # ---------------------------------------------------------------- 取引ルール (スイング)
@@ -293,7 +294,7 @@ SCREENS = [
         "name": "信用過多押し目",
         "tab": "押し目",
         "desc": "信用買いが積み上がった好業績株が大きく調整し、売られすぎ圏から戻りかけたところ",
-        "cond": ["信用倍率 10倍以上 (JPXの週次データ)", "RSI(14) 35〜50", "直近10日以内にRSI(14) 35以下",
+        "cond": ["信用倍率 10倍以上 (売残0で買残ありも含む。JPX公表の銘柄別信用残)", "RSI(14) 35〜50", "直近10日以内にRSI(14) 35以下",
                  "10日高値から10〜30%下落", "利益成長率 15%超", "時価総額 300億円以上", "売買代金 1億円以上"],
         "filter": lambda s: ok(s.get("mratio")) and s["mratio"] >= 10
         and _pullback_base(s, -30),
@@ -809,7 +810,8 @@ def build_real():
         print(f"margin failed: {e}")
         margin, margin_date = {}, None
     for c, m in margin.items():
-        by_code[c]["mratio"] = m["ratio"]
+        # 売残0で買残がある銘柄は倍率が出せないので、上限なし (NO_SELL) として扱う
+        by_code[c]["mratio"] = m["ratio"] if m["ratio"] is not None else (NO_SELL if m["buy"] > 0 else None)
     try:
         earnings = hd.load_earnings_schedule()
     except Exception as e:

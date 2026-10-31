@@ -471,10 +471,10 @@ const th = (c, sk, sd) => {
 };
 
 // トップ3カードで各スクリーニングの決め手として見せる値
-const KEY_METRIC = { sf: "sf", sm: "sm", dividend: "dy", low_per: "per", growth: "rg", growth_div: "dy",
+const KEY_METRIC = { sf: "sf", sm: "sm", turnover: "to", dividend: "dy", low_per: "per", growth: "rg", growth_div: "dy",
   pullback: "dev25", rebound_dev: "dev25", high_break: "vr", macd_rsi: "rsi", margin_pullback: "mratio" };
 // スイング系スクリーニングでは決め手の指標を表に1列追加する
-const EXTRA_COL = { dev25: "25日線乖離", rsi: "RSI", vr: "出来高倍率", mratio: "信用倍率" };
+const EXTRA_COL = { to: "売買代金", dev25: "25日線乖離", rsi: "RSI", vr: "出来高倍率", mratio: "信用倍率" };
 const HEAD_N = 5;  // 順位・銘柄・業績・勢い・株価 (この後ろに決め手の列や取引の列が入る)
 const colsFor = (sc) => {
   const k = KEY_METRIC[sc.id];
@@ -483,7 +483,7 @@ const colsFor = (sc) => {
 };
 
 // 取引ルールの株数目安などを出すスイング系スクリーニング
-const SWING = new Set(["pullback", "rebound_dev", "high_break", "macd_rsi", "margin_pullback"]);
+const SWING = new Set(["turnover", "pullback", "rebound_dev", "high_break", "macd_rsi", "margin_pullback"]);
 const TRADE_COLS = [
   { k: "atrp", label: "ATR", sort: -1 },
   { k: "stop", label: "損切り / 利確", sort: -1 },

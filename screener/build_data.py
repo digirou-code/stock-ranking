@@ -129,6 +129,15 @@ SCREENS = [
         "sort": lambda s: s["sm"],
     },
     {
+        "id": "turnover",
+        "name": "売買代金上位",
+        "tab": "売買代金",
+        "desc": "売買代金 (20日平均) が大きい順。先読みなしのバックテストで最も成績が良かった選び方 (2026-10-31)",
+        "cond": ["売買代金 (20日平均) 1億円以上", "売買代金の大きい順"],
+        "filter": lambda s: ok(s.get("to")) and s["to"] >= 1,
+        "sort": lambda s: s["to"],
+    },
+    {
         "id": "dividend",
         "name": "高配当",
         "tab": "配当",

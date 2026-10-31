@@ -26,8 +26,9 @@
 使い方:
     python backtest/smc_test.py --cache bt_cache/prices.pkl
     python backtest/smc_test.py --demo
+    python backtest/smc_test.py --cache bt_cache/prices.pkl --rules   (RULE_SETS の3ルールで比べる)
 出力:
-    backtest/results/smc.json
+    backtest/results/smc.json (--rules のときは smc_rules.json)
 """
 from __future__ import annotations
 
@@ -50,6 +51,12 @@ import score_momentum_test as smt  # noqa: E402
 import screens_test as sc  # noqa: E402
 
 RULE = {"stop_pct": -8.0, "take1_pct": 20.0, "take2_pct": 40.0, "max_days": 40}
+# --rules で比べる取引ルール (ユーザー指定 2026-10-31)
+RULE_SETS = {
+    "pick": {"stop_pct": -8.0, "take1_pct": 20.0, "take2_pct": 40.0, "max_days": 40},
+    "wide": {"stop_pct": -15.0, "take1_pct": 30.0, "take2_pct": 1000.0, "max_days": 40},
+    "current": {"stop_pct": -6.0, "take1_pct": 20.0, "take2_pct": 40.0, "max_days": 25},
+}
 SLOTS = 10
 KS = [2, 3, 5]
 SWEEP_DAYS = 10
@@ -144,9 +151,9 @@ def signals(D, T, k):
     return {kk: (v.fillna(False).astype(bool) & liq) for kk, v in out.items()}
 
 
-def run(D, funds, demo):
+def run(D, funds, demo, rule=RULE):
     t0 = time.time()
-    rt.RULE, rt.SLOTS, ct.SLOTS = dict(RULE), SLOTS, SLOTS
+    rt.RULE, rt.SLOTS, ct.SLOTS = dict(rule), SLOTS, SLOTS
     T = bt.indicators(D, funds)
     T, mkt = op.extra_indicators(D, T)
     live = sc.alive(D)
@@ -162,7 +169,7 @@ def run(D, funds, demo):
     rng = {k: (int(np.nonzero(m)[0].min()), int(np.nonzero(m)[0].max())) for k, m in periods.items()}
     years = {k: max((M.idx[b] - M.idx[a]).days / 365.25, 0.1) for k, (a, b) in rng.items()}
     bench = {k: rt.bench(nk_s, M.idx[a], M.idx[b]) for k, (a, b) in rng.items()}
-    avoid = ~sc.earnings_near(D, funds, RULE["max_days"])[0]
+    avoid = ~sc.earnings_near(D, funds, rule["max_days"])[0]
     to = T["to"]
     print(f"ready {time.time() - t0:.0f}s")
 
@@ -171,7 +178,7 @@ def run(D, funds, demo):
         for pid, (a, b) in rng.items():
             mask = np.zeros(len(M.idx), bool)
             mask[a:b + 1] = True
-            mask[max(a, b - RULE["max_days"]):] = False
+            mask[max(a, b - rule["max_days"]):] = False
             t = S.rule_trades(sig & avoid, mask, key)
             r = {}
             for pk in ("cash", "nikkei"):
@@ -230,7 +237,7 @@ def run(D, funds, demo):
     res["meta"] = {
         "demo": demo, "generated_at": dt.datetime.now(bt.JST).isoformat(timespec="minutes"),
         "periods": {k: [M.idx[a].strftime("%Y-%m-%d"), M.idx[b].strftime("%Y-%m-%d")] for k, (a, b) in rng.items()},
-        "tickers": len(M.cols), "rule": RULE, "slots": SLOTS, "ks": KS, "best_k": best_k,
+        "tickers": len(M.cols), "rule": rule, "slots": SLOTS, "ks": KS, "best_k": best_k,
         "sweep_days": SWEEP_DAYS, "zone_days": ZONE_DAYS, "discount_days": DISCOUNT_DAYS,
         "nikkei": nk is not None, "cost_tiers": bt.COST_TIERS, "tax": bt.TAX, "elapsed_s": round(time.time() - t0),
     }
@@ -241,6 +248,7 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--demo", action="store_true")
     ap.add_argument("--cache", default=None)
+    ap.add_argument("--rules", action="store_true", help="RULE_SETS の取引ルールをすべて試す")
     args = ap.parse_args()
     D = bt.load_prices_demo(n_days=1100) if args.demo else bt.load_prices_real(Path(args.cache) if args.cache else None)
     D = bt.drop_partial_day(D)
@@ -249,8 +257,12 @@ def main():
         rng = np.random.default_rng(3)
         for c, f in funds.items():
             f.update({"earn_ts": (dt.datetime(2025, 8, 10) + dt.timedelta(days=int(rng.integers(0, 90)))).timestamp()})
-    res = run(D, funds, args.demo)
-    name = "smc_demo.json" if args.demo else "smc.json"
+    if args.rules:
+        res = {rid: run(D, funds, args.demo, rule) for rid, rule in RULE_SETS.items()}
+        name = "smc_rules_demo.json" if args.demo else "smc_rules.json"
+    else:
+        res = run(D, funds, args.demo)
+        name = "smc_demo.json" if args.demo else "smc.json"
     (bt.OUT_DIR / name).write_text(json.dumps(bt.clean(res), ensure_ascii=False, indent=1, allow_nan=False),
                                    encoding="utf-8")
     print(f"wrote {bt.OUT_DIR / name}")

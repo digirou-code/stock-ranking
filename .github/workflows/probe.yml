@@ -6,18 +6,23 @@ jobs:
   probe:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
-        with: { ref: claude/pullback-screens }
       - uses: actions/setup-python@v6
         with: { python-version: "3.12" }
-      - run: pip install -q -r requirements.txt
+      - run: pip install -q yfinance pandas
       - shell: python
         run: |
-          import sys, time; sys.path.insert(0, "screener")
-          import build_data as b, holdings as hd
-          u, every = b.load_universe()
-          codes = [x["c"] for x in u]
-          t = time.time(); m, d = hd.load_margin(codes); print("secs", round(time.time() - t), "date", d)
-          r = [v["ratio"] for v in m.values()]
-          print("with ratio", sum(x is not None for x in r), "ratio>=10", sum(1 for x in r if x is not None and x >= 10), "sell=0", sum(1 for v in m.values() if v["sell"] == 0))
-          print({c: m.get(c) for c in ["7203", "6418", "4116"]})
+          import yfinance as yf, pandas as pd, time
+          pd.set_option("display.width",250); pd.set_option("display.max_columns",20)
+          n_ok=0; codes=["7203","6758","6418","4116","9984","8306","6861","3697","4385","2914","7974","6098","2768","5016","9434","3994","4478","7011","6526","2413"]
+          for c in codes:
+              t=yf.Ticker(c+".T")
+              try:
+                  r=t.revenue_estimate
+                  print("==",c); print(r)
+                  if r is not None and len(r) and r["avg"].notna().any(): n_ok+=1
+              except Exception as e: print("==",c,"ERR",e)
+              try:
+                  i=t.info; print("info rev keys", {k:i.get(k) for k in ("revenueGrowth","totalRevenue","forwardEps","trailingEps","numberOfAnalystOpinions")})
+              except Exception as e: print("info ERR",e)
+              time.sleep(1)
+          print("REVEST_OK",n_ok,"/",len(codes))

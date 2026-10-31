@@ -95,16 +95,6 @@ MIN_COVERAGE = 4  # 項目のうちこの数以上そろった銘柄だけSCORE�
 STAGE_PTS = {2: 1.0, 1: 2 / 3, 3: 1 / 3, 4: 0.0}
 
 
-def _pullback_base(s, max_off):
-    """信用過多押し目の共通条件 (10日高値からの下落は -10%〜max_off%)"""
-    return (ok(s.get("rsi")) and 35 <= s["rsi"] <= 50
-            and ok(s.get("rsi_min10")) and s["rsi_min10"] <= 35
-            and ok(s.get("off10")) and max_off <= s["off10"] <= -10
-            and ok(s.get("eg")) and s["eg"] > 15
-            and ok(s.get("mc")) and s["mc"] >= 300
-            and ok(s.get("to")) and s["to"] >= 1)
-
-
 def ok(v) -> bool:
     return v is not None and not (isinstance(v, float) and math.isnan(v))
 
@@ -170,6 +160,19 @@ SCREENS = [
         and ok(s.get("mc")) and s["mc"] >= 300,
         "sort_multi": [("rg", True), ("eg", True)],
     },
+    {
+        "id": "growth_div",
+        "name": "成長＋高配当",
+        "tab": "配当",
+        "desc": "売上と利益が伸びていて、配当利回りも高い銘柄",
+        "cond": ["配当利回り 3.5%以上", "売上成長率 10%以上", "利益成長率 10%以上", "ROE 5%以上", "時価総額 300億円以上"],
+        "filter": lambda s: ok(s.get("dy")) and s["dy"] >= 3.5
+        and ok(s.get("rg")) and s["rg"] >= 10
+        and ok(s.get("eg")) and s["eg"] >= 10
+        and ok(s.get("roe")) and s["roe"] >= 5
+        and ok(s.get("mc")) and s["mc"] >= 300,
+        "sort": lambda s: s["dy"],
+    },
     # ---- スイング向け (短期〜数週間)。テクニカル指標は fetch_prices で日足から計算
     {
         "id": "pullback",
@@ -219,22 +222,29 @@ SCREENS = [
         "tab": "初動",
         "desc": "MACDがシグナルを上抜け、RSIも50以上で上向きの勢いが出てきた好業績株",
         "cond": [f"MACD(12,26,9)が当日を含む直近{MACD_GC_DAYS}営業日以内にゴールデンクロス (今もシグナルより上)", "RSI(14) 50以上",
-                 "利益成長率 15%超", "時価総額 300億円以上"],
+                 "利益成長率 10%超", "売上成長率 10%超", "売買代金 1億円以上", "ROE 5%以上"],
         "filter": lambda s: s.get("macd_gc") is not None
         and ok(s.get("rsi")) and s["rsi"] >= 50
-        and ok(s.get("eg")) and s["eg"] > 15
-        and ok(s.get("mc")) and s["mc"] >= 300,
+        and ok(s.get("eg")) and s["eg"] > 10
+        and ok(s.get("rg")) and s["rg"] > 10
+        and ok(s.get("to")) and s["to"] >= 1
+        and ok(s.get("roe")) and s["roe"] >= 5,
         "sort": lambda s: (-s["macd_gc"], s["eg"]),  # クロスが新しい順、同じ日なら利益成長率の高い順
     },
     {
         "id": "margin_pullback",
         "name": "信用過多押し目",
         "tab": "押し目",
-        "desc": "信用買いが積み上がった好業績株が大きく調整し、売られすぎ圏から戻りかけたところ",
-        "cond": ["信用倍率 10倍以上 (売残0で買残ありも含む。JPX公表の銘柄別信用残)", "RSI(14) 35〜50", "直近10日以内にRSI(14) 35以下",
-                 "10日高値から10〜30%下落", "利益成長率 15%超", "時価総額 300億円以上", "売買代金 1億円以上"],
-        "filter": lambda s: ok(s.get("mratio")) and s["mratio"] >= 10
-        and _pullback_base(s, -30),
+        "desc": "信用買いが積み上がった好業績株が25日線近くまで調整し、陽線で反発し始めたところ",
+        "cond": ["陽線かつ前日比 +1%以上", "信用倍率 10倍以上 (売残0で買残ありも含む。JPX公表の銘柄別信用残)",
+                 "25日線乖離 -4%〜+2%", "20日高値から5〜20%下落", "利益成長率 10%超", "売上成長率 10%超", "売買代金 1億円以上"],
+        "filter": lambda s: s.get("bull") and ok(s.get("chg")) and s["chg"] >= 1
+        and ok(s.get("mratio")) and s["mratio"] >= 10
+        and ok(s.get("dev25")) and -4 <= s["dev25"] <= 2
+        and ok(s.get("off20")) and -20 <= s["off20"] <= -5
+        and ok(s.get("eg")) and s["eg"] > 10
+        and ok(s.get("rg")) and s["rg"] > 10
+        and ok(s.get("to")) and s["to"] >= 1,
         "sort": lambda s: s["eg"],
     },
 ]

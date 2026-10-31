@@ -69,25 +69,25 @@ SCORES = {
         "items": [
             ("per", "PER", "per"),
             ("roe", "ROE", "hi"),
-            ("er", "自己資本比率", "hi"),
             ("dy", "配当利回り", "hi"),
-            ("rg", "売上成長率", "hi"),
+            ("rgf", "売上成長予想", "hi"),
             ("egf", "利益成長予想", "hi"),
         ],
-        "note": "PERは低いほど高評価 (赤字は最下位)。売上成長率は直近四半期の前年同期比 (予想が無料で取れないため実績)。"
+        "note": "PERは低いほど高評価 (赤字は最下位)。売上成長予想はアナリストの今期売上予想 ÷ 直近12ヶ月の売上、"
+                "予想がない銘柄は直近四半期の売上の前年同期比で代用。"
                 "利益成長予想はアナリスト予想EPS ÷ 実績EPS、予想がない銘柄は直近年度の純利益の前年比で代用。",
     },
     "sm": {
         "name": "SCORE勢い",
         "short": "勢い",
         "items": [
-            ("stage75", "ステージ(75)", "stage"),
+            ("stage25", "ステージ(25)", "stage"),
             ("pullback", "押し目度", "pullback"),
-            ("r3m", "3ヶ月騰落率", "hi"),
+            ("r1m", "1ヶ月騰落率", "hi"),
             ("to", "売買代金", "hi"),
             ("rsi", "RSI (低め加点)", "rsi"),
         ],
-        "note": "ステージ(75)は 2上昇=100 / 1底固め=67 / 3天井圏=33 / 4下降=0。押し目度は25日線乖離 -2〜+2%・20日高値から -3〜-20% にどれだけ近いか。"
+        "note": "ステージ(25)は 2上昇=100 / 1底固め=67 / 3天井圏=33 / 4下降=0。押し目度は25日線乖離 -2〜+2%・20日高値から -3〜-20% にどれだけ近いか。"
                 "RSIは40以下で満点、60以上で0。それ以外は全銘柄内の順位。",
     },
 }
@@ -114,7 +114,7 @@ SCREENS = [
         "id": "sf",
         "name": "SCORE業績",
         "tab": "業績",
-        "desc": "PER・ROE・自己資本比率・配当利回り・売上成長率・利益成長予想の6項目の評価が高い順",
+        "desc": "PER・ROE・配当利回り・売上成長予想・利益成長予想の5項目の評価が高い順",
         "cond": [f"6項目中{MIN_COVERAGE}項目以上のデータあり"],
         "filter": lambda s: s.get("sf") is not None,
         "sort": lambda s: s["sf"],
@@ -123,7 +123,7 @@ SCREENS = [
         "id": "sm",
         "name": "SCORE勢い",
         "tab": "勢い",
-        "desc": "ステージ(75)・押し目度・3ヶ月騰落率・売買代金・RSIの5項目の評価が高い順",
+        "desc": "ステージ(25)・押し目度・1ヶ月騰落率・売買代金・RSIの5項目の評価が高い順",
         "cond": [f"5項目中{MIN_COVERAGE}項目以上のデータあり"],
         "filter": lambda s: s.get("sm") is not None,
         "sort": lambda s: s["sm"],
@@ -277,6 +277,8 @@ def score_inputs(s):
     eg = s.get("eg")
     ef, et = s.get("eps_fwd"), s.get("eps_trail")
     s["egf"] = (ef / et - 1) * 100 if ok(ef) and ok(et) and et > 0 else eg
+    rf, rt = s.get("rev_fwd"), s.get("rev_ttm")
+    s["rgf"] = (rf / rt - 1) * 100 if ok(rf) and ok(rt) and rf > 0 and rt > 0 else s.get("rg")
     dev, off = _band(s.get("dev25"), -2, 2, 5), _band(s.get("off20"), -20, -3, 5)
     s["pullback"] = (dev + off) / 2 if dev is not None and off is not None else None
 
@@ -408,7 +410,7 @@ def write_output(stocks, asof: str, demo: bool, universe: int, earnings=None):
 
 def compact(s):
     keys = ["c", "n", "sec", "mkt", "p", "chg", "mc", "per", "pbr", "dy", "roe",
-            "opm", "rg", "eg", "er", "r1m", "r3m", "r6m", "pos52", "to", "sf", "sm", "items", "egf",
+            "opm", "rg", "eg", "er", "r1m", "r3m", "r6m", "pos52", "to", "sf", "sm", "items", "egf", "rgf",
             "stage", "stage75", "stage25", "dev25", "rsi", "vr", "vol", "vchg", "off10", "off20", "mratio", "atr", "earn", "earn_bd"]
     out = {}
     for k in keys:
@@ -618,6 +620,12 @@ def fetch_fundamental(code, prev=None):
                 stmt = {k: prev.get(k) for k in ("eg", "eg_fy", "er", "stmt_ts")}
             else:
                 stmt = {**earnings_growth(t), "er": equity_ratio(t), "stmt_ts": time.time()}
+            # 売上予想もリクエストが1回増えるので30日ごと。アナリストがついていない銘柄は取りに行かない
+            if "rev_ts" in prev and time.time() - prev["rev_ts"] < STMT_MAX_AGE_DAYS * 86400:
+                rev = {"rev_fwd": prev.get("rev_fwd"), "rev_ts": prev["rev_ts"]}
+            else:
+                rev = {"rev_fwd": revenue_forecast(t) if info.get("numberOfAnalystOpinions") else None,
+                       "rev_ts": time.time()}
             pct = lambda v: v * 100 if ok(v) else None
             return {
                 "per": info.get("trailingPE"),
@@ -635,6 +643,8 @@ def fetch_fundamental(code, prev=None):
                 "rg": pct(info.get("revenueGrowth")),
                 # earningsGrowth は四半期の前年同期比で、前年が小さいと数千%に跳ねるので使わない
                 **stmt,
+                **rev,
+                "rev_ttm": info.get("totalRevenue"),  # 直近12ヶ月の売上 (売上成長予想の分母)
                 "shares": info.get("sharesOutstanding"),
                 "mc_raw": info.get("marketCap"),
                 "eps_fwd": info.get("forwardEps"),  # アナリスト予想EPS (利益成長予想に使う)
@@ -647,6 +657,15 @@ def fetch_fundamental(code, prev=None):
             err = e
     print(f"  fundamentals failed {code}: {err}", file=sys.stderr)
     return None
+
+
+def revenue_forecast(t):
+    """アナリストの今期 (0y) 売上予想の平均。予想がなければ None"""
+    try:
+        v = float(t.revenue_estimate.loc["0y", "avg"])
+    except Exception:
+        return None
+    return v if ok(v) and v > 0 else None
 
 
 def earnings_growth(t):
@@ -736,7 +755,7 @@ def build_real():
             continue
         f = funds_cache.get(u["c"], {})
         s = {**u, **{k: v for k, v in pr.items() if k != "date"}}
-        for k in ("per", "pbr", "roe", "opm", "rg", "eg", "er", "eps_fwd", "eps_trail", "earn_ts"):
+        for k in ("per", "pbr", "roe", "opm", "rg", "eg", "er", "eps_fwd", "eps_trail", "rev_fwd", "rev_ttm", "earn_ts"):
             s[k] = f.get(k)
         dy = dividend_yield(f, s["p"])
         if dy is not None:

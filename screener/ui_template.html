@@ -766,7 +766,7 @@ function tradePlan(s) {
 function yen(v) { return Math.round(v).toLocaleString("ja-JP"); }
 function md(iso) { return iso.slice(5).replace("-", "/").replace(/^0/, ""); }
 function earnWarn(s) {
-  return has(s.earn_bd) ? `<span class="warn" title="保有想定期間中に決算発表予定 (決算またぎは原則避ける)">決算 ${md(s.earn)}</span>` : "";
+  return has(s.earn_bd) ? `<span class="warn" title="保有想定期間中に決算発表予定">決算 ${md(s.earn)}</span>` : "";
 }
 function tradeCells(s) {
   const pl = tradePlan(s), na = '<td class="n"><span class="na-txt">—</span></td>';
@@ -787,7 +787,6 @@ function renderRules() {
     ["利益確定", `エントリー価格から${R.take1_pct}%上昇で半分売却、${R.take2_pct}%上昇で残り半分売却`],
     ["時間切れ", `${R.hold_days}営業日経過しても条件に達しなければ手仕舞い (今回は ${wk(R.exit_by)})`],
     ["同時保有数", `最大${R.max_pos}銘柄まで`],
-    ["決算またぎ", "原則として避ける (保有想定期間に決算がある銘柄に印を付けます)"],
   ].map(([k, v]) => `<tr><td>${k}</td><td>${esc(v)}</td></tr>`).join("");
   $("rules-calc").innerHTML = CAP
     ? `<span>1銘柄の資金 (${R.max_pos}銘柄に分散)</span><b>${yen(CAP / R.max_pos)}円</b>
@@ -1081,7 +1080,7 @@ function openDetail(code) {
       <div><span>次の決算</span><b>${s.earn ? md(s.earn) : "未定"}</b></div>
       <div><span>エントリー / 時間切れ</span><b>${md(R.entry)} / ${md(R.exit_by)}</b></div>
     </div>
-    ${has(s.earn_bd) ? `<p class="note"><span class="warn">決算またぎ注意</span> 保有想定期間中の${md(s.earn)}に決算発表が予定されています。</p>` : ""}
+    ${has(s.earn_bd) ? `<p class="note"><span class="warn">決算あり</span> 保有想定期間中の${md(s.earn)}に決算発表が予定されています。</p>` : ""}
     <p class="note">基準日の終値 ${fmt("p", s.p)}円をエントリー価格の目安にしています。</p></div>` : "";
   $("dlg-body").innerHTML = `
     <header><div><h4 id="dlg-title">${esc(s.n)}</h4><p class="note">${esc(s.c)} · ${esc(s.sec)} · ${esc(s.mkt)}</p></div>

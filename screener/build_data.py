@@ -96,7 +96,7 @@ STAGE_PTS = {2: 1.0, 1: 2 / 3, 3: 1 / 3, 4: 0.0}
 
 
 def _pullback_base(s, max_off):
-    """好業績押し目・信用過多押し目で共通の条件 (10日高値からの下落は -10%〜max_off%)"""
+    """信用過多押し目の共通条件 (10日高値からの下落は -10%〜max_off%)"""
     return (ok(s.get("rsi")) and 35 <= s["rsi"] <= 50
             and ok(s.get("rsi_min10")) and s["rsi_min10"] <= 35
             and ok(s.get("off10")) and max_off <= s["off10"] <= -10
@@ -160,16 +160,6 @@ SCREENS = [
         "sort": lambda s: -s["per"],
     },
     {
-        "id": "high_roe",
-        "name": "高ROE",
-        "tab": "収益",
-        "desc": "自己資本を効率よく利益に変えている銘柄",
-        "cond": ["ROE 15%以上", "自己資本比率 30%以上"],
-        "filter": lambda s: ok(s.get("roe")) and s["roe"] >= 15
-        and (not ok(s.get("er")) or s["er"] >= 30),
-        "sort": lambda s: s["roe"],
-    },
-    {
         "id": "growth",
         "name": "成長株",
         "tab": "成長",
@@ -196,20 +186,6 @@ SCREENS = [
         "sort": lambda s: s["r3m"] if ok(s.get("r3m")) else -999,
     },
     {
-        "id": "rsi_pullback",
-        "name": "RSI押し目",
-        "tab": "押し目",
-        "desc": "長期の上昇トレンド中にRSIが冷え、陽線で反発し始めた銘柄",
-        "cond": ["株価が200日線より上", "RSI(14) 35〜45", "前日比プラスかつ陽線",
-                 "営業利益率 5%以上", "売買代金 1億円以上"],
-        "filter": lambda s: s.get("above200")
-        and ok(s.get("rsi")) and 35 <= s["rsi"] <= 45
-        and ok(s.get("chg")) and s["chg"] > 0 and s.get("bull")
-        and ok(s.get("opm")) and s["opm"] >= 5
-        and ok(s.get("to")) and s["to"] >= 1,
-        "sort": lambda s: s["r6m"] if ok(s.get("r6m")) else -999,
-    },
-    {
         "id": "rebound_dev",
         "name": "乖離リバウンド",
         "tab": "リバウンド",
@@ -223,34 +199,6 @@ SCREENS = [
         and ok(s.get("mc")) and s["mc"] >= 300
         and ok(s.get("to")) and s["to"] >= 1,
         "sort": lambda s: -s["dev25"],
-    },
-    {
-        "id": "rebound_rsi",
-        "name": "RSI売られすぎ反発",
-        "tab": "リバウンド",
-        "desc": "好業績なのにRSI30以下まで売られ、出来高を伴う陽線で反発した銘柄",
-        "cond": ["直近5日以内にRSI(14) 30以下", "陽線かつ前日比 +1%以上", "出来高 20日平均の1.2倍以上",
-                 "利益成長率 0%超", "ROE 8%以上"],
-        "filter": lambda s: ok(s.get("rsi_min5")) and s["rsi_min5"] <= 30
-        and s.get("bull") and ok(s.get("chg")) and s["chg"] >= 1
-        and ok(s.get("vr")) and s["vr"] >= 1.2
-        and ok(s.get("eg")) and s["eg"] > 0
-        and ok(s.get("roe")) and s["roe"] >= 8,
-        "sort": lambda s: s["chg"],
-    },
-    {
-        "id": "vol_break",
-        "name": "出来高急増",
-        "tab": "初動",
-        "desc": "出来高を伴って大きく上げ、高値引けに近い銘柄 (上昇初動の兆し)",
-        "cond": ["出来高 20日平均の2倍以上", "前日比 +3%以上", "終値が当日高値から1%以内",
-                 "株価が25日線より上", "当日売買代金 3億円以上"],
-        "filter": lambda s: ok(s.get("vr")) and s["vr"] >= 2
-        and ok(s.get("chg")) and s["chg"] >= 3
-        and ok(s.get("near_hi")) and s["near_hi"] >= -1
-        and ok(s.get("dev25")) and s["dev25"] > 0
-        and ok(s.get("to1")) and s["to1"] >= 3,
-        "sort": lambda s: s["vr"],
     },
     {
         "id": "high_break",
@@ -277,17 +225,6 @@ SCREENS = [
         and ok(s.get("eg")) and s["eg"] > 15
         and ok(s.get("mc")) and s["mc"] >= 300,
         "sort": lambda s: (-s["macd_gc"], s["eg"]),  # クロスが新しい順、同じ日なら利益成長率の高い順
-    },
-    {
-        "id": "eg_pullback",
-        "name": "好業績押し目",
-        "tab": "押し目",
-        "desc": "好業績株が直近で売られすぎ、陽線で反発し始めたところ",
-        "cond": ["陽線かつ前日比 +2%以上", "RSI(14) 35〜50", "直近10日以内にRSI(14) 35以下", "10日高値から10〜20%下落",
-                 "利益成長率 15%超", "時価総額 300億円以上", "売買代金 1億円以上"],
-        "filter": lambda s: s.get("bull") and ok(s.get("chg")) and s["chg"] >= 2
-        and _pullback_base(s, -20),
-        "sort": lambda s: s["eg"],
     },
     {
         "id": "margin_pullback",

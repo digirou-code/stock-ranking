@@ -32,7 +32,7 @@ def _now() -> str:
 
 
 def _read_csvs(paths: list[str], usecols=None) -> pd.DataFrame:
-    frames = [pd.read_csv(p, dtype=str, usecols=usecols, keep_default_na=False) for p in paths]
+    frames = [pd.read_csv(p, dtype=str, usecols=usecols, keep_default_na=False) for p in paths if os.path.getsize(p) > 0]
     return pd.concat(frames, ignore_index=True) if frames else pd.DataFrame(columns=usecols or [])
 
 

@@ -166,7 +166,7 @@ def main():
     i = len(p.dates) - 1
     start = args.start or cfg["paper"]["start_date"]
     first = min(bisect.bisect_left(p.dates, start), i)
-    sc = sim_cfg(cfg)
+    sc = sim_cfg(cfg) if cfg["risk"].get("brake", True) else sim_cfg(cfg, dd_half=None, dd_stop=None)
     nk, _ = benchmark.total_return_close(p, cfg["benchmark"]["nikkei_etf"])
     gap = cfg["orders"].get("gap_limit")
     keys = {"L": st.L(), "G": getattr(st, cfg["sleeves"]["G"]["variant"])(), "R": st.R()}

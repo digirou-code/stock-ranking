@@ -134,6 +134,9 @@ def main():
     ap.add_argument("--end", help="この日までのデータで回す")
     args = ap.parse_args()
     cfg = config.load()
+    # 検証0〜6 は事前登録した3枠の配分で回す (config.toml は紙上運用用に大型株100%へ変えた)
+    for k, w in {"L": 0.50, "G": 0.35, "R": 0.15}.items():
+        cfg["sleeves"][k]["weight"] = w
     ctx = Ctx(cfg, args.end)
     res = {"meta": {"run_at": dt.datetime.now().isoformat(timespec="seconds"),
                     "data": [ctx.p.dates[0], ctx.p.dates[-1]], "start": ctx.p.dates[ctx.first],

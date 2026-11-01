@@ -1,6 +1,7 @@
 """検証7 配分見直し (事前登録・各案1回だけ): 大型株70%・成長株30%・リバウンド枠なし。
 検証8 大型株100% (検証7が不合格だったため、ユーザーが選んだ最終確認)。
 検証9 大型株100%・損切り-8%・最大40日 (検証8がコスト試験だけ不合格 → 回転を減らす1案だけ)。
+検証10 大型株70%・成長株30%、大型株のR2を 損切り-6%・+25%で半分・+50%で残り・最大40日 (ユーザー指定)。成長株はR4のまま。
 
 検証0〜6 で決まった設定をそのまま使う: 成長株スコア G0、DDブレーキなし、窓開けフィルタあり。
 合格基準・コスト試験・開始日ずらしは検証6と同じ。合格したときだけ config.toml の配分を変える。
@@ -8,6 +9,7 @@
   python -m system.backtest.realloc            → results/backtest_realloc.{json,md}
   python -m system.backtest.realloc --plan L100 → results/backtest_L100.{json,md}
   python -m system.backtest.realloc --plan L100_slow → results/backtest_L100_slow.{json,md}
+  python -m system.backtest.realloc --plan 70_30_v10 → results/backtest_70_30_v10.{json,md}
 """
 from __future__ import annotations
 
@@ -22,8 +24,11 @@ from .run import OUT, Ctx, bench_row, passes, sim_cfg
 
 PLANS = {"70_30": ({"L": 0.70, "G": 0.30}, "backtest_realloc", "検証7 配分見直し (大型株70%・成長株30%)"),
          "L100": ({"L": 1.00}, "backtest_L100", "検証8 大型株100%"),
-         "L100_slow": ({"L": 1.00}, "backtest_L100_slow", "検証9 大型株100%・損切り-8%・最大40日")}
-RULE_OVERRIDE = {"L100_slow": {"R2": {"stop": -8.0, "days": 40}}}
+         "L100_slow": ({"L": 1.00}, "backtest_L100_slow", "検証9 大型株100%・損切り-8%・最大40日"),
+         "70_30_v10": ({"L": 0.70, "G": 0.30}, "backtest_70_30_v10",
+                       "検証10 大型株70%・成長株30% (大型株: -6%損切り・+25%で半分・+50%で残り・最大40日)")}
+RULE_OVERRIDE = {"L100_slow": {"R2": {"stop": -8.0, "days": 40}},
+                 "70_30_v10": {"R2": {"stop": -6.0, "t1": 25.0, "t2": 50.0, "days": 40}}}
 
 
 def main():

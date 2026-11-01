@@ -1,9 +1,11 @@
-"""検証7 配分見直し (事前登録・1回だけ): 大型株70%・成長株30%・リバウンド枠なし。
+"""検証7 配分見直し (事前登録・各案1回だけ): 大型株70%・成長株30%・リバウンド枠なし。
+検証8 大型株100% (検証7が不合格だったため、ユーザーが選んだ最終確認)。
 
 検証0〜6 で決まった設定をそのまま使う: 成長株スコア G0、DDブレーキなし、窓開けフィルタあり。
 合格基準・コスト試験・開始日ずらしは検証6と同じ。合格したときだけ config.toml の配分を変える。
 
-  python -m system.backtest.realloc   → system/backtest/results/backtest_realloc.{json,md}
+  python -m system.backtest.realloc            → results/backtest_realloc.{json,md}
+  python -m system.backtest.realloc --plan L100 → results/backtest_L100.{json,md}
 """
 from __future__ import annotations
 
@@ -16,13 +18,16 @@ import os
 from .. import config, engine
 from .run import OUT, Ctx, bench_row, passes, sim_cfg
 
-WEIGHTS = {"L": 0.70, "G": 0.30}
+PLANS = {"70_30": ({"L": 0.70, "G": 0.30}, "backtest_realloc", "検証7 配分見直し (大型株70%・成長株30%)"),
+         "L100": ({"L": 1.00}, "backtest_L100", "検証8 大型株100%")}
 
 
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--end", help="この日までのデータで回す")
+    ap.add_argument("--plan", choices=PLANS, default="70_30")
     args = ap.parse_args()
+    WEIGHTS, fname, title = PLANS[args.plan]
     cfg = config.load()
     cfg["sleeves"]["G"]["variant"] = "G0"
     ctx = Ctx(cfg, args.end)
@@ -51,10 +56,10 @@ def main():
            "bench": bench, "result": s, "checks": {k: bool(v) for k, v in checks.items()}, "stress": stress,
            "start_shift_vs_nikkei": shifts, "pass": bool(ok)}
     os.makedirs(OUT, exist_ok=True)
-    with open(os.path.join(OUT, "backtest_realloc.json"), "w", encoding="utf-8") as f:
+    with open(os.path.join(OUT, fname + ".json"), "w", encoding="utf-8") as f:
         json.dump(res, f, ensure_ascii=False, indent=1, default=float)
     b = bench["nikkei_1321"]
-    md = [f"# 検証7 配分見直し (大型株70%・成長株30%)\n",
+    md = [f"# {title}\n",
           f"データ {res['meta']['data'][0]}〜{res['meta']['data'][1]}、検証開始 {res['meta']['start']}。"
           f"日経1321: 年率 {b['annual']}%・最大DD {b['max_dd']}%。\n",
           f"- 年率 {s['annual']}% / 日経比 {s['vs_nikkei']:+}pt / 最大DD {s['max_dd']}% / PF {s.get('pf')} / 取引 {s.get('trades')}",
@@ -63,7 +68,7 @@ def main():
           f"- 開始日ずらし (日経比pt): {', '.join(f'{x:+}' for x in shifts)} → {sum(1 for x in shifts if x > 0)}/12 勝ち",
           f"- 年別: " + ", ".join(f"{k} {v}" for k, v in s["yearly"].items()),
           f"- **判定: {'合格' if ok else '不合格'}**"]
-    with open(os.path.join(OUT, "backtest_realloc.md"), "w", encoding="utf-8") as f:
+    with open(os.path.join(OUT, fname + ".md"), "w", encoding="utf-8") as f:
         f.write("\n".join(md) + "\n")
     print("\n".join(md), flush=True)
 

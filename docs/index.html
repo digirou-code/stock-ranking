@@ -228,6 +228,25 @@ table.hold { min-width: 1600px; }
 .mk-imp small { display: block; color: var(--muted); font-size: 12px; line-height: 1.45; }
 .mk-sum { display: flex; flex-wrap: wrap; gap: 6px 16px; align-items: baseline; padding: 10px 14px; background: var(--surface); border: 1px solid var(--line); border-radius: 8px; font-size: 13px; }
 .mk-sum b { font-size: 15px; }
+.rg { display: grid; gap: 12px; padding: 14px 16px; background: var(--surface); border: 1px solid var(--line); border-radius: 8px; }
+.rg-h { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 16px; }
+.rg-h .st { font-size: 22px; font-weight: 700; }
+.rg-h small { color: var(--muted); font-size: 12px; }
+.st.s1 { color: var(--up); } .st.s0 { color: var(--muted); } .st.s-1 { color: var(--down); }
+.rg-ind { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 8px; }
+.rg-ind > div { padding: 8px 10px; border-radius: 6px; background: var(--line-soft); font-size: 13px; }
+.rg-ind b { font-weight: 600; }
+.rg-ind .pt { float: right; font-family: var(--font-data); font-weight: 700; }
+.rg-ind .pt.p1 { color: var(--up); } .rg-ind .pt.p-1 { color: var(--down); } .rg-ind .pt.p0, .rg-ind .pt.pn { color: var(--muted); }
+.rg-ind small { display: block; color: var(--muted); font-size: 12px; line-height: 1.45; margin-top: 2px; }
+.rg-strip { display: flex; gap: 1px; height: 14px; }
+.rg-strip i { flex: 1; min-width: 1px; border-radius: 1px; }
+.rg-strip i.s1 { background: var(--up); } .rg-strip i.s0 { background: var(--bar-track); } .rg-strip i.s-1 { background: var(--down); }
+.rg-strip-l { display: flex; justify-content: space-between; color: var(--muted); font-size: 11px; font-family: var(--font-data); }
+.rg-note { color: var(--muted); font-size: 12px; line-height: 1.5; margin: 0; }
+.rg-mini { display: flex; flex-wrap: wrap; gap: 4px 12px; align-items: baseline; padding: 8px 14px; background: var(--surface); border: 1px solid var(--line); border-radius: 8px; font-size: 13px; color: var(--muted); text-decoration: none; }
+.rg-mini b.st { font-size: 15px; }
+.rg-mini:hover { border-color: var(--ai); }
 .sec-box { background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 14px; display: grid; gap: 10px; min-width: 0; }
 .sec-chart { height: 340px; min-width: 0; }
 .sec-legend { display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: 12.5px; }
@@ -308,6 +327,7 @@ table.cal td.n { width: 6.5em; }
       <div class="meta" id="meta"></div>
     </div>
   </header>
+  <a class="rg-mini" id="rg-mini" href="#markets" hidden></a>
   <div class="demo-banner" id="demo" hidden>これはデモデータです。銘柄名・数値はすべて乱数で作った架空のもので、実在の企業とは関係ありません。実データでの日次更新を設定すると、ここに東証の銘柄が並びます。</div>
 
   <section id="hold-view" aria-labelledby="hh" hidden>
@@ -323,6 +343,7 @@ table.cal td.n { width: 6.5em; }
   <section id="mk-view" aria-labelledby="mkh" hidden>
     <div class="stack" style="display:grid; gap:14px">
       <div class="screen-head"><h3 id="mkh">マーケット</h3><p id="mk-note"></p></div>
+      <section class="rg" id="rg-box" aria-label="市場環境" hidden></section>
       <div class="mk-tools">
         <div class="seg" role="group" aria-label="期間" id="mk-range"><button data-d="22">1ヶ月</button><button data-d="66">3ヶ月</button><button data-d="132">6ヶ月</button><button data-d="400">1年</button></div>
         <div class="seg" role="group" aria-label="グループ" id="mk-group"></div>
@@ -404,6 +425,7 @@ table.cal td.n { width: 6.5em; }
 const EMBEDDED = /*__DATA__*/null;
 const EMBEDDED_H = /*__HOLDINGS__*/null;
 let H = null, hSortKey = "sf", hSortDir = -1;
+let RG = null;
 let SEC = null, secDays = 66, secSel = null, secChart = null, secRO = null;
 let MK = null, CAL = null, mkDays = 132, mkGroup = "all", calCc = "JPYUSD", calImp = 2, mkCharts = [];
 
@@ -673,8 +695,35 @@ function renderSectors() {
   }
 }
 
+const RG_MARK = { 1: "+1 強気", 0: "0 中立", "-1": "-1 弱気" };
+function rgDetail(x) {
+  const n = (v, d = 0) => has(v) ? num(v, d) : "—";
+  if (x.key === "nk") return `${n(x.value)} 円 / 50日線 ${n(x.ma50)} / 200日線 ${n(x.ma200)}`;
+  if (x.key === "tp") return `${n(x.value, 1)} / 50日線 ${n(x.ma50, 1)} (10日前比 ${has(x.slope) ? (x.slope > 0 ? "+" : "") + num(x.slope, 2) + "%" : "—"})`;
+  if (x.key === "adr") return `騰落レシオ ${n(x.value, 1)}% (本日 値上がり ${n(x.adv)} / 値下がり ${n(x.dec)})`;
+  if (x.key === "vol") return `上昇日÷下落日 ${n(x.value, 2)}倍 (本日の売買代金 ${has(x.mkt_to) ? num(x.mkt_to / 1e4, 2) + "兆円" : "—"})`;
+  return "";
+}
+function renderRegime() {
+  if (!RG) return;
+  const sign = (v) => `${v > 0 ? "+" : ""}${v}`;
+  $("rg-mini").innerHTML = `<span>市場環境</span><b class="st s${RG.state}">${esc(RG.label)}</b><span>投資資金の目安 <b class="mono">${RG.invest_pct}%</b></span><span>判定 <b class="mono">${sign(RG.score)}</b> (${esc(RG.date)})</span><span>詳しく見る ›</span>`;
+  const hist = RG.history.slice(-120);
+  $("rg-box").hidden = false;
+  $("rg-box").innerHTML = `
+    <div class="rg-h"><span>市場環境</span><span class="st s${RG.state}">${esc(RG.label)}</span>
+      <span>投資資金の目安 <b class="mono">${RG.invest_pct}%</b></span>
+      <small>判定 ${sign(RG.score)} (4指標の合計、+2以上で強気・-2以下で弱気) · ${RG.run_days}営業日連続 · 基準日 ${esc(RG.date)}</small></div>
+    <div class="rg-ind">${RG.indicators.map((x) => `<div><span class="pt p${has(x.pt) ? x.pt : "n"}">${has(x.pt) ? RG_MARK[x.pt] : "データ不足"}</span><b>${esc(x.name)}</b>
+      <small>${esc(rgDetail(x))}</small><small>${esc(x.rule)}</small></div>`).join("")}</div>
+    <div><div class="rg-strip" role="img" aria-label="直近${hist.length}営業日の判定の推移">${hist.map(([d, sc, st]) => `<i class="s${st}" title="${esc(d)} ${esc(RG_MARK[st].split(" ")[1])} (${sign(sc)})"></i>`).join("")}</div>
+      <div class="rg-strip-l"><span>${esc(hist.length ? hist[0][0] : "")}</span><span>赤=強気・灰=中立・緑=弱気</span><span>${esc(hist.length ? hist[hist.length - 1][0] : "")}</span></div></div>
+    <p class="rg-note">投資資金の目安は 強気${RG.invest["強気"]}%・中立${RG.invest["中立"]}%・弱気${RG.invest["弱気"]}% (弱気では総合スコアの高い銘柄だけ新規買い)。判定方法と比率は運用開始時の仮設定で、これから検証して見直します。TOPIX はTOPIX連動ETF (1306) で代用しています。</p>`;
+}
+
 function renderMarkets() {
   mkCharts.forEach((c) => c.remove()); mkCharts = [];
+  renderRegime();
   const groups = ["all", ...new Set(MK.items.map((i) => i.group))];
   $("mk-group").innerHTML = groups.map((g) => `<button data-g="${esc(g)}">${g === "all" ? "すべて" : esc(g)}</button>`).join("");
   $("mk-group").querySelectorAll("button").forEach((b) => b.addEventListener("click", () => { mkGroup = b.dataset.g; renderMarkets(); }));
@@ -1143,6 +1192,7 @@ function route() {
   $("mk-view").hidden = view !== "mk";
   $("cal-view").hidden = view !== "cal";
   $("rank-view").hidden = view !== "rank";
+  $("rg-mini").hidden = !RG || view === "mk";
   [["nav-rank", "rank"], ["nav-hold", "hold"], ["nav-mk", "mk"], ["nav-cal", "cal"]].forEach(([n, v]) => $(n).setAttribute("aria-current", view === v ? "page" : "false"));
   if (view === "hold") { renderHoldings(); return; }
   if (view === "mk") { renderMarkets(); return; }
@@ -1152,8 +1202,9 @@ function route() {
   renderTabs(); renderHead(); renderTable();
 }
 
-Promise.all([load(), loadHoldings(), loadJSON("markets"), loadJSON("calendar"), loadJSON("sectors")]).then(([data, hold, mk, cal, sec]) => {
-  D = data; H = hold; MK = mk; CAL = cal; SEC = sec;
+Promise.all([load(), loadHoldings(), loadJSON("markets"), loadJSON("calendar"), loadJSON("sectors"), loadJSON("regime")]).then(([data, hold, mk, cal, sec, rg]) => {
+  D = data; H = hold; MK = mk; CAL = cal; SEC = sec; RG = rg;
+  renderRegime();
   sectorAverages();
   Object.values(D.stocks).forEach(withSector);
   $("sec-range").querySelectorAll("button").forEach((b) => b.addEventListener("click", () => { secDays = +b.dataset.d; renderSectors(); }));

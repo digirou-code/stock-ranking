@@ -707,18 +707,17 @@ function rgDetail(x) {
 function renderRegime() {
   if (!RG) return;
   const sign = (v) => `${v > 0 ? "+" : ""}${v}`;
-  $("rg-mini").innerHTML = `<span>市場環境</span><b class="st s${RG.state}">${esc(RG.label)}</b><span>投資資金の目安 <b class="mono">${RG.invest_pct}%</b></span><span>判定 <b class="mono">${sign(RG.score)}</b> (${esc(RG.date)})</span><span>詳しく見る ›</span>`;
+  $("rg-mini").innerHTML = `<span>市場環境</span><b class="st s${RG.state}">${esc(RG.label)}</b><span>判定 <b class="mono">${sign(RG.score)}</b> (${esc(RG.date)})</span><span>詳しく見る ›</span>`;
   const hist = RG.history.slice(-120);
   $("rg-box").hidden = false;
   $("rg-box").innerHTML = `
     <div class="rg-h"><span>市場環境</span><span class="st s${RG.state}">${esc(RG.label)}</span>
-      <span>投資資金の目安 <b class="mono">${RG.invest_pct}%</b></span>
       <small>判定 ${sign(RG.score)} (4指標の合計、+2以上で強気・-2以下で弱気) · ${RG.run_days}営業日連続 · 基準日 ${esc(RG.date)}</small></div>
     <div class="rg-ind">${RG.indicators.map((x) => `<div><span class="pt p${has(x.pt) ? x.pt : "n"}">${has(x.pt) ? RG_MARK[x.pt] : "データ不足"}</span><b>${esc(x.name)}</b>
       <small>${esc(rgDetail(x))}</small><small>${esc(x.rule)}</small></div>`).join("")}</div>
     <div><div class="rg-strip" role="img" aria-label="直近${hist.length}営業日の判定の推移">${hist.map(([d, sc, st]) => `<i class="s${st}" title="${esc(d)} ${esc(RG_MARK[st].split(" ")[1])} (${sign(sc)})"></i>`).join("")}</div>
       <div class="rg-strip-l"><span>${esc(hist.length ? hist[0][0] : "")}</span><span>赤=強気・灰=中立・緑=弱気</span><span>${esc(hist.length ? hist[hist.length - 1][0] : "")}</span></div></div>
-    <p class="rg-note">投資資金の目安は 強気${RG.invest["強気"]}%・中立${RG.invest["中立"]}%・弱気${RG.invest["弱気"]}% (弱気では総合スコアの高い銘柄だけ新規買い)。判定方法と比率は運用開始時の仮設定で、これから検証して見直します。TOPIX はTOPIX連動ETF (1306) で代用しています。</p>`;
+    <p class="rg-note">参考情報です。2017〜2026年の検証では、この判定で保有を減らすと、売買代金上位を持ち続ける場合より成績が悪くなりました (判定が値動きのあとに出るため、下げたところで売って戻りを逃す)。売買の量を決める目安には使わないでください。TOPIX はTOPIX連動ETF (1306) で代用しています。</p>`;
 }
 
 function renderMarkets() {

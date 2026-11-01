@@ -17,9 +17,11 @@ min_turnover_oku = 1.0      # 共通: 売買代金20日平均 (億円)
 min_bars = 75               # 共通: 上場からの営業日数 (既存検証と同じ)
 exclude_no_fins = true      # 決算短信が一度も無い銘柄 (ETF・REIT など) を除く
 
+# 2026-11-02 ユーザー判断: 紙上運用は検証8 (大型株100%・R2そのまま) の構成で行う。
+# 検証8は合格基準のうちコスト試験だけ不合格 (日経比 -1.5pt)。紙上運用で実際の売買コストを測る。
 [sleeves.L]
 name = "大型株 (売買代金上位)"
-weight = 0.50
+weight = 1.00
 slots = 10
 pool = 300                  # 売買代金上位300の中から
 rule = "R2"
@@ -27,7 +29,7 @@ idle = "cash"
 
 [sleeves.G]
 name = "成長株"
-weight = 0.35
+weight = 0.0                # 紙上運用では使わない (検証8)。元は 0.35
 slots = 7
 rule = "R4"
 idle = "etf"
@@ -37,7 +39,7 @@ max_per_sector = 2
 
 [sleeves.R]
 name = "急落リバウンド"
-weight = 0.15
+weight = 0.0                # 紙上運用では使わない (検証8)。元は 0.15
 slots = 5
 rule = "RB"
 idle = "etf"

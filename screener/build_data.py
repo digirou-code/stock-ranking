@@ -503,7 +503,8 @@ def fetch_prices(codes):
                 "pos52": pos52,
                 "to": float((h["Close"] * h["Volume"]).tail(20).mean()) / 1e8,  # 億円
                 "date": h.index[-1].strftime("%Y-%m-%d"),
-                "_close": close,  # セクター平均の計算用 (出力しない)
+                "_close": close,  # セクター平均・市場環境の計算用 (出力しない)
+                "_to": h["Close"] * h["Volume"],  # 市場環境の売買代金用 (出力しない)
                 "bars": [[i.strftime("%Y-%m-%d"), *(round(float(r[k]), 1) for k in ("Open", "High", "Low", "Close")),
                           int(r["Volume"]) if ok(float(r["Volume"])) else 0]
                          for i, r in h.tail(BAR_DAYS).iterrows()],
@@ -536,6 +537,28 @@ def write_sectors(prices, universe):
     out = {"dates": list(df.index), "series": series, "counts": counts}
     (DATA_DIR / "sectors.json").write_text(json.dumps(out, ensure_ascii=False, separators=(",", ":")), encoding="utf-8")
     print(f"sectors: {len(series)} sectors, {len(df)} days")
+
+
+def write_regime(prices, universe):
+    """市場環境 (強気・中立・弱気) を docs/data/regime.json に書く。設計書 STEP1"""
+    import pandas as pd
+    import yfinance as yf
+    import regime
+    idx = {}
+    for sym in ("^N225", "1306.T"):  # 200日線のため2年分
+        h = yf.Ticker(sym).history(period="2y", interval="1d", auto_adjust=True)
+        idx[sym] = h["Close"].dropna()
+    codes = {u["c"] for u in universe}
+    closes = pd.DataFrame({c: pr["_close"] for c, pr in prices.items() if c in codes and "_close" in pr})
+    turnover = pd.DataFrame({c: pr["_to"] for c, pr in prices.items() if c in codes and "_to" in pr})
+    enough = turnover.count(axis=1) >= turnover.count(axis=1).max() * 0.5  # 銘柄がそろっていない日は除く
+    out = regime.compute(idx["^N225"], idx["1306.T"], closes, turnover.sum(axis=1)[enough] / 1e8)
+    if not out:
+        print("regime: not enough data")
+        return
+    out["generated_at"] = dt.datetime.now(JST).isoformat(timespec="minutes")
+    (DATA_DIR / "regime.json").write_text(json.dumps(out, ensure_ascii=False, separators=(",", ":")), encoding="utf-8")
+    print(f"regime: {out['date']} {out['label']} (score {out['score']}, {out['known']}/4 indicators)")
 
 
 def write_bars(prices, codes):
@@ -800,6 +823,10 @@ def build_real():
         write_sectors(prices, universe)
     except Exception as e:
         print(f"sectors failed: {e}")
+    try:
+        write_regime(prices, universe)
+    except Exception as e:
+        print(f"regime failed: {e}")
     write_bars(prices, {row["c"] for sc in screens for row in sc["rows"]} | {h["c"] for h in holdings})
 
 

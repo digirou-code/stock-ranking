@@ -1,42 +1,42 @@
 {
- "asof": "2026-11-12",
- "generated_at": "2026-11-12T17:40:50",
+ "asof": "2026-11-13",
+ "generated_at": "2026-11-13T17:19:23",
  "mode": "紙上運用",
  "paper_start": "2026-11-02",
- "value": 31256799.71200001,
+ "value": 31064592.112000003,
  "initial": 30000000.0,
  "cash": 1357189.252000006,
  "perf": [
   {
    "label": "当日",
-   "mine": -1.79,
+   "mine": -0.61,
    "nikkei": 0.0,
-   "diff": -1.79
+   "diff": -0.61
   },
   {
    "label": "月初来",
-   "mine": 4.19,
+   "mine": 3.55,
    "nikkei": 0.0,
-   "diff": 4.19
+   "diff": 3.55
   },
   {
    "label": "年初来",
-   "mine": 4.19,
+   "mine": 3.55,
    "nikkei": 0.0,
-   "diff": 4.19
+   "diff": 3.55
   },
   {
    "label": "開始来",
-   "mine": 4.19,
+   "mine": 3.55,
    "nikkei": 0.0,
-   "diff": 4.19
+   "diff": 3.55
   }
  ],
- "dd": -0.017857934453035962,
+ "dd": -0.02389742573228404,
  "brake_scale": 1.0,
- "open_risk_pct": 0.12650943271335247,
+ "open_risk_pct": 0.12109864460595367,
  "sleeve_mv": {
-  "L": 20418100.0
+  "L": 20225700.0
  },
  "orders": {
   "buy": [],
@@ -49,12 +49,12 @@
     "shares": 300,
     "remaining": 200,
     "entry_px": 7900.0,
-    "last": 9300.0,
-    "pnl_pct": 17.7,
+    "last": 9091.0,
+    "pnl_pct": 15.1,
     "stop": 7426.0,
     "take1": null,
     "take2": 11060.0,
-    "days_left": 20,
+    "days_left": 19,
     "time_exit_tomorrow": false,
     "near_stop": false,
     "earnings": null
@@ -66,12 +66,12 @@
     "shares": 100,
     "remaining": 100,
     "entry_px": 25485.0,
-    "last": 29985.0,
-    "pnl_pct": 17.7,
+    "last": 30610.0,
+    "pnl_pct": 20.1,
     "stop": 23955.9,
     "take1": null,
     "take2": 35679.0,
-    "days_left": 20,
+    "days_left": 19,
     "time_exit_tomorrow": false,
     "near_stop": false,
     "earnings": null
@@ -83,12 +83,12 @@
     "shares": 400,
     "remaining": 200,
     "entry_px": 5780.0,
-    "last": 7151.0,
-    "pnl_pct": 23.7,
+    "last": 7095.0,
+    "pnl_pct": 22.8,
     "stop": 5433.2,
     "take1": null,
     "take2": 8092.0,
-    "days_left": 20,
+    "days_left": 19,
     "time_exit_tomorrow": false,
     "near_stop": false,
     "earnings": null
@@ -100,12 +100,12 @@
     "shares": 800,
     "remaining": 400,
     "entry_px": 3350.0,
-    "last": 3738.0,
-    "pnl_pct": 11.6,
+    "last": 3547.0,
+    "pnl_pct": 5.9,
     "stop": 3149.0,
     "take1": null,
     "take2": 4690.0,
-    "days_left": 20,
+    "days_left": 19,
     "time_exit_tomorrow": false,
     "near_stop": false,
     "earnings": null
@@ -117,12 +117,12 @@
     "shares": 100,
     "remaining": 100,
     "entry_px": 29370.0,
-    "last": 36380.0,
-    "pnl_pct": 23.9,
+    "last": 36130.0,
+    "pnl_pct": 23.0,
     "stop": 27607.8,
     "take1": null,
     "take2": 41118.0,
-    "days_left": 20,
+    "days_left": 19,
     "time_exit_tomorrow": false,
     "near_stop": false,
     "earnings": null
@@ -134,12 +134,12 @@
     "shares": 600,
     "remaining": 300,
     "entry_px": 4372.0,
-    "last": 5224.0,
-    "pnl_pct": 19.5,
+    "last": 5177.0,
+    "pnl_pct": 18.4,
     "stop": 4109.7,
     "take1": null,
     "take2": 6120.8,
-    "days_left": 20,
+    "days_left": 19,
     "time_exit_tomorrow": false,
     "near_stop": false,
     "earnings": null
@@ -151,12 +151,12 @@
     "shares": 400,
     "remaining": 200,
     "entry_px": 5726.0,
-    "last": 6344.0,
-    "pnl_pct": 10.8,
+    "last": 6087.0,
+    "pnl_pct": 6.3,
     "stop": 5382.4,
     "take1": null,
     "take2": 8016.4,
-    "days_left": 20,
+    "days_left": 19,
     "time_exit_tomorrow": false,
     "near_stop": false,
     "earnings": null
@@ -168,12 +168,12 @@
     "shares": 300,
     "remaining": 200,
     "entry_px": 7502.0,
-    "last": 9304.0,
-    "pnl_pct": 24.0,
+    "last": 9461.0,
+    "pnl_pct": 26.1,
     "stop": 7051.9,
     "take1": null,
     "take2": 10502.8,
-    "days_left": 20,
+    "days_left": 19,
     "time_exit_tomorrow": false,
     "near_stop": false,
     "earnings": null
@@ -185,12 +185,12 @@
     "shares": 1000,
     "remaining": 500,
     "entry_px": 2680.0,
-    "last": 3002.0,
-    "pnl_pct": 12.0,
+    "last": 2906.0,
+    "pnl_pct": 8.4,
     "stop": 2519.2,
     "take1": null,
     "take2": 3752.0,
-    "days_left": 20,
+    "days_left": 19,
     "time_exit_tomorrow": false,
     "near_stop": false,
     "earnings": null
@@ -202,15 +202,15 @@
     "shares": 800,
     "remaining": 800,
     "entry_px": 3320.0,
-    "last": 3498.0,
-    "pnl_pct": 5.4,
+    "last": 3475.0,
+    "pnl_pct": 4.7,
     "stop": 3120.8,
     "take1": 3984.0,
     "take2": 4648.0,
-    "days_left": 21,
+    "days_left": 20,
     "time_exit_tomorrow": false,
     "near_stop": false,
-    "earnings": "2026-11-13"
+    "earnings": null
    }
   ]
  },
@@ -222,12 +222,12 @@
    "shares": 300,
    "remaining": 200,
    "entry_px": 7900.0,
-   "last": 9300.0,
-   "pnl_pct": 17.7,
+   "last": 9091.0,
+   "pnl_pct": 15.1,
    "stop": 7426.0,
    "take1": null,
    "take2": 11060.0,
-   "days_left": 20,
+   "days_left": 19,
    "time_exit_tomorrow": false,
    "near_stop": false,
    "earnings": null
@@ -239,12 +239,12 @@
    "shares": 100,
    "remaining": 100,
    "entry_px": 25485.0,
-   "last": 29985.0,
-   "pnl_pct": 17.7,
+   "last": 30610.0,
+   "pnl_pct": 20.1,
    "stop": 23955.9,
    "take1": null,
    "take2": 35679.0,
-   "days_left": 20,
+   "days_left": 19,
    "time_exit_tomorrow": false,
    "near_stop": false,
    "earnings": null
@@ -256,12 +256,12 @@
    "shares": 400,
    "remaining": 200,
    "entry_px": 5780.0,
-   "last": 7151.0,
-   "pnl_pct": 23.7,
+   "last": 7095.0,
+   "pnl_pct": 22.8,
    "stop": 5433.2,
    "take1": null,
    "take2": 8092.0,
-   "days_left": 20,
+   "days_left": 19,
    "time_exit_tomorrow": false,
    "near_stop": false,
    "earnings": null
@@ -273,12 +273,12 @@
    "shares": 800,
    "remaining": 400,
    "entry_px": 3350.0,
-   "last": 3738.0,
-   "pnl_pct": 11.6,
+   "last": 3547.0,
+   "pnl_pct": 5.9,
    "stop": 3149.0,
    "take1": null,
    "take2": 4690.0,
-   "days_left": 20,
+   "days_left": 19,
    "time_exit_tomorrow": false,
    "near_stop": false,
    "earnings": null
@@ -290,12 +290,12 @@
    "shares": 100,
    "remaining": 100,
    "entry_px": 29370.0,
-   "last": 36380.0,
-   "pnl_pct": 23.9,
+   "last": 36130.0,
+   "pnl_pct": 23.0,
    "stop": 27607.8,
    "take1": null,
    "take2": 41118.0,
-   "days_left": 20,
+   "days_left": 19,
    "time_exit_tomorrow": false,
    "near_stop": false,
    "earnings": null
@@ -307,12 +307,12 @@
    "shares": 600,
    "remaining": 300,
    "entry_px": 4372.0,
-   "last": 5224.0,
-   "pnl_pct": 19.5,
+   "last": 5177.0,
+   "pnl_pct": 18.4,
    "stop": 4109.7,
    "take1": null,
    "take2": 6120.8,
-   "days_left": 20,
+   "days_left": 19,
    "time_exit_tomorrow": false,
    "near_stop": false,
    "earnings": null
@@ -324,12 +324,12 @@
    "shares": 400,
    "remaining": 200,
    "entry_px": 5726.0,
-   "last": 6344.0,
-   "pnl_pct": 10.8,
+   "last": 6087.0,
+   "pnl_pct": 6.3,
    "stop": 5382.4,
    "take1": null,
    "take2": 8016.4,
-   "days_left": 20,
+   "days_left": 19,
    "time_exit_tomorrow": false,
    "near_stop": false,
    "earnings": null
@@ -341,12 +341,12 @@
    "shares": 300,
    "remaining": 200,
    "entry_px": 7502.0,
-   "last": 9304.0,
-   "pnl_pct": 24.0,
+   "last": 9461.0,
+   "pnl_pct": 26.1,
    "stop": 7051.9,
    "take1": null,
    "take2": 10502.8,
-   "days_left": 20,
+   "days_left": 19,
    "time_exit_tomorrow": false,
    "near_stop": false,
    "earnings": null
@@ -358,12 +358,12 @@
    "shares": 1000,
    "remaining": 500,
    "entry_px": 2680.0,
-   "last": 3002.0,
-   "pnl_pct": 12.0,
+   "last": 2906.0,
+   "pnl_pct": 8.4,
    "stop": 2519.2,
    "take1": null,
    "take2": 3752.0,
-   "days_left": 20,
+   "days_left": 19,
    "time_exit_tomorrow": false,
    "near_stop": false,
    "earnings": null
@@ -375,199 +375,190 @@
    "shares": 800,
    "remaining": 800,
    "entry_px": 3320.0,
-   "last": 3498.0,
-   "pnl_pct": 5.4,
+   "last": 3475.0,
+   "pnl_pct": 4.7,
    "stop": 3120.8,
    "take1": 3984.0,
    "take2": 4648.0,
-   "days_left": 21,
+   "days_left": 20,
    "time_exit_tomorrow": false,
    "near_stop": false,
-   "earnings": "2026-11-13"
+   "earnings": null
   }
  ],
  "candidates": {
   "L": [
    {
     "code": "285A0",
-    "score": 11491.81,
-    "d1": 401.46,
-    "d5": 1455.78,
-    "close": 9300.0,
-    "to20": 11491.8
+    "score": 11622.41,
+    "d1": 130.6,
+    "d5": 1195.83,
+    "close": 9091.0,
+    "to20": 11622.4
    },
    {
     "code": "68570",
-    "score": 6342.74,
-    "d1": -24.49,
-    "d5": 314.62,
-    "close": 29985.0,
-    "to20": 6342.7
+    "score": 6185.92,
+    "d1": -156.82,
+    "d5": -50.95,
+    "close": 30610.0,
+    "to20": 6185.9
    },
    {
     "code": "69760",
-    "score": 2654.86,
-    "d1": -42.04,
-    "d5": -234.11,
-    "close": 7151.0,
-    "to20": 2654.9
+    "score": 2583.33,
+    "d1": -71.53,
+    "d5": -245.4,
+    "close": 7095.0,
+    "to20": 2583.3
    },
    {
     "code": "99840",
-    "score": 2449.59,
-    "d1": 11.75,
-    "d5": -27.23,
-    "close": 3738.0,
-    "to20": 2449.6
+    "score": 2391.89,
+    "d1": -57.7,
+    "d5": -111.84,
+    "close": 3547.0,
+    "to20": 2391.9
    },
    {
     "code": "69200",
-    "score": 1937.45,
-    "d1": -94.89,
-    "d5": -163.4,
-    "close": 36380.0,
-    "to20": 1937.4
+    "score": 1864.78,
+    "d1": -72.67,
+    "d5": -253.44,
+    "close": 36130.0,
+    "to20": 1864.8
    },
    {
     "code": "80350",
-    "score": 1775.4,
-    "d1": 35.39,
-    "d5": 160.79,
-    "close": 9304.0,
-    "to20": 1775.4
+    "score": 1769.0,
+    "d1": -6.4,
+    "d5": 78.17,
+    "close": 9461.0,
+    "to20": 1769.0
    },
    {
     "code": "40620",
-    "score": 1769.46,
-    "d1": 63.46,
-    "d5": 146.98,
-    "close": 6344.0,
-    "to20": 1769.5
+    "score": 1735.5,
+    "d1": -33.97,
+    "d5": 68.84,
+    "close": 6087.0,
+    "to20": 1735.5
    },
    {
     "code": "69810",
-    "score": 1585.1,
-    "d1": 3.71,
-    "d5": -58.88,
-    "close": 5224.0,
-    "to20": 1585.1
+    "score": 1539.42,
+    "d1": -45.68,
+    "d5": -117.68,
+    "close": 5177.0,
+    "to20": 1539.4
    },
    {
     "code": "58030",
-    "score": 1504.1,
-    "d1": -2.69,
-    "d5": -3.66,
-    "close": 3002.0,
-    "to20": 1504.1
+    "score": 1457.27,
+    "d1": -46.83,
+    "d5": -21.55,
+    "close": 2906.0,
+    "to20": 1457.3
    },
    {
     "code": "83060",
-    "score": 1182.87,
-    "d1": -1.13,
-    "d5": 15.16,
-    "close": 3498.0,
-    "to20": 1182.9
+    "score": 1172.11,
+    "d1": -10.76,
+    "d5": -28.02,
+    "close": 3475.0,
+    "to20": 1172.1
    }
   ],
   "G": [
    {
     "code": "27370",
     "score": 97.26,
-    "d1": 0.02,
-    "d5": -0.39,
-    "close": 25330.0,
-    "to20": 85.6
+    "d1": -0.01,
+    "d5": -0.37,
+    "close": 25420.0,
+    "to20": 82.3
    },
    {
     "code": "57020",
-    "score": 90.72,
-    "d1": 11.6,
-    "d5": 11.96,
-    "close": 1519.0,
-    "to20": 5.4
+    "score": 90.59,
+    "d1": -0.13,
+    "d5": 11.68,
+    "close": 1533.0,
+    "to20": 5.5
    },
    {
     "code": "72790",
-    "score": 89.88,
-    "d1": -0.16,
-    "d5": 0.17,
-    "close": 2205.0,
-    "to20": 2.0
+    "score": 89.65,
+    "d1": -0.23,
+    "d5": 0.18,
+    "close": 2241.0,
+    "to20": 2.1
    },
    {
     "code": "66750",
-    "score": 89.72,
-    "d1": -0.02,
-    "d5": -0.26,
-    "close": 1790.0,
+    "score": 89.63,
+    "d1": -0.09,
+    "d5": null,
+    "close": 1832.0,
     "to20": 1.5
    },
    {
     "code": "98800",
     "score": 89.21,
-    "d1": 12.48,
-    "d5": 7.76,
+    "d1": -0.0,
+    "d5": 7.66,
     "close": 3435.0,
-    "to20": 5.8
+    "to20": 5.9
    },
    {
     "code": "87040",
-    "score": 87.87,
-    "d1": 0.22,
-    "d5": -0.71,
-    "close": 1259.0,
+    "score": 87.65,
+    "d1": -0.23,
+    "d5": -1.0,
+    "close": 1274.0,
     "to20": 2.2
    },
    {
-    "code": "29750",
-    "score": 85.95,
-    "d1": 0.18,
-    "d5": 0.46,
-    "close": 1215.0,
-    "to20": 3.0
+    "code": "50190",
+    "score": 87.17,
+    "d1": 20.03,
+    "d5": 19.71,
+    "close": 1295.0,
+    "to20": 72.6
    },
    {
-    "code": "34650",
-    "score": 85.72,
-    "d1": 0.03,
-    "d5": 0.92,
-    "close": 3075.0,
-    "to20": 5.5
+    "code": "57140",
+    "score": 85.93,
+    "d1": 11.67,
+    "d5": 9.5,
+    "close": 8387.0,
+    "to20": 47.7
+   },
+   {
+    "code": "29750",
+    "score": 85.81,
+    "d1": -0.14,
+    "d5": -0.19,
+    "close": 1220.0,
+    "to20": 2.9
    },
    {
     "code": "32520",
-    "score": 85.47,
-    "d1": -0.11,
-    "d5": 6.37,
-    "close": 2936.0,
-    "to20": 5.0
-   },
-   {
-    "code": "68750",
-    "score": 84.12,
-    "d1": 0.03,
-    "d5": 2.86,
-    "close": 8710.0,
-    "to20": 14.2
+    "score": 85.42,
+    "d1": -0.05,
+    "d5": 8.74,
+    "close": 2934.0,
+    "to20": 4.8
    }
   ],
-  "R": [
-   {
-    "code": "29140",
-    "score": 22.82,
-    "d1": null,
-    "d5": null,
-    "close": 5996.0,
-    "to20": 655.5
-   }
-  ]
+  "R": []
  },
  "warnings": [
-  "損切りになった場合の損失合計が総資産の 12.7%",
+  "損切りになった場合の損失合計が総資産の 12.1%",
   "69200 が総資産の10%超"
  ],
  "fetched": [
-  "2026-11-12"
+  "2026-11-13"
  ],
  "config": {
   "L": {

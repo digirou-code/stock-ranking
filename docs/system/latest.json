@@ -1,42 +1,42 @@
 {
- "asof": "2026-11-19",
- "generated_at": "2026-11-19T18:27:34",
+ "asof": "2026-11-20",
+ "generated_at": "2026-11-20T17:56:06",
  "mode": "紙上運用",
  "paper_start": "2026-11-02",
- "value": 29355773.764000006,
+ "value": 27805627.774000004,
  "initial": 30000000.0,
- "cash": 2303692.9240000066,
+ "cash": 1947421.864000007,
  "perf": [
   {
    "label": "当日",
-   "mine": 0.43,
+   "mine": -5.28,
    "nikkei": 0.0,
-   "diff": 0.43
+   "diff": -5.28
   },
   {
    "label": "月初来",
-   "mine": -2.15,
+   "mine": -7.31,
    "nikkei": 0.0,
-   "diff": -2.15
+   "diff": -7.31
   },
   {
    "label": "年初来",
-   "mine": -2.15,
+   "mine": -7.31,
    "nikkei": 0.0,
-   "diff": -2.15
+   "diff": -7.31
   },
   {
    "label": "開始来",
-   "mine": -2.15,
+   "mine": -7.31,
    "nikkei": 0.0,
-   "diff": -2.15
+   "diff": -7.31
   }
  ],
- "dd": -0.07759141863664853,
+ "dd": -0.12629965487791173,
  "brake_scale": 1.0,
- "open_risk_pct": 0.07924369559124933,
+ "open_risk_pct": 0.035307600604435836,
  "sleeve_mv": {
-  "L": 18131900.0
+  "L": 11820900.0
  },
  "orders": {
   "buy": [],
@@ -44,68 +44,17 @@
   "standing": [
    {
     "sleeve": "L",
-    "code": "285A0",
-    "entry": "2026-11-06",
-    "shares": 300,
-    "remaining": 200,
-    "entry_px": 7900.0,
-    "last": 8271.0,
-    "pnl_pct": 4.7,
-    "stop": 7426.0,
-    "take1": null,
-    "take2": 11060.0,
-    "days_left": 15,
-    "time_exit_tomorrow": false,
-    "near_stop": false,
-    "earnings": null
-   },
-   {
-    "sleeve": "L",
-    "code": "68570",
-    "entry": "2026-11-06",
-    "shares": 100,
-    "remaining": 100,
-    "entry_px": 25485.0,
-    "last": 27045.0,
-    "pnl_pct": 6.1,
-    "stop": 23955.9,
-    "take1": null,
-    "take2": 35679.0,
-    "days_left": 15,
-    "time_exit_tomorrow": false,
-    "near_stop": false,
-    "earnings": null
-   },
-   {
-    "sleeve": "L",
     "code": "69760",
     "entry": "2026-11-06",
     "shares": 400,
     "remaining": 200,
     "entry_px": 5780.0,
-    "last": 6755.0,
-    "pnl_pct": 16.9,
+    "last": 6187.0,
+    "pnl_pct": 7.0,
     "stop": 5433.2,
     "take1": null,
     "take2": 8092.0,
-    "days_left": 15,
-    "time_exit_tomorrow": false,
-    "near_stop": false,
-    "earnings": null
-   },
-   {
-    "sleeve": "L",
-    "code": "99840",
-    "entry": "2026-11-06",
-    "shares": 800,
-    "remaining": 400,
-    "entry_px": 3350.0,
-    "last": 3537.0,
-    "pnl_pct": 5.6,
-    "stop": 3149.0,
-    "take1": null,
-    "take2": 4690.0,
-    "days_left": 15,
+    "days_left": 14,
     "time_exit_tomorrow": false,
     "near_stop": false,
     "earnings": null
@@ -117,12 +66,12 @@
     "shares": 100,
     "remaining": 100,
     "entry_px": 29370.0,
-    "last": 33320.0,
-    "pnl_pct": 13.4,
+    "last": 30250.0,
+    "pnl_pct": 3.0,
     "stop": 27607.8,
     "take1": null,
     "take2": 41118.0,
-    "days_left": 15,
+    "days_left": 14,
     "time_exit_tomorrow": false,
     "near_stop": false,
     "earnings": null
@@ -134,12 +83,12 @@
     "shares": 600,
     "remaining": 300,
     "entry_px": 4372.0,
-    "last": 5161.0,
-    "pnl_pct": 18.0,
+    "last": 4700.0,
+    "pnl_pct": 7.5,
     "stop": 4109.7,
     "take1": null,
     "take2": 6120.8,
-    "days_left": 15,
+    "days_left": 14,
     "time_exit_tomorrow": false,
     "near_stop": false,
     "earnings": null
@@ -151,31 +100,14 @@
     "shares": 300,
     "remaining": 200,
     "entry_px": 7502.0,
-    "last": 8940.0,
-    "pnl_pct": 19.2,
+    "last": 8309.0,
+    "pnl_pct": 10.8,
     "stop": 7051.9,
     "take1": null,
     "take2": 10502.8,
-    "days_left": 15,
+    "days_left": 14,
     "time_exit_tomorrow": false,
     "near_stop": false,
-    "earnings": null
-   },
-   {
-    "sleeve": "L",
-    "code": "83060",
-    "entry": "2026-11-09",
-    "shares": 800,
-    "remaining": 800,
-    "entry_px": 3320.0,
-    "last": 3197.0,
-    "pnl_pct": -3.7,
-    "stop": 3120.8,
-    "take1": 3984.0,
-    "take2": 4648.0,
-    "days_left": 16,
-    "time_exit_tomorrow": false,
-    "near_stop": true,
     "earnings": null
    },
    {
@@ -185,12 +117,29 @@
     "shares": 100,
     "remaining": 100,
     "entry_px": 17850.0,
-    "last": 17815.0,
-    "pnl_pct": -0.2,
+    "last": 16835.0,
+    "pnl_pct": -5.7,
     "stop": 16779.0,
     "take1": 21420.0,
     "take2": 24990.0,
-    "days_left": 23,
+    "days_left": 22,
+    "time_exit_tomorrow": false,
+    "near_stop": true,
+    "earnings": null
+   },
+   {
+    "sleeve": "L",
+    "code": "40620",
+    "entry": "2026-11-20",
+    "shares": 600,
+    "remaining": 600,
+    "entry_px": 4735.0,
+    "last": 4672.0,
+    "pnl_pct": -1.3,
+    "stop": 4450.9,
+    "take1": 5682.0,
+    "take2": 6629.0,
+    "days_left": 24,
     "time_exit_tomorrow": false,
     "near_stop": false,
     "earnings": null
@@ -200,68 +149,17 @@
  "held": [
   {
    "sleeve": "L",
-   "code": "285A0",
-   "entry": "2026-11-06",
-   "shares": 300,
-   "remaining": 200,
-   "entry_px": 7900.0,
-   "last": 8271.0,
-   "pnl_pct": 4.7,
-   "stop": 7426.0,
-   "take1": null,
-   "take2": 11060.0,
-   "days_left": 15,
-   "time_exit_tomorrow": false,
-   "near_stop": false,
-   "earnings": null
-  },
-  {
-   "sleeve": "L",
-   "code": "68570",
-   "entry": "2026-11-06",
-   "shares": 100,
-   "remaining": 100,
-   "entry_px": 25485.0,
-   "last": 27045.0,
-   "pnl_pct": 6.1,
-   "stop": 23955.9,
-   "take1": null,
-   "take2": 35679.0,
-   "days_left": 15,
-   "time_exit_tomorrow": false,
-   "near_stop": false,
-   "earnings": null
-  },
-  {
-   "sleeve": "L",
    "code": "69760",
    "entry": "2026-11-06",
    "shares": 400,
    "remaining": 200,
    "entry_px": 5780.0,
-   "last": 6755.0,
-   "pnl_pct": 16.9,
+   "last": 6187.0,
+   "pnl_pct": 7.0,
    "stop": 5433.2,
    "take1": null,
    "take2": 8092.0,
-   "days_left": 15,
-   "time_exit_tomorrow": false,
-   "near_stop": false,
-   "earnings": null
-  },
-  {
-   "sleeve": "L",
-   "code": "99840",
-   "entry": "2026-11-06",
-   "shares": 800,
-   "remaining": 400,
-   "entry_px": 3350.0,
-   "last": 3537.0,
-   "pnl_pct": 5.6,
-   "stop": 3149.0,
-   "take1": null,
-   "take2": 4690.0,
-   "days_left": 15,
+   "days_left": 14,
    "time_exit_tomorrow": false,
    "near_stop": false,
    "earnings": null
@@ -273,12 +171,12 @@
    "shares": 100,
    "remaining": 100,
    "entry_px": 29370.0,
-   "last": 33320.0,
-   "pnl_pct": 13.4,
+   "last": 30250.0,
+   "pnl_pct": 3.0,
    "stop": 27607.8,
    "take1": null,
    "take2": 41118.0,
-   "days_left": 15,
+   "days_left": 14,
    "time_exit_tomorrow": false,
    "near_stop": false,
    "earnings": null
@@ -290,12 +188,12 @@
    "shares": 600,
    "remaining": 300,
    "entry_px": 4372.0,
-   "last": 5161.0,
-   "pnl_pct": 18.0,
+   "last": 4700.0,
+   "pnl_pct": 7.5,
    "stop": 4109.7,
    "take1": null,
    "take2": 6120.8,
-   "days_left": 15,
+   "days_left": 14,
    "time_exit_tomorrow": false,
    "near_stop": false,
    "earnings": null
@@ -307,31 +205,14 @@
    "shares": 300,
    "remaining": 200,
    "entry_px": 7502.0,
-   "last": 8940.0,
-   "pnl_pct": 19.2,
+   "last": 8309.0,
+   "pnl_pct": 10.8,
    "stop": 7051.9,
    "take1": null,
    "take2": 10502.8,
-   "days_left": 15,
+   "days_left": 14,
    "time_exit_tomorrow": false,
    "near_stop": false,
-   "earnings": null
-  },
-  {
-   "sleeve": "L",
-   "code": "83060",
-   "entry": "2026-11-09",
-   "shares": 800,
-   "remaining": 800,
-   "entry_px": 3320.0,
-   "last": 3197.0,
-   "pnl_pct": -3.7,
-   "stop": 3120.8,
-   "take1": 3984.0,
-   "take2": 4648.0,
-   "days_left": 16,
-   "time_exit_tomorrow": false,
-   "near_stop": true,
    "earnings": null
   },
   {
@@ -341,12 +222,29 @@
    "shares": 100,
    "remaining": 100,
    "entry_px": 17850.0,
-   "last": 17815.0,
-   "pnl_pct": -0.2,
+   "last": 16835.0,
+   "pnl_pct": -5.7,
    "stop": 16779.0,
    "take1": 21420.0,
    "take2": 24990.0,
-   "days_left": 23,
+   "days_left": 22,
+   "time_exit_tomorrow": false,
+   "near_stop": true,
+   "earnings": null
+  },
+  {
+   "sleeve": "L",
+   "code": "40620",
+   "entry": "2026-11-20",
+   "shares": 600,
+   "remaining": 600,
+   "entry_px": 4735.0,
+   "last": 4672.0,
+   "pnl_pct": -1.3,
+   "stop": 4450.9,
+   "take1": 5682.0,
+   "take2": 6629.0,
+   "days_left": 24,
    "time_exit_tomorrow": false,
    "near_stop": false,
    "earnings": null
@@ -356,200 +254,176 @@
   "L": [
    {
     "code": "285A0",
-    "score": 12618.32,
-    "d1": 273.48,
-    "d5": 1126.51,
-    "close": 8271.0,
-    "to20": 12618.3
+    "score": 12759.06,
+    "d1": 140.73,
+    "d5": 1136.65,
+    "close": 7307.0,
+    "to20": 12759.1
    },
    {
     "code": "68570",
-    "score": 6562.96,
-    "d1": 61.06,
-    "d5": 220.22,
-    "close": 27045.0,
-    "to20": 6563.0
+    "score": 6649.33,
+    "d1": 86.37,
+    "d5": 463.41,
+    "close": 24255.0,
+    "to20": 6649.3
    },
    {
     "code": "99840",
-    "score": 2389.31,
-    "d1": 24.71,
-    "d5": -60.28,
-    "close": 3537.0,
-    "to20": 2389.3
+    "score": 2442.07,
+    "d1": 52.76,
+    "d5": 50.18,
+    "close": 3025.0,
+    "to20": 2442.1
    },
    {
     "code": "69760",
-    "score": 2244.74,
-    "d1": -77.5,
-    "d5": -410.12,
-    "close": 6755.0,
-    "to20": 2244.7
+    "score": 2127.47,
+    "d1": -117.28,
+    "d5": -455.87,
+    "close": 6187.0,
+    "to20": 2127.5
    },
    {
     "code": "80350",
-    "score": 1933.86,
-    "d1": 36.31,
-    "d5": 158.45,
-    "close": 8940.0,
-    "to20": 1933.9
+    "score": 1937.95,
+    "d1": 4.1,
+    "d5": 168.95,
+    "close": 8309.0,
+    "to20": 1938.0
    },
    {
     "code": "69200",
-    "score": 1828.96,
-    "d1": 9.06,
-    "d5": -108.49,
-    "close": 33320.0,
-    "to20": 1829.0
+    "score": 1837.84,
+    "d1": 8.88,
+    "d5": -26.94,
+    "close": 30250.0,
+    "to20": 1837.8
    },
    {
     "code": "40620",
-    "score": 1717.5,
-    "d1": -19.5,
-    "d5": -51.96,
-    "close": 5260.0,
-    "to20": 1717.5
+    "score": 1708.64,
+    "d1": -8.87,
+    "d5": -26.86,
+    "close": 4672.0,
+    "to20": 1708.6
    },
    {
     "code": "69810",
-    "score": 1522.41,
-    "d1": -7.2,
-    "d5": -62.69,
-    "close": 5161.0,
-    "to20": 1522.4
+    "score": 1505.1,
+    "d1": -17.31,
+    "d5": -34.32,
+    "close": 4700.0,
+    "to20": 1505.1
    },
    {
     "code": "58030",
-    "score": 1451.45,
-    "d1": -3.38,
-    "d5": -52.65,
-    "close": 2564.5,
-    "to20": 1451.5
+    "score": 1462.39,
+    "d1": 10.94,
+    "d5": 5.12,
+    "close": 2252.0,
+    "to20": 1462.4
    },
    {
     "code": "83060",
-    "score": 1223.4,
-    "d1": -2.44,
-    "d5": 40.53,
-    "close": 3197.0,
-    "to20": 1223.4
+    "score": 1263.31,
+    "d1": 39.92,
+    "d5": 91.21,
+    "close": 3024.0,
+    "to20": 1263.3
    }
   ],
   "G": [
    {
     "code": "27370",
-    "score": 97.53,
-    "d1": -0.02,
-    "d5": 0.26,
-    "close": 22960.0,
-    "to20": 74.8
+    "score": 97.65,
+    "d1": 0.12,
+    "d5": 0.39,
+    "close": 21370.0,
+    "to20": 73.8
    },
    {
     "code": "57020",
-    "score": 90.89,
-    "d1": 0.07,
-    "d5": 0.17,
-    "close": 1409.0,
-    "to20": 6.1
+    "score": 90.93,
+    "d1": 0.04,
+    "d5": 0.34,
+    "close": 1347.0,
+    "to20": 6.2
    },
    {
     "code": "72390",
-    "score": 90.8,
-    "d1": 0.01,
-    "d5": 33.74,
-    "close": 2327.0,
+    "score": 90.78,
+    "d1": -0.03,
+    "d5": 34.35,
+    "close": 2283.0,
     "to20": 4.0
    },
    {
     "code": "72790",
-    "score": 90.54,
-    "d1": 0.26,
-    "d5": 0.65,
-    "close": 2040.0,
-    "to20": 2.3
+    "score": 90.58,
+    "d1": 0.04,
+    "d5": 0.93,
+    "close": 1984.0,
+    "to20": 2.4
    },
    {
     "code": "98800",
-    "score": 90.0,
-    "d1": 0.07,
-    "d5": 0.78,
-    "close": 3070.0,
-    "to20": 6.2
-   },
-   {
-    "code": "66750",
-    "score": 89.58,
-    "d1": -0.05,
-    "d5": -0.13,
-    "close": 1741.0,
-    "to20": 1.7
+    "score": 90.22,
+    "d1": 0.22,
+    "d5": 1.01,
+    "close": 2918.0,
+    "to20": 6.5
    },
    {
     "code": "87040",
-    "score": 87.94,
-    "d1": -0.13,
-    "d5": 0.07,
-    "close": 1199.0,
+    "score": 88.33,
+    "d1": 0.39,
+    "d5": 0.68,
+    "close": 1144.0,
     "to20": 2.2
    },
    {
     "code": "50190",
-    "score": 87.48,
-    "d1": 0.23,
-    "d5": 20.34,
-    "close": 1210.5,
-    "to20": 72.6
+    "score": 87.78,
+    "d1": 0.3,
+    "d5": 0.61,
+    "close": 1154.5,
+    "to20": 73.6
    },
    {
     "code": "29750",
-    "score": 86.68,
-    "d1": 0.11,
-    "d5": 0.73,
-    "close": 1127.0,
+    "score": 87.07,
+    "d1": 0.39,
+    "d5": 1.27,
+    "close": 1075.0,
     "to20": 2.6
    },
    {
     "code": "57110",
-    "score": 86.59,
-    "d1": 0.61,
-    "d5": 6.09,
-    "close": 3737.0,
-    "to20": 71.0
+    "score": 87.01,
+    "d1": 0.41,
+    "d5": 1.89,
+    "close": 3512.0,
+    "to20": 72.4
+   },
+   {
+    "code": "57140",
+    "score": 86.93,
+    "d1": 0.37,
+    "d5": 1.0,
+    "close": 7126.0,
+    "to20": 53.8
    }
   ],
-  "R": [
-   {
-    "code": "49800",
-    "score": 37.14,
-    "d1": null,
-    "d5": null,
-    "close": 2031.0,
-    "to20": 65.7
-   },
-   {
-    "code": "69200",
-    "score": 21.14,
-    "d1": -1.73,
-    "d5": null,
-    "close": 33320.0,
-    "to20": 1829.0
-   },
-   {
-    "code": "67870",
-    "score": 20.29,
-    "d1": null,
-    "d5": null,
-    "close": 8370.0,
-    "to20": 148.1
-   }
-  ]
+  "R": []
  },
  "warnings": [
-  "前日比±50%超で分割調整のない銘柄: 45860",
-  "69200 が総資産の10%超"
+  "1日の損失 -5.3%",
+  "69200 が総資産の10%超",
+  "40620 が総資産の10%超"
  ],
  "fetched": [
-  "2026-11-19"
+  "2026-11-20"
  ],
  "config": {
   "L": {
